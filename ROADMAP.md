@@ -1,5 +1,54 @@
 # Proton VPN TUI - Roadmap
 
+## Phase 1: Project Setup (✅ 完了)
+
+- [x] 1.1 Rustプロジェクト初期化 (`cargo new protonvpn-tui`)
+- [x] 1.2 依存関係追加 (crossterm, tokio, serde, etc.)
+- [x] 1.3 CI/CD設定 (GitHub Actions)
+  - [x] 1.3.1 CIワークフロー作成 (test, clippy, fmt)
+  - [x] 1.3.2 キャッシュ設定 (依存関係キャッシュ)
+  - [x] 1.3.3 マトリックス戦略 (複数OSテスト: ubuntu, macOS, Windows)
+  - [x] 1.3.4 PR自動チェック設定
+- [x] 1.4 Linter/Formatter設定 (clippy, rustfmt)
+
+---
+
+## Phase 2: TUI Skeleton (✅ 完了)
+
+- [x] 2.1 ウィンドウ初期化・メインループ実装
+- [x] 2.2 パネルレイアウト設計 (ヘッダー/メイン/フッター)
+- [x] 2.3 基本スタイル定義 (配色、フォント)
+- [x] 2.4 ratatui導入 (UIライブラリ)
+- [x] 2.5 vim風keybind (q, Tab, s, r, ?, ,)
+- [x] 2.6 アプリ終了処理 (ターミナル復旧)
+
+- [x] 2.1 ウィンドウ初期化・メインループ実装
+- [x] 2.2 パネルレイアウト設計 (ヘッダー/メイン/フッター)
+- [x] 2.3 基本スタイル定義 (配色、フォント)
+- [x] 2.4 アプリ起動時のスプラッシュ画面
+- [x] 2.5 アプリ終了処理
+
+---
+
+## Phase 3: VPN Backend Integration (✅ 完了)
+
+- [x] 3.1 protonvpn-cliラッパー作成
+  - [x] 3.1.1 接続・切断コマンド実行
+  - [x] 3.1.2 サーバー一覧取得
+  - [x] 3.1.3 接続状態取得
+- [x] 3.2 モックデータ実装 (テスト用)
+- [x] 3.3 認証情報読み込み (設定ファイル流用)
+- [x] 3.4 非同期タスク処理 (tokio)
+- [x] 3.5 エラー処理・ログ出力
+
+- [x] 3.6 通知ポップアップシステム追加
+  - [x] 3.6.1 Notification型・NotificationType列挙体追加
+  - [x] 3.6.2 AppStateにnotificationフィールド追加
+  - [x] 3.6.3 ヘッダーエリアに通知表示
+  - [x] 3.6.4 接続/切断失敗時の通知表示
+  - [x] 3.6.5 terminal出力と通知の重複表示問題を解決
+
+---
 ## Phase 1: Project Setup (完了)
 
 - [ ] 1.1 Rustプロジェクト初期化 (`cargo new protonvpn-tui`)
@@ -21,7 +70,6 @@
 - [ ] 2.4 アプリ起動時のスプラッシュ画面
 - [ ] 2.5 アプリ終了処理
 
----
 
 ## Phase 3: VPN Backend Integration
 

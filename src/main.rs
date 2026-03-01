@@ -1,20 +1,24 @@
 //! ProtonVPN TUI - Entry point
 
-use protonvpn_tui::AppState;
+use protonvpn_tui::ui::app::TuiApp;
+use std::io;
 
-fn main() {
-    // Initialize logging
+fn main() -> io::Result<()> {
+    // Initialize logging to stderr (won't interfere with TUI)
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
                 .add_directive("protonvpn_tui=info".parse().unwrap()),
         )
+        .with_target(false)
         .init();
 
     tracing::info!("Starting ProtonVPN TUI");
 
-    // Initialize application state
-    let _app = AppState::new();
+    // Initialize and run TUI
+    let mut app = TuiApp::new()?;
+    app.run()?;
 
-    tracing::info!("Application initialized successfully");
+    tracing::info!("Shutting down ProtonVPN TUI");
+    Ok(())
 }

@@ -1,7 +1,8 @@
 //! Main TUI application using ratatui
 
+use crate::state::{AppState, AppView};
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEventKind},
+    event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -10,16 +11,17 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Frame, Terminal,
 };
 use std::io;
 use std::panic;
-use crate::state::{AppState, AppView, ConnectionState};
 
 pub struct TuiApp {
     state: AppState,
     notification_timer: u8,
+    list_state: ListState,
+    pending_g: bool, // for gg command
 }
 
 impl TuiApp {
@@ -32,30 +34,21 @@ impl TuiApp {
         let mut state = AppState::new();
         // Sync connection state from system (check proton0)
         state.sync_connection_state();
-        state.refresh_servers();
-        // Show startup notification with connection status
-        let conn_status = if state.connection.is_connected() {
-            if let ConnectionState::Connected { ref server, ref ip } = state.connection {
-                format!("Connected to {} ({})", server, ip)
-            } else {
-                "Connected".to_string()
-            }
-        } else {
-            "Disconnected".to_string()
-        };
-        state.show_notification(
-            format!("Loaded {} servers | {}", state.servers.len(), conn_status),
-            if state.connection.is_connected() {
-                crate::state::NotificationType::Success
-            } else {
-                crate::state::NotificationType::Info
-            },
-        );
+        // Load cached servers
+        state.load_cached_servers();
+        // Show startup notification
 
-        Ok(Self { state, notification_timer: 30 })
+        Ok(Self {
+            state,
+            notification_timer: 30,
+            list_state: ListState::default(),
+            pending_g: false,
+        })
     }
 
     pub fn run(&mut self) -> io::Result<()> {
+        execute!(io::stdout(), EnterAlternateScreen)?;
+
         execute!(io::stdout(), EnterAlternateScreen)?;
         enable_raw_mode()?;
 
@@ -98,9 +91,15 @@ impl TuiApp {
         match key_event.code {
             KeyCode::Char('q') => Some(AppAction::Quit),
             KeyCode::Tab => Some(AppAction::SwitchView),
-            KeyCode::Char('c') => {
+            KeyCode::Char('c') | KeyCode::Enter => {
                 self.state.connect();
                 self.notification_timer = 30;
+                None
+            }
+            // Ctrl+d = page down (must be before 'd' for disconnect)
+            KeyCode::Char('d') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.state.select_page_down();
+                self.pending_g = false;
                 None
             }
             KeyCode::Char('d') => {
@@ -119,10 +118,38 @@ impl TuiApp {
             }
             KeyCode::Char('k') | KeyCode::Up => {
                 self.state.select_prev();
+                self.pending_g = false;
+                None
+            }
+            // Vim: gg = go to top
+            KeyCode::Char('g') => {
+                if self.pending_g {
+                    self.state.select_first();
+                    self.pending_g = false;
+                } else {
+                    self.pending_g = true;
+                }
+                None
+            }
+            // Vim: G = go to bottom
+            KeyCode::Char('G') => {
+                self.state.select_last();
+                self.pending_g = false;
+                None
+            }
+            // Ctrl+u = page up
+            KeyCode::Char('u') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.state.select_page_up();
+                self.pending_g = false;
                 None
             }
             KeyCode::Char('?') => {
                 self.state.current_view = AppView::Help;
+                None
+            }
+            KeyCode::Char('x') => {
+                self.state.connect_random();
+                self.notification_timer = 30;
                 None
             }
             _ => None,
@@ -155,15 +182,9 @@ impl TuiApp {
 
             // Single line: [level] message
             let text = Line::from(vec![
-                Span::styled(
-                    format!("[{}]", level_text),
-                    Style::default().fg(fg_color),
-                ),
+                Span::styled(format!("[{}]", level_text), Style::default().fg(fg_color)),
                 Span::raw(" "),
-                Span::styled(
-                    notification.message.as_str(),
-                    Style::default().fg(fg_color),
-                ),
+                Span::styled(notification.message.as_str(), Style::default().fg(fg_color)),
             ]);
 
             let area = Rect::new(
@@ -180,28 +201,54 @@ impl TuiApp {
     fn render_header(&self, f: &mut Frame<'_>, area: Rect) {
         let title = " ProtonVPN TUI ";
 
-        let connection_status = match &self.state.connection {
-            crate::state::ConnectionState::Disconnected => "Disconnected",
-            crate::state::ConnectionState::Connecting => "Connecting...",
-            crate::state::ConnectionState::Connected { .. } => "Connected",
-            crate::state::ConnectionState::Disconnecting => "Disconnecting...",
-            crate::state::ConnectionState::Error(_) => "Error",
+        let (connection_status, server_info) = match &self.state.connection {
+            crate::state::ConnectionState::Disconnected => ("Disconnected", String::new()),
+            crate::state::ConnectionState::Connecting => ("Connecting...", String::new()),
+            crate::state::ConnectionState::Connected { server, ip } => {
+                let info = if ip.is_empty() {
+                    server.clone()
+                } else {
+                    format!("{} ({})", server, ip)
+                };
+                ("Connected", info)
+            }
+            crate::state::ConnectionState::Disconnecting => ("Disconnecting...", String::new()),
+            crate::state::ConnectionState::Error(e) => ("Error", e.clone()),
         };
 
-        let status_text = Line::from(vec![
-            Span::raw("Connection: "),
-            Span::styled(
-                connection_status,
-                Style::default()
-                    .fg(Color::Green)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(" | View: "),
-            Span::styled(
-                format!("{:?}", self.state.current_view),
-                Style::default().fg(Color::Yellow),
-            ),
-        ]);
+        let status_text = if server_info.is_empty() {
+            Line::from(vec![
+                Span::raw("Connection: "),
+                Span::styled(
+                    connection_status,
+                    Style::default()
+                        .fg(Color::Green)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::raw(" | View: "),
+                Span::styled(
+                    format!("{:?}", self.state.current_view),
+                    Style::default().fg(Color::Yellow),
+                ),
+            ])
+        } else {
+            Line::from(vec![
+                Span::raw("Connection: "),
+                Span::styled(
+                    connection_status,
+                    Style::default()
+                        .fg(Color::Green)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::raw(" - "),
+                Span::styled(server_info, Style::default().fg(Color::Cyan)),
+                Span::raw(" | View: "),
+                Span::styled(
+                    format!("{:?}", self.state.current_view),
+                    Style::default().fg(Color::Yellow),
+                ),
+            ])
+        };
 
         let block = Block::default()
             .title(title)
@@ -224,21 +271,21 @@ impl TuiApp {
         }
     }
 
-    fn render_connect_view(&self, f: &mut Frame<'_>, area: Rect) {
+    fn render_connect_view(&mut self, f: &mut Frame<'_>, area: Rect) {
         let block = Block::default().title(" Servers ").borders(Borders::ALL);
 
         let servers = self.state.filtered_servers();
+
+        // Update list state with selected server
+        if let Some(idx) = self.state.selected_server {
+            self.list_state.select(Some(idx));
+        }
 
         let items: Vec<ListItem> = servers
             .iter()
             .enumerate()
             .map(|(idx, server)| {
                 let is_selected = self.state.selected_server == Some(idx);
-                let load_str = format!("{}%", server.load);
-                let ping_str = server
-                    .ping
-                    .map(|p| format!("{}ms", p))
-                    .unwrap_or_else(|| "-".to_string());
 
                 let line = if is_selected {
                     Line::from(vec![
@@ -249,30 +296,9 @@ impl TuiApp {
                                 .fg(Color::Cyan)
                                 .add_modifier(Modifier::BOLD),
                         ),
-                        Span::raw(" | "),
-                        Span::raw(server.city.as_str()),
-                        Span::raw(" | Load: "),
-                        Span::styled(
-                            load_str.clone(),
-                            Style::default().fg(get_load_color(server.load)),
-                        ),
-                        Span::raw(" | Ping: "),
-                        Span::raw(ping_str.clone()),
                     ])
                 } else {
-                    Line::from(vec![
-                        Span::raw("  "),
-                        Span::raw(server.name.as_str()),
-                        Span::raw(" | "),
-                        Span::raw(server.city.as_str()),
-                        Span::raw(" | Load: "),
-                        Span::styled(
-                            load_str.clone(),
-                            Style::default().fg(get_load_color(server.load)),
-                        ),
-                        Span::raw(" | Ping: "),
-                        Span::raw(ping_str.clone()),
-                    ])
+                    Line::from(vec![Span::raw("  "), Span::raw(server.name.as_str())])
                 };
 
                 ListItem::new(line)
@@ -283,7 +309,7 @@ impl TuiApp {
             .block(block)
             .style(Style::default().fg(Color::White));
 
-        f.render_widget(list, area);
+        f.render_stateful_widget(list, area, &mut self.list_state);
     }
 
     fn render_stats_view(&self, f: &mut Frame<'_>, area: Rect) {
@@ -402,16 +428,6 @@ impl TuiApp {
         ]);
 
         f.render_widget(Paragraph::new(text), area);
-    }
-}
-
-fn get_load_color(load: u8) -> Color {
-    if load < 50 {
-        Color::Green
-    } else if load < 80 {
-        Color::Yellow
-    } else {
-        Color::Red
     }
 }
 

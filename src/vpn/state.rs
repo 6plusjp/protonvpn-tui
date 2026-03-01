@@ -41,7 +41,7 @@ impl VpnState {
         self.client.get_connected_server()
     }
 
-    /// Get VPN IP from proton0 interface
+    /// Get VPN IP from cache (not proton0)
     pub fn get_vpn_ip(&self) -> Option<String> {
         self.client.get_vpn_ip()
     }
@@ -51,18 +51,15 @@ impl VpnState {
         self.client.matches_ip(ip)
     }
 
-    pub fn connect(&mut self, server: &str) -> AppResult<()> {
-        if !self.state.can_connect() {
-            return Err(crate::error::VpnError::AlreadyConnected.into());
-        }
-
+    pub fn connect(&mut self, server: &str) -> AppResult<(String, Option<String>)> {
+        // Allow reconnect - client will handle "already connected" case
         self.state = ConnectionState::Connecting;
-        self.client.connect(server)?;
+        let (server_id, ip) = self.client.connect(server)?;
         self.state = ConnectionState::Connected {
-            server: server.to_string(),
-            ip: String::new(), // TODO: fetch actual IP
+            server: server_id.clone(),
+            ip: ip.clone().unwrap_or_default(),
         };
-        Ok(())
+        Ok((server_id, ip))
     }
 
     pub fn disconnect(&mut self) -> AppResult<()> {
@@ -78,5 +75,19 @@ impl VpnState {
 
     pub fn list_servers(&mut self) -> AppResult<Vec<Server>> {
         self.client.list_servers()
+    }
+
+    /// Get cached servers, refresh from CLI if empty
+    pub fn get_servers(&mut self) -> AppResult<Vec<Server>> {
+        let cached = self.client.get_servers();
+        if cached.is_empty() {
+            return self.refresh_servers();
+        }
+        Ok(cached)
+    }
+
+    /// Refresh servers from CLI
+    pub fn refresh_servers(&mut self) -> AppResult<Vec<Server>> {
+        self.client.refresh_servers()
     }
 }

@@ -14,12 +14,10 @@ pub struct ServerFeatures {
 /// VPN server information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Server {
-    pub id: String,
-    pub name: String,
-    pub country: String,
-    pub city: String,
-    pub load: u8,          // 0-100%
-    pub ping: Option<u32>, // milliseconds
+    pub id: String,      // Country code (e.g., "JP", "US")
+    pub name: String,    // Display name (e.g., "Japan - JP")
+    pub country: String, // Full country name
+    pub city: String,    // City name (if available)
     pub features: ServerFeatures,
 }
 

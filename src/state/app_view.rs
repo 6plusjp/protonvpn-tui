@@ -12,26 +12,28 @@ pub enum AppView {
     Stats,
     /// Settings view
     Settings,
-    /// Help view
+    /// Help view (only accessible via ?)
     Help,
 }
 
 impl AppView {
+    /// Get next view in cycle (excludes Help)
     pub fn next(&self) -> Self {
         match self {
             Self::Connect => Self::Stats,
             Self::Stats => Self::Settings,
-            Self::Settings => Self::Help,
+            Self::Settings => Self::Connect,
             Self::Help => Self::Connect,
         }
     }
 
+    /// Get previous view in cycle (excludes Help)
     pub fn prev(&self) -> Self {
         match self {
-            Self::Connect => Self::Help,
+            Self::Connect => Self::Settings,
             Self::Stats => Self::Connect,
             Self::Settings => Self::Stats,
-            Self::Help => Self::Settings,
+            Self::Help => Self::Connect,
         }
     }
 }

@@ -1,0 +1,5 @@
+# Clippy lints configuration for rustc
+# Note: Most clippy lints are configured via attributes in code or command line
+
+# This file is kept for future configuration options
+# Currently using command-line flags in CI/CD

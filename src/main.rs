@@ -1,5 +1,3 @@
-//! ProtonVPN TUI - Entry point
-
 use protonvpn_tui::ui::app::TuiApp;
 use std::io;
 

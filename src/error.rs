@@ -43,9 +43,6 @@ pub enum VpnError {
     #[error("Not connected")]
     NotConnected,
 
-    #[error("Already connected")]
-    AlreadyConnected,
-
     #[error("Invalid server: {0}")]
     InvalidServer(String),
 }
@@ -55,7 +52,6 @@ impl From<VpnError> for AppError {
     fn from(e: VpnError) -> Self {
         match e {
             VpnError::NotConnected => AppError::ConnectionFailed("Not connected".into()),
-            VpnError::AlreadyConnected => AppError::ConnectionFailed("Already connected".into()),
             VpnError::InvalidServer(s) => AppError::ServerNotFound(s),
         }
     }

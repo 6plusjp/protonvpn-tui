@@ -19,4 +19,12 @@ impl ServerFilter {
             ServerFilter::City => ServerFilter::Id,
         }
     }
+
+    pub fn label(&self) -> &'static str {
+        match self {
+            ServerFilter::Id => "ID",
+            ServerFilter::Country => "Country",
+            ServerFilter::City => "City",
+        }
+    }
 }

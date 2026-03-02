@@ -3,6 +3,7 @@
 use crate::config::Settings;
 use crate::state::ConnectionState;
 use crate::state::ServerFilter;
+use crate::state::ServerSort;
 use crate::vpn::Server;
 use crate::vpn::VpnState;
 use std::collections::HashMap;
@@ -28,6 +29,7 @@ pub struct AppState {
     pub current_view: crate::state::AppView,
     pub search_query: String,
     pub filter: ServerFilter,
+    pub sort: ServerSort,
     pub config: Settings,
     pub servers: Vec<Server>,
     pub selected_server: Option<usize>,
@@ -54,6 +56,7 @@ impl AppState {
             current_view: crate::state::AppView::Connect,
             search_query: String::new(),
             filter: ServerFilter::default(),
+            sort: ServerSort::default(),
             config: Settings::default(),
             servers: Vec::new(),
             selected_server: None,
@@ -284,30 +287,46 @@ impl AppState {
         }
     }
 
-    pub fn filtered_servers(&self) -> Vec<&Server> {
+    pub fn filtered_servers(&self) -> Vec<Server> {
         let query = self.search_query.to_lowercase();
-        if query.is_empty() {
-            return self.servers.iter().collect();
+
+        let mut result: Vec<Server> = if query.is_empty() {
+            self.servers.clone()
+        } else {
+            let query_lower = query.to_lowercase();
+            self.servers
+                .iter()
+                .filter(|server| match self.filter {
+                    ServerFilter::Id => server.id.to_lowercase().contains(&query_lower),
+                    ServerFilter::Country => {
+                        server.country.to_lowercase().contains(&query_lower)
+                            || server.id.to_lowercase() == query_lower
+                            || self.fuzzy_match(&server.country, &query)
+                            || self.fuzzy_match(&server.id, &query)
+                    }
+                    ServerFilter::City => {
+                        server.city.to_lowercase().contains(&query_lower)
+                            || self.fuzzy_match(&server.city, &query)
+                    }
+                })
+                .cloned()
+                .collect()
+        };
+
+        match self.sort {
+            ServerSort::Name => {
+                result.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+            }
+            ServerSort::Country => {
+                result.sort_by(|a, b| a.country.to_lowercase().cmp(&b.country.to_lowercase()))
+            }
+            ServerSort::City => {
+                result.sort_by(|a, b| a.city.to_lowercase().cmp(&b.city.to_lowercase()))
+            }
+            ServerSort::Id => result.sort_by(|a, b| a.id.to_lowercase().cmp(&b.id.to_lowercase())),
         }
 
-        let query_lower = query.to_lowercase();
-
-        self.servers
-            .iter()
-            .filter(|server| match self.filter {
-                ServerFilter::Id => server.id.to_lowercase().contains(&query_lower),
-                ServerFilter::Country => {
-                    server.country.to_lowercase().contains(&query_lower)
-                        || server.id.to_lowercase() == query_lower
-                        || self.fuzzy_match(&server.country, &query)
-                        || self.fuzzy_match(&server.id, &query)
-                }
-                ServerFilter::City => {
-                    server.city.to_lowercase().contains(&query_lower)
-                        || self.fuzzy_match(&server.city, &query)
-                }
-            })
-            .collect()
+        result
     }
 
     fn fuzzy_match(&self, text: &str, query: &str) -> bool {
@@ -362,6 +381,10 @@ impl AppState {
 
     pub fn cycle_filter(&mut self) {
         self.filter = self.filter.next();
+    }
+
+    pub fn cycle_sort(&mut self) {
+        self.sort = self.sort.next();
     }
 
     pub fn set_filter(&mut self, filter: ServerFilter) {

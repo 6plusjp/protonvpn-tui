@@ -11,7 +11,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph},
     Frame, Terminal,
 };
 use std::io;
@@ -167,35 +167,73 @@ impl TuiApp {
             .split(f.size());
 
         self.render_header(f, chunks[0]);
-        self.render_notification(f, chunks[0]);
         self.render_main(f, chunks[1]);
         self.render_footer(f, chunks[2]);
-    }
 
-    fn render_notification(&self, f: &mut Frame<'_>, header_area: Rect) {
-        if let Some(ref notification) = self.state.notification {
-            let (fg_color, level_text) = match notification.notification_type {
-                crate::state::NotificationType::Info => (Color::Cyan, "info"),
-                crate::state::NotificationType::Success => (Color::Green, "success"),
-                crate::state::NotificationType::Error => (Color::Red, "error"),
-            };
-
-            // Single line: [level] message
-            let text = Line::from(vec![
-                Span::styled(format!("[{}]", level_text), Style::default().fg(fg_color)),
-                Span::raw(" "),
-                Span::styled(notification.message.as_str(), Style::default().fg(fg_color)),
-            ]);
-
-            let area = Rect::new(
-                header_area.x + 2,
-                header_area.y + 1,
-                header_area.x + header_area.width - 2,
-                header_area.y + 2,
-            );
-
-            f.render_widget(Paragraph::new(text), area);
+        // Render notification as popup last (on top)
+        if self.state.notification.is_some() {
+            self.render_notification_popup(f);
         }
+    }
+    fn render_notification_popup(&self, f: &mut Frame<'_>) {
+        let Some(ref notification) = self.state.notification else { return };
+
+        let (fg_color, title) = match notification.notification_type {
+            crate::state::NotificationType::Info => (Color::Cyan, None),
+            crate::state::NotificationType::Success => (Color::Green, None),
+            crate::state::NotificationType::Error => {
+                // Extract title from error message or use default
+                let title = if notification.message.contains("Disconnect") {
+                    Some("Disconnect failed")
+                } else if notification.message.contains("Connect") || notification.message.contains("Connection") {
+                    Some("Connection failed")
+                } else {
+                    Some("Error")
+                };
+                (Color::Red, title)
+            }
+        };
+
+        // Format message - replace newlines with space, truncate with ...
+        let raw_msg = &notification.message;
+        let msg_single_line = raw_msg.replace('\n', " ");
+        let max_len = 35;
+        let message = if msg_single_line.len() > max_len {
+            format!("{}", &msg_single_line[..max_len - 3])
+        } else {
+            msg_single_line
+        };
+
+        // Calculate popup size
+        let popup_width = (message.len() + 4).max(30).min(54) as u16;
+        let popup_height = if title.is_some() { 4 } else { 3 };
+
+        // Position in top-right corner
+        let terminal = f.size();
+        let x = terminal.width.saturating_sub(popup_width + 1);
+        let y = 1;
+        let area = Rect::new(x, y, popup_width, popup_height);
+
+        // Build content lines
+        let mut lines = Vec::new();
+        if let Some(title) = title {
+            lines.push(Line::from(title).centered());
+        }
+        lines.push(Line::from(message.as_str()).centered());
+
+        // Create the popup block with background
+        let block = Block::bordered()
+            .border_style(Style::default().fg(fg_color))
+            .style(Style::default().fg(Color::White).bg(Color::Black));
+
+        let paragraph = Paragraph::new(lines)
+            .block(block)
+            .style(Style::default().fg(Color::White))
+            .alignment(ratatui::layout::Alignment::Center);
+
+        // Clear the area first, then render popup
+        f.render_widget(Clear, area);
+        f.render_widget(paragraph, area);
     }
 
     fn render_header(&self, f: &mut Frame<'_>, area: Rect) {

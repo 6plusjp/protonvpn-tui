@@ -79,17 +79,13 @@ impl VpnClient {
         let combined_lower = combined.to_lowercase();
 
         if combined_lower.contains("error:") {
-            let raw_msg = combined.trim().to_string();
-            let error_msg = raw_msg
-                .strip_prefix("Error: ")
-                .unwrap_or(&raw_msg)
-                .to_string();
+            let error_msg = format!("{}\n{}", stdout.trim(), stderr.trim());
             return Err(AppError::ConnectionFailed(error_msg));
         }
 
         // Also check exit code
         if !output.status.success() {
-            let error_msg = format!("Command failed with exit code: {:?}", output.status.code());
+            let error_msg = format!("{}\n{}", stdout.trim(), stderr.trim());
             return Err(AppError::ConnectionFailed(error_msg));
         }
 
@@ -160,17 +156,17 @@ impl VpnClient {
             .map_err(|e| {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stderr_lower = stderr.to_lowercase();
 
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            // Check if already disconnected
-            if stderr.contains("No active connection") {
-                return Ok(());
-            }
-            return Err(AppError::ConnectionFailed(format!(
-                "Disconnect failed: {}",
-                stderr.trim()
-            )));
+        // Check for explicit error indicators
+        let has_error = stderr_lower.contains("error:") || stderr_lower.contains("failed");
+
+        // Success if: exit code is 0, OR no explicit error found
+        if !output.status.success() && has_error {
+            let error_msg = format!("{}\n{}", stdout.trim(), stderr.trim());
+            return Err(AppError::ConnectionFailed(error_msg));
         }
 
         // Update local connection status

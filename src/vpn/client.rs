@@ -73,24 +73,26 @@ impl VpnClient {
             })?;
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        let stdout_lower = stdout.to_lowercase();
-        let stderr_lower = stderr.to_lowercase();
 
-        // If already connected, try to get public IP from output, not proton0
-        if stdout_lower.contains("already connected") || stderr_lower.contains("already connected")
-        {
-            // Try parsing both stdout and stderr for IP
-            let combined = format!("{} {}", stdout, stderr);
-            let (_, ip) = self.parse_connect_output(&combined);
-            // Only use cached IP if we couldn't parse from output
-            let ip = ip.or_else(|| self.cache.connected_ip.clone());
-            self.cache.set_connected(target.to_string(), ip.clone());
-            self.save_cache()?;
-            return Ok((target.to_string(), ip));
+        // Check for error messages in output regardless of exit code
+        let combined = format!("{} {}", stdout, stderr);
+        let combined_lower = combined.to_lowercase();
+
+        if combined_lower.contains("error:") {
+            let raw_msg = combined.trim().to_string();
+            let error_msg = raw_msg
+                .strip_prefix("Error: ")
+                .unwrap_or(&raw_msg)
+                .to_string();
+            return Err(AppError::ConnectionFailed(error_msg));
         }
 
-        // Parse connection output from both stdout and stderr
-        let combined = format!("{} {}", stdout, stderr);
+        // Also check exit code
+        if !output.status.success() {
+            let error_msg = format!("Command failed with exit code: {:?}", output.status.code());
+            return Err(AppError::ConnectionFailed(error_msg));
+        }
+
         let (server_id, ip) = self.parse_connect_output(&combined);
 
         // Update local connection status with actual server info

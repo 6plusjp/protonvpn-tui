@@ -34,7 +34,9 @@ pub struct AppState {
     pub vpn_state: VpnState,
     pub notification: Option<Notification>,
     pub notification_log: Vec<Notification>,
-    pub pending_refresh: bool,
+    pending_refresh:
+        Option<std::sync::mpsc::Receiver<crate::error::AppResult<Vec<crate::vpn::Server>>>>,
+    previous_connection: Option<ConnectionState>,
     pending_connect:
         Option<std::sync::mpsc::Receiver<Result<(String, Option<String>), crate::error::AppError>>>,
 }
@@ -58,7 +60,8 @@ impl AppState {
             vpn_state: VpnState::new(),
             notification: None,
             notification_log: Vec::new(),
-            pending_refresh: false,
+            pending_refresh: None,
+            previous_connection: None,
             pending_connect: None,
         }
     }
@@ -88,6 +91,28 @@ impl AppState {
     }
 
     pub fn sync_connection_state(&mut self) {
+        // Check for pending server refresh result
+        if let Some(rx) = &self.pending_refresh {
+            if let Ok(result) = rx.try_recv() {
+                match result {
+                    Ok(servers) => {
+                        self.servers = servers;
+                        self.show_notification(
+                            format!("Refreshed {} servers", self.servers.len()),
+                            NotificationType::Success,
+                        );
+                    }
+                    Err(e) => {
+                        self.show_notification(
+                            format!("Refresh failed: {}", e),
+                            NotificationType::Error,
+                        );
+                    }
+                }
+                self.pending_refresh = None;
+            }
+        }
+
         // Only check pending connection result when connecting
         if self.connection.is_connecting() {
             // Try to receive result from background thread
@@ -103,11 +128,16 @@ impl AppState {
                                 server,
                                 ip: ip.unwrap_or_default(),
                             };
+                            self.previous_connection = None;
                             self.pending_connect = None;
                             return;
                         }
                         Err(e) => {
-                            self.connection = ConnectionState::Disconnected;
+                            if let Some(prev) = self.previous_connection.take() {
+                                self.connection = prev;
+                            } else {
+                                self.connection = ConnectionState::Disconnected;
+                            }
                             self.show_notification(
                                 format!("Connection failed: {}", e),
                                 NotificationType::Error,
@@ -136,21 +166,6 @@ impl AppState {
             }
             return;
         }
-
-        // Check for pending server refresh
-        if self.pending_refresh {
-            // Try to load updated servers from cache
-            if let Ok(servers) = self.vpn_state.get_servers() {
-                if !servers.is_empty() {
-                    self.servers = servers;
-                    self.show_notification(
-                        format!("Refreshed {} servers", self.servers.len()),
-                        NotificationType::Success,
-                    );
-                }
-            }
-            self.pending_refresh = false;
-        }
     }
 
     pub fn load_cached_servers(&mut self) {
@@ -165,7 +180,6 @@ impl AppState {
     }
 
     pub fn refresh_servers(&mut self) {
-        // First load from cache for immediate display
         if let Ok(cached) = self.vpn_state.get_servers() {
             if !cached.is_empty() {
                 self.servers = cached;
@@ -174,17 +188,16 @@ impl AppState {
 
         self.show_notification("Refreshing servers...".to_string(), NotificationType::Info);
 
-        // Refresh in background and set flag
-        self.pending_refresh = true;
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.pending_refresh = Some(rx);
         std::thread::spawn(move || {
             let mut vpn_state = VpnState::new();
-            let _ = vpn_state.refresh_servers();
+            let result = vpn_state.refresh_servers();
+            let _ = tx.send(result);
         });
     }
 
     pub fn connect(&mut self) {
-        // Always allow connection (even if already connected - user may want to switch servers)
-        // But show current state
         if self.connection.is_connecting() {
             self.show_notification(
                 "Still connecting, please wait...".to_string(),
@@ -206,22 +219,17 @@ impl AppState {
             }
         };
 
-        // Set connecting state immediately (UI stays responsive)
+        self.previous_connection = Some(self.connection.clone());
         self.connection = ConnectionState::Connecting;
         self.show_notification("Connecting...".to_string(), NotificationType::Info);
 
-        // Use channel to get result back
         let (tx, rx) = std::sync::mpsc::channel();
-
-        // Spawn background thread to handle connection
+        self.pending_connect = Some(rx);
         std::thread::spawn(move || {
             let mut vpn_state = VpnState::new();
             let result = vpn_state.connect(&server_id);
             let _ = tx.send(result);
         });
-
-        // Store receiver for polling
-        self.pending_connect = Some(rx);
     }
 
     pub fn connect_random(&mut self) {

@@ -1,5 +1,3 @@
-//! Main TUI application using ratatui
-
 use crate::state::{AppState, AppView};
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
@@ -113,6 +111,11 @@ impl TuiApp {
             KeyCode::Char('r') => {
                 self.state.refresh_servers();
                 self.notification_timer = 30;
+                None
+            }
+            KeyCode::Char('s') => {
+                self.state.cycle_sort();
+                self.notification_timer = 15;
                 None
             }
             KeyCode::Char('j') | KeyCode::Down => {
@@ -431,6 +434,11 @@ impl TuiApp {
             ]),
             Line::from(vec![
                 Span::raw("  "),
+                Span::styled("s", Style::default().fg(Color::Yellow)),
+                Span::raw("  - Cycle sort (Name/Country/City/ID)"),
+            ]),
+            Line::from(vec![
+                Span::raw("  "),
                 Span::styled("j/k", Style::default().fg(Color::Yellow)),
                 Span::raw("  - Navigate server list"),
             ]),
@@ -451,11 +459,14 @@ impl TuiApp {
     }
 
     fn render_footer(&self, f: &mut Frame<'_>, area: Rect) {
-        let action = match self.state.current_view {
-            AppView::Connect => "j/k: move | c: connect | d: disconnect | r: refresh",
-            AppView::Stats => "Statistics view",
-            AppView::Settings => "Settings view",
-            AppView::Help => "Press Tab or q to return",
+        let (action, sort_info) = match self.state.current_view {
+            AppView::Connect => (
+                "j/k: move | c: connect | d: disconnect | r: refresh",
+                format!(" | s: sort ({})", self.state.sort.label()),
+            ),
+            AppView::Stats => ("Statistics view", String::new()),
+            AppView::Settings => ("Settings view", String::new()),
+            AppView::Help => ("Press Tab or q to return", String::new()),
         };
 
         let text = Line::from(vec![
@@ -470,6 +481,7 @@ impl TuiApp {
             Span::raw("] Quit"),
             Span::raw(" | "),
             Span::styled(action, Style::default().fg(Color::Cyan)),
+            Span::styled(sort_info, Style::default().fg(Color::Green)),
         ]);
 
         f.render_widget(Paragraph::new(text), area);

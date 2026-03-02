@@ -23,7 +23,6 @@ pub struct Notification {
 }
 
 /// Main application state
-#[derive(Debug, Clone)]
 pub struct AppState {
     pub connection: ConnectionState,
     pub current_view: crate::state::AppView,
@@ -34,6 +33,10 @@ pub struct AppState {
     pub selected_server: Option<usize>,
     pub vpn_state: VpnState,
     pub notification: Option<Notification>,
+    pub notification_log: Vec<Notification>,
+    pub pending_refresh: bool,
+    pending_connect:
+        Option<std::sync::mpsc::Receiver<Result<(String, Option<String>), crate::error::AppError>>>,
 }
 
 impl Default for AppState {
@@ -54,6 +57,9 @@ impl AppState {
             selected_server: None,
             vpn_state: VpnState::new(),
             notification: None,
+            notification_log: Vec::new(),
+            pending_refresh: false,
+            pending_connect: None,
         }
     }
 
@@ -68,6 +74,10 @@ impl AppState {
 
     pub fn show_notification(&mut self, message: String, notification_type: NotificationType) {
         self.notification = Some(Notification {
+            message: message.clone(),
+            notification_type,
+        });
+        self.notification_log.push(Notification {
             message,
             notification_type,
         });
@@ -78,15 +88,68 @@ impl AppState {
     }
 
     pub fn sync_connection_state(&mut self) {
-        if self.vpn_state.is_connected() {
-            // On startup, don't trust cache - show as unknown
-            // User must explicitly connect to get server info
-            self.connection = ConnectionState::Connected {
-                server: "Unknown".to_string(),
-                ip: String::new(),
-            };
-        } else {
-            self.connection = ConnectionState::Disconnected;
+        // Only check pending connection result when connecting
+        if self.connection.is_connecting() {
+            // Try to receive result from background thread
+            if let Some(rx) = &self.pending_connect {
+                if let Ok(result) = rx.try_recv() {
+                    match result {
+                        Ok((server, ip)) => {
+                            self.show_notification(
+                                format!("Connected to {}", &server),
+                                NotificationType::Success,
+                            );
+                            self.connection = ConnectionState::Connected {
+                                server,
+                                ip: ip.unwrap_or_default(),
+                            };
+                            self.pending_connect = None;
+                            return;
+                        }
+                        Err(e) => {
+                            self.connection = ConnectionState::Disconnected;
+                            self.show_notification(
+                                format!("Connection failed: {}", e),
+                                NotificationType::Error,
+                            );
+                            self.pending_connect = None;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        // When already connected, don't keep checking system state
+        // This prevents flickering between connected/disconnected
+        if self.connection.is_connected() {
+            return;
+        }
+
+        // When disconnected, check if externally connected
+        if self.connection == ConnectionState::Disconnected {
+            if self.vpn_state.is_connected() {
+                self.connection = ConnectionState::Connected {
+                    server: "Unknown".to_string(),
+                    ip: String::new(),
+                };
+            }
+            return;
+        }
+
+        // Check for pending server refresh
+        if self.pending_refresh {
+            // Try to load updated servers from cache
+            if let Ok(servers) = self.vpn_state.get_servers() {
+                if !servers.is_empty() {
+                    self.servers = servers;
+                    self.show_notification(
+                        format!("Refreshed {} servers", self.servers.len()),
+                        NotificationType::Success,
+                    );
+                }
+            }
+            self.pending_refresh = false;
         }
     }
 
@@ -109,51 +172,56 @@ impl AppState {
             }
         }
 
-        // Then refresh from CLI
-        match self.vpn_state.refresh_servers() {
-            Ok(servers) => {
-                self.servers = servers;
-                self.show_notification(
-                    format!("Refreshed {} servers", self.servers.len()),
-                    NotificationType::Success,
-                );
-            }
-            Err(e) => {
-                if self.servers.is_empty() {
-                    self.show_notification(format!("Failed: {}", e), NotificationType::Error);
-                }
-            }
-        }
+        self.show_notification("Refreshing servers...".to_string(), NotificationType::Info);
+
+        // Refresh in background and set flag
+        self.pending_refresh = true;
+        std::thread::spawn(move || {
+            let mut vpn_state = VpnState::new();
+            let _ = vpn_state.refresh_servers();
+        });
     }
 
-
     pub fn connect(&mut self) {
+        // Always allow connection (even if already connected - user may want to switch servers)
+        // But show current state
+        if self.connection.is_connecting() {
+            self.show_notification(
+                "Still connecting, please wait...".to_string(),
+                NotificationType::Info,
+            );
+            return;
+        }
         let Some(idx) = self.selected_server else {
             self.show_notification("No server selected".to_string(), NotificationType::Error);
             return;
         };
-        let Some(server) = self.servers.get(idx) else {
-            self.show_notification("No server selected".to_string(), NotificationType::Error);
-            return;
+
+        // Get server data first to avoid borrow issues
+        let server_id = match self.servers.get(idx) {
+            Some(server) => server.id.clone(),
+            None => {
+                self.show_notification("No server selected".to_string(), NotificationType::Error);
+                return;
+            }
         };
-        match self.vpn_state.connect(&server.id) {
-            Ok((server_id, ip)) => {
-                self.connection = ConnectionState::Connected {
-                    server: server_id,
-                    ip: ip.unwrap_or_default(),
-                };
-                self.show_notification(
-                    format!("Connected to {}", server.name),
-                    NotificationType::Success,
-                );
-            }
-            Err(e) => {
-                self.show_notification(
-                    format!("Connection failed: {}", e),
-                    NotificationType::Error,
-                );
-            }
-        }
+
+        // Set connecting state immediately (UI stays responsive)
+        self.connection = ConnectionState::Connecting;
+        self.show_notification("Connecting...".to_string(), NotificationType::Info);
+
+        // Use channel to get result back
+        let (tx, rx) = std::sync::mpsc::channel();
+
+        // Spawn background thread to handle connection
+        std::thread::spawn(move || {
+            let mut vpn_state = VpnState::new();
+            let result = vpn_state.connect(&server_id);
+            let _ = tx.send(result);
+        });
+
+        // Store receiver for polling
+        self.pending_connect = Some(rx);
     }
 
     pub fn connect_random(&mut self) {

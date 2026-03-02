@@ -58,6 +58,9 @@ impl TuiApp {
         loop {
             terminal.draw(|f| self.render(f))?;
 
+            // Sync connection state (checks for background connection completion)
+            self.state.sync_connection_state();
+
             if self.notification_timer > 0 {
                 self.notification_timer -= 1;
                 if self.notification_timer == 0 {
@@ -176,7 +179,9 @@ impl TuiApp {
         }
     }
     fn render_notification_popup(&self, f: &mut Frame<'_>) {
-        let Some(ref notification) = self.state.notification else { return };
+        let Some(ref notification) = self.state.notification else {
+            return;
+        };
 
         let (fg_color, title) = match notification.notification_type {
             crate::state::NotificationType::Info => (Color::Cyan, None),
@@ -185,7 +190,9 @@ impl TuiApp {
                 // Extract title from error message or use default
                 let title = if notification.message.contains("Disconnect") {
                     Some("Disconnect failed")
-                } else if notification.message.contains("Connect") || notification.message.contains("Connection") {
+                } else if notification.message.contains("Connect")
+                    || notification.message.contains("Connection")
+                {
                     Some("Connection failed")
                 } else {
                     Some("Error")

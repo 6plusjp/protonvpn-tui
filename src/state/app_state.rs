@@ -79,12 +79,12 @@ impl AppState {
 
     pub fn sync_connection_state(&mut self) {
         if self.vpn_state.is_connected() {
-            let server = self
-                .vpn_state
-                .get_connected_server()
-                .unwrap_or_else(|| "Connected".to_string());
-            let ip = self.vpn_state.get_vpn_ip().unwrap_or_default();
-            self.connection = ConnectionState::Connected { server, ip };
+            // On startup, don't trust cache - show as unknown
+            // User must explicitly connect to get server info
+            self.connection = ConnectionState::Connected {
+                server: "Unknown".to_string(),
+                ip: String::new(),
+            };
         } else {
             self.connection = ConnectionState::Disconnected;
         }

@@ -1,355 +1,90 @@
-# Codebase Analysis & Improvement Proposals
+# Codebase Improvements
 
-## 概要
+## 優先順位表
 
-本ドキュメントは、protonvpn-tui コードベースの構造的・状態管理に関する問題を分析し、改善案を提示する。
-
----
-
-## 完了した改善
-
-### ✅ 問題点 3: 設定カウント計算の重複 (app.rs)
-
-**状態**: 完了
-
-`src/config/settings.rs` に `ProtonSettings::settings_count()` メソッドを追加し、app.rs から7箇所の重複コードを削除した。
-
-```rust
-// src/config/settings.rs
-impl ProtonSettings {
-    pub fn settings_count(&self) -> usize {
-        let mut c = 0;
-        if self.killswitch.is_some() { c += 1; }
-        if self.ipv6.is_some() { c += 1; }
-        if self.custom_dns.enabled || self.custom_dns.ip_list.is_empty() { c += 1; }
-        if self.features.as_ref().and_then(|f| f.netshield).is_some() { c += 1; }
-        if self.features.as_ref().and_then(|f| f.moderate_nat).is_some() { c += 1; }
-        if self.features.as_ref().and_then(|f| f.vpn_accelerator).is_some() { c += 1; }
-        if self.features.as_ref().and_then(|f| f.port_forwarding).is_some() { c += 1; }
-        c
-    }
-}
-```
-
-**変更ファイル**:
-
-- `src/config/settings.rs` - メソッド追加
-- `src/ui/app.rs` - 7箇所を `ps.settings_count()` に置換
-
----
-
-### ✅ 問題点 2: ConnectionState の重複定義
-
-**状態**: 完了
-
-`VpnState` から `ConnectionState` フィールドを削除し、重複を排除した。
-
-```rust
-// src/vpn/state.rs (変更後)
-pub struct VpnState {
-    client: VpnClient,
-}
-```
-
-**変更ファイル**:
-
-- `src/vpn/state.rs` - `ConnectionState` フィールドと関連メソッドを削除
-
----
-
-### ✅ 問題点 5: 選択メソッドの重複
-
-**状態**: 完了
-
-`Navigatable` trait を追加し、選択メソッドを約70行から30行に短縮した。
-
-```rust
-// src/state/app_state.rs
-pub trait Navigatable {
-    fn move_next(&mut self, bounds: usize);
-    fn move_prev(&mut self, bounds: usize);
-    fn move_first(&mut self, bounds: usize);
-    fn move_last(&mut self, bounds: usize);
-    fn move_page_down(&mut self, bounds: usize);
-    fn move_page_up(&mut self, bounds: usize);
-}
-
-impl Navigatable for Option<usize> {
-    fn move_next(&mut self, bounds: usize) {
-        if bounds == 0 { return; }
-        *self = Some(match *self {
-            Some(i) => (i + 1).min(bounds - 1),
-            None => 0,
-        });
-    }
-    // ... 他のメソッド
-}
-```
-
-**変更ファイル**:
-
-- `src/state/app_state.rs` - Navigatable trait 追加、メソッド簡略化
+| 優先度 | 項目                            | 状態   | 作業量 |
+| ------ | ------------------------------- | ------ | ------ |
+| ✅     | 設定カウント計算の重複除去      | 完了   | 小     |
+| ✅     | ConnectionState 重複の解決      | 完了   | 中     |
+| ✅     | 選択メソッドの統一的改善        | 完了   | 小     |
+| ✅     | 非同期処理の tokio 化           | 完了   | 大     |
+| ✅     | connect_random の非同期化       | 完了   | 小     |
+| ✅     | ファイルの分割                  | 完了   | 中     |
+| ✅     | AsyncTaskManager のメモリリーク | 完了   | 中     |
+| **中** | Clippy warning の修正           | 未着手 | 小     |
+| **中** | Settings 呼び出しのキャッシュ   | 未着手 | 小     |
+| **低** | notification_log の上限設定     | 未着手 | 小     |
+| **低** | EnterAlternateScreen 重複       | 未着手 | 極小   |
+| **低** | マジック Numbers の定数化       | 未着手 | 小     |
+| **低** | テストの追加                    | 未着手 | 中     |
+| **低** | VpnState API の対称性修正       | 未着手 | 小     |
+| **低** | generate_fuzzy_variants 最適化  | 未着手 | 小     |
+| **低** | help_view のキー更新            | 未着手 | 小     |
+| **低** | AppState の分割 (God Object)    | 未着手 | 大     |
 
 ---
 
 ## 未完了の問題点
 
----
+### 中優先度
 
-## 問題点 1: AppState の巨大化 (God Object)
+#### #2: Clippy warning
 
-### 現状
+- `src/state/app_state.rs:112`: 複雑な型 → type エイリアス
+- `src/state/app_state.rs:274`: 不要な return
+- `src/ui/app.rs:272`: `format!()` → `to_string()`
+- `src/ui/app.rs:278`: `.max().min()` → `.clamp()`
+- `src/ui/app.rs:432`: 不要な `Line::from()`
+- `src/vpn/client.rs:154`: ネストした if の統合
 
-`src/state/app_state.rs` が以下の責任を全て担っている:
+#### #3: Settings 呼び出しのキャッシュ
 
-- **VPN接続状態**: `connection: ConnectionState`, `vpn_state: VpnState`
-- **サーバーデータ**: `servers: Vec<Server>`
-- **UI状態**: `selected_server`, `settings_selected`, `current_view`
-- **検索/フィルター**: `search_query`, `filter`, `sort`, `sort_direction`
-- **設定**: `config: Settings`
-- **通知**: `notification`, `notification_log`
-- **非同期操作**: `pending_refresh`, `pending_connect`, `pending_disconnect` (生channel)
-
-### 問題
-
-1. **単一責任原則の違反**: 複数の関心事が混在
-2. **テスト困難**: 全ての依存関係を持つためモック化が困難
-3. **保守性の低下**: コード変更の影響範囲が不明確
-
-### 提案
+`Settings::load_proton_settings()` が app.rs (8箇所) と views (毎フレーム) で重複呼び出し。
+ファイル I/O が毎フレーム発生しているため、AppState にキャッシュを持たせる。
 
 ```rust
-// 提案: 状態を分割
-
-// 1. ドメイン状態 (参照型)
-struct DomainState {
-    connection: ConnectionState,
-    servers: Vec<Server>,
-    vpn_state: VpnState,
-}
-
-// 2. UI状態 (値型)
-struct UiState {
-    view: AppView,
-    selected_server: Option<usize>,
-    search_query: String,
-    filter: ServerFilter,
-    sort: ServerSort,
-}
-
-// 3. 操作状態 (別モジュール)
-struct OperationState {
-    pending: HashMap<OperationId, Operation>,
-}
+// AppState に追加
+proton_settings_cache: OnceCell<ProtonSettings>,
 ```
 
 ---
 
-## 問題点 4: 非同期操作の実装が原始的
+### 低優先度
 
-### 現状
+#### #4: notification_log の無制限成長
 
-`AppState` で生 channel を使用:
+`Vec<Notification>` が永遠に成長する。上限 (100件) を設定。
 
-```rust
-pub fn refresh_servers(&mut self) {
-    let (tx, rx) = std::sync::mpsc::channel();
-    self.pending_refresh = Some(rx);
-    std::thread::spawn(move || {
-        let mut vpn_state = VpnState::new();
-        let result = vpn_state.refresh_servers();
-        let _ = tx.send(result);
-    });
-}
-```
+#### #5: 重複した EnterAlternateScreen
 
-### 問題
+`src/ui/app.rs:46-48` で2回呼び出し。
 
-1. **新しい VpnState インスタンスを毎回作成**: 効率悪い
-2. **スレッド終了のタイミング不明**: 資源リークの可能性
-3. **エラー処理が不十分**: channel が drop された場合の考慮がない
-4. **tokio を使っている却没有活用**: Cargo.toml に tokio があるのに std::thread を使用
+#### #6: マジック Numbers
 
-### 提案
+- `page_size = 10`
+- `notification_timer = 30`
+- `max_len = 35`
+- `popup_width .min(54)`
 
-`tokio` を活用した非同期実装:
+定数ファイルに分離。
 
-```rust
-// tokio を使用したタスク管理
-use tokio::sync::mpsc;
+#### #7: テストの不在
 
-pub struct AsyncTaskManager {
-    // タスクの追跡
-}
+`tests/` ディレクトリなし。
 
-impl AppState {
-    pub async fn refresh_servers(&mut self) {
-        let vpn_state = self.vpn_state.clone();
-        let tx = self.task_sender.clone();
+#### #8: VpnState API の非対称性
 
-        tokio::spawn(async move {
-            let result = vpn_state.refresh_servers().await;
-            let _ = tx.send(Operation::RefreshComplete(result)).await;
-        });
-    }
-}
-```
+`get_servers(&mut self)`、`list_servers(&mut self)` は `&self` で十分。
 
-または、短期的には executor パターン:
+#### #9: generate_fuzzy_variants の HashMap
 
-```rust
-pub struct TaskExecutor {
-    tasks: Vec<JoinHandle<()>>,
-}
+毎回 `HashMap::from([...])` を作成している。`lazy_static` を使用。
 
-impl TaskExecutor {
-    pub fn spawn<F>(&mut self, f: F)
-    where F: Future<Output = ()> + Send + 'static {
-        self.tasks.push(tokio::spawn(f));
-    }
-}
-```
+#### #10: help_view のキー不一致
 
----
+- 不足: `x` (random connect), `g/G`, `Ctrl+d/u`
+- 不要な説明が含まれている可能性
 
-### ✅ 完了: AsyncTaskManager の実装
+#### #11: AppState の巨大化 (God Object)
 
-**状態**: 完了
-
-`AsyncTaskManager` を作成し、`tokio` ベースの非同期処理に切り替え:
-
-```rust
-// src/state/async_tasks.rs
-pub struct AsyncTaskManager {
-    handle: Arc<tokio::runtime::Handle>,
-}
-
-impl AsyncTaskManager {
-    pub fn spawn_refresh_servers(&self, vpn_state: VpnState, sender: mpsc::Sender<...>) {
-        let handle = self.handle.clone();
-        handle.spawn_blocking(move || {
-            let mut state = vpn_state;
-            let result = state.refresh_servers();
-            let _ = sender.blocking_send(result);
-        });
-    }
-    // ... connect, disconnect も同様に実装
-}
-```
-
-**変更ファイル**:
-
-- `src/state/async_tasks.rs` - 新規作成 (AsyncTaskManager)
-- `src/state/mod.rs` - モジュール追加
-- `src/state/app_state.rs` - std::thread → tokio::spawn_blocking に置換
-
-**改善点**:
-
-1. ✅ VpnState を再利用 (以前は每次新規作成)
-2. ✅ tokio のスレッドプールを使用 (以前は std::thread)
-3. ✅ tokio::sync::mpsc を使用 (以前は std::sync::mpsc)
-4. ✅ タスクのライフサイクルが明確
-
----
-
-## 問題点 6: connect_random の非同期的実装
-
-### 状態: 完了
-
-`connect_random` を `protonvpn connect --random` コマンドを使用するように変更:
-
-```rust
-// src/vpn/client.rs
-pub fn connect_random(&mut self) -> AppResult<(String, Option<String>)> {
-    let output = Command::new(&self.cli_path)
-        .args(["connect", "--random"])
-        .output()
-        // ...
-}
-
-// src/state/app_state.rs
-pub fn connect_random(&mut self) {
-    self.previous_connection = Some(self.connection.clone());
-    self.connection = ConnectionState::Connecting;
-    self.show_notification("Connecting to random server...".to_string(), NotificationType::Info);
-
-    let (tx, rx) = create_channel(1);
-    self.pending_connect = Some(rx);
-    self.async_manager
-        .spawn_connect_random(self.vpn_state.clone(), tx);
-}
-```
-
-**変更ファイル**:
-- `src/vpn/client.rs` - `connect_random()` メソッド追加
-- `src/vpn/state.rs` - `connect_random()` メソッド追加
-- `src/state/async_tasks.rs` - `spawn_connect_random()` 追加
-- `src/state/app_state.rs` - 非同期パターンに統一
-
-**改善点**:
-1. ✅ `protonvpn connect --random` コマンドを使用 (サーバー選択ロジックをVPN側へ委譲)
-2. ✅ 非同期パターンを統一 (他の connect/disconnect と同じ)
-3. ✅ コード行数を削減 (サーバー選択ロジックを削除)
-
----
-
-## 問題点 7: ファイルサイズ過大
-
-### 状態: 完了
-
-`app.rs` をビュー毎のファイルに分割:
-
-```
-src/ui/views/
-├── mod.rs           # 模块导出
-├── connect_view.rs  # サーバー表示
-├── stats_view.rs    # 統計表示
-├── settings_view.rs # 設定表示
-└── help_view.rs     # ヘルプ表示
-```
-
-**変更ファイル**:
-
-- `src/ui/app.rs` - 924行 → 444行 (約480行削減)
-- `src/ui/views/mod.rs` - 新規作成 (モジュールエクスポート)
-- `src/ui/views/connect_view.rs` - 新規作成
-- `src/ui/views/stats_view.rs` - 新規作成
-- `src/ui/views/settings_view.rs` - 新規作成
-- `src/ui/views/help_view.rs` - 新規作成
-
-**改善点**:
-
-1. ✅ 責任の分離 (1ファイル1責務)
-2. ✅ 保守性の向上 (変更影響範囲の限定)
-3. ✅ コード量の削減 (app.rs 約52%減)
-
----
-
-## 優先順位付き改善計画
-
-| 優先度 | 項目                       | 状態   | 作業量 |
-|--------|--------------------------|--------|--------|
-| ✅完了 | 設定カウント計算の重複除去 | 完了   | 小     |
-| ✅完了 | ConnectionState 重複の解決 | 完了   | 中     |
-| ✅完了 | 選択メソッドの統一的改善   | 完了   | 小     |
-| ✅完了 | 非同期処理の tokio 化      | 完了   | 大     |
-| ✅完了 | connect_random の非同期化  | 完了   | 小     |
-| ✅完了 | ファイルの分割             | 完了   | 中     |
-| **低** | AppState の分割            | 未着手 | 大     |
-
----
-
-## 結論
-
-全ての推奨改善が完了:
-
-1. ✅ **設定カウント計算のヘルパーメソッド追加** - 7箇所の重複を削除
-2. ✅ **ConnectionState の統合** - VpnState から重複を削除
-3. ✅ **選択メソッドのリファクタリング** - Navigatable trait で約40行削減
-4. ✅ **非同期処理の tokio 化** - tokio を使用してスレッド管理を改善
-5. ✅ **connect_random の非同期化** - `protonvpn connect --random` を使用
-6. ✅ **ファイルの分割** - app.rs をビュー毎のファイルに分離
-
-残り:
-
-- **AppState の分割** (低優先度) - God Object 問題の解決
+単一責任原則の違反。DomainState / UiState / OperationState に分割。

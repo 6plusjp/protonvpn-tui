@@ -15,8 +15,8 @@ pub enum AsyncOperation {
     DisconnectComplete(Result<(), AppError>),
 }
 
-#[derive(Clone)]
 pub struct AsyncTaskManager {
+    runtime: Arc<tokio::runtime::Runtime>,
     handle: Arc<Handle>,
 }
 
@@ -28,16 +28,18 @@ impl AsyncTaskManager {
             .build()
             .expect("Failed to create tokio runtime");
 
+        let runtime = Arc::new(runtime);
         let handle = Arc::new(runtime.handle().clone());
-        std::mem::forget(runtime);
 
-        Self { handle }
+        Self { runtime, handle }
     }
 
     pub fn handle(&self) -> Arc<Handle> {
         self.handle.clone()
     }
+}
 
+impl AsyncTaskManager {
     pub fn spawn_refresh_servers(
         &self,
         vpn_state: VpnState,
@@ -85,6 +87,15 @@ impl AsyncTaskManager {
             let result = state.connect_random();
             let _ = sender.blocking_send(result);
         });
+    }
+}
+
+impl Clone for AsyncTaskManager {
+    fn clone(&self) -> Self {
+        Self {
+            runtime: self.runtime.clone(),
+            handle: self.handle.clone(),
+        }
     }
 }
 

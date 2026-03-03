@@ -234,8 +234,8 @@ impl AppState {
             return;
         };
 
-        // Get server data first to avoid borrow issues
-        let server_id = match self.servers.get(idx) {
+        let filtered = self.filtered_servers();
+        let server_id = match filtered.get(idx) {
             Some(server) => server.id.clone(),
             None => {
                 self.show_notification("No server selected".to_string(), NotificationType::Error);

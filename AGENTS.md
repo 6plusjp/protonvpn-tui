@@ -20,12 +20,14 @@ This file defines the agent roles and workflows for developing the ProtonVPN TUI
 **Trigger**: Any new request without a specific role match
 
 **Responsibility**:
+
 - Analyze user intent
 - Determine which specialist to invoke
 - Coordinate between specialists
 - Ensure consistency across changes
 
 **Guidelines**:
+
 1. Read ROADMAP.md to understand current phase
 2. Read RUST_DESIGN_RULES.md for coding standards
 3. Break down complex tasks into smaller pieces
@@ -38,12 +40,14 @@ This file defines the agent roles and workflows for developing the ProtonVPN TUI
 **Trigger**: Implementing features, refactoring code, writing new modules
 
 **Responsibility**:
+
 - Write idiomatic, safe Rust code
 - Follow RUST_DESIGN_RULES.md
 - Implement business logic
 - Create data structures
 
 **When to invoke**:
+
 ```
 - Creating new modules (src/vpn/, src/ui/, etc.)
 - Implementing connection logic
@@ -52,11 +56,13 @@ This file defines the agent roles and workflows for developing the ProtonVPN TUI
 ```
 
 **Key files to reference**:
+
 - `RUST_DESIGN_RULES.md` - Coding standards
 - `src/vpn/` - VPN backend logic
 - `src/state/` - Application state
 
 **Cargo.toml context**:
+
 ```toml
 crossterm = "0.27"
 tokio = { version = "1", features = ["full"] }
@@ -73,12 +79,14 @@ tracing = "0.1"
 **Trigger**: Working with crossterm, UI components, views
 
 **Responsibility**:
+
 - Build TUI components
 - Handle user input events
 - Design view layouts
 - Implement vim-style keybindings
 
 **When to invoke**:
+
 ```
 - Creating UI components (src/ui/components/)
 - Implementing views (src/ui/views/)
@@ -87,11 +95,13 @@ tracing = "0.1"
 ```
 
 **Key files to reference**:
+
 - `src/ui/components/` - Reusable widgets
 - `src/ui/views/` - Full views (connect, stats, settings)
 - `src/ui/styles.rs` - Theme and styling
 
 **Code patterns**:
+
 ```rust
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
@@ -119,12 +129,14 @@ impl ServerList {
 **Trigger**: Working with protonvpn-cli, connection management
 
 **Responsibility**:
+
 - Wrap protonvpn-cli commands
 - Parse VPN output
 - Manage connection state
 - Handle server listing
 
 **When to invoke**:
+
 ```
 - Connecting/disconnecting to VPN
 - Fetching server list
@@ -133,11 +145,13 @@ impl ServerList {
 ```
 
 **Key files to reference**:
+
 - `src/vpn/client.rs` - protonvpn-cli wrapper
 - `src/vpn/types.rs` - VPN data types
 - `src/vpn/state.rs` - Connection state machine
 
 **Code patterns**:
+
 ```rust
 use std::process::Command;
 
@@ -146,21 +160,27 @@ pub struct VpnClient {
 }
 
 impl VpnClient {
-    pub fn connect(&self, server: &str) -> AppResult<Connection> {
-        let output = Command::new("protonvpn-cli")
-            .args(["-c", server])
+    pub fn connect(&mut self, target: &str) -> AppResult<(String, Option<String>)> {
+        let output = Command::new("protonvpn")
+            .args(["connect", "--country", target])
             .output()
-            .context("Failed to execute protonvpn-cli")?;
-        
-        parse_connection(output)
+            .map_err(|e| AppError::ConfigError(format!("Failed to execute: {}", e)))?;
+
+        // Parse output...
     }
-    
-    pub fn list_servers(&self) -> AppResult<Vec<Server>> {
-        // Parse: protonvpn-cli -s
+
+    pub fn disconnect(&mut self) -> AppResult<()> {
+        let output = Command::new("protonvpn")
+            .args(["disconnect"])
+            .output()?;
     }
-    
-    pub fn status(&self) -> AppResult<ConnectionState> {
-        // Parse: protonvpn-cli -s
+
+    pub fn list_servers(&mut self) -> AppResult<Vec<Server>> {
+        // Parse: protonvpn countries
+    }
+
+    pub fn status(&self) -> AppResult<String> {
+        // Check proton0 interface
     }
 }
 ```
@@ -172,12 +192,14 @@ impl VpnClient {
 **Trigger**: Settings, configuration, persistence
 
 **Responsibility**:
+
 - Manage app configuration
 - Handle TOML/JSON serialization
 - Load/save user preferences
 - Implement theme settings
 
 **When to invoke**:
+
 ```
 - Creating settings screens
 - Loading/saving configuration
@@ -186,10 +208,12 @@ impl VpnClient {
 ```
 
 **Key files to reference**:
+
 - `src/config/settings.rs` - Configuration structs
 - `RUST_DESIGN_RULES.md#Configuration` - Config patterns
 
 **Code patterns**:
+
 ```rust
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -198,10 +222,10 @@ use std::path::PathBuf;
 pub struct Settings {
     #[serde(default)]
     pub general: GeneralSettings,
-    
+
     #[serde(default)]
     pub ui: UiSettings,
-    
+
     #[serde(default)]
     pub connection: ConnectionSettings,
 }
@@ -221,12 +245,14 @@ impl Settings {
 **Trigger**: Logic errors, runtime panics, wrong output
 
 **Responsibility**:
+
 - Isolate the problematic code
 - Add logging to trace execution
 - Identify root cause
 - Propose fixes
 
 **When to invoke**:
+
 ```
 - Runtime panic (thread 'main' panicked at...)
 - Logic error (unexpected behavior)
@@ -235,6 +261,7 @@ impl Settings {
 ```
 
 **Debug workflow**:
+
 1. Enable logging: `RUST_LOG=debug cargo run`
 2. Add tracing: `tracing::debug!("state: {:?}", state);`
 3. Run with backtrace: `RUST_BACKTRACE=1 cargo run`
@@ -250,12 +277,14 @@ impl Settings {
 **Trigger**: cargo check failure, compiler errors
 
 **Responsibility**:
+
 - Debug compilation errors
 - Fix type mismatches
 - Resolve lifetime issues
 - Clean up warnings
 
 **When to invoke**:
+
 ```
 - cargo check fails
 - E0xxx compiler errors
@@ -264,6 +293,7 @@ impl Settings {
 ```
 
 **Common fixes**:
+
 ```rust
 // Error: cannot borrow as mutable because it's also borrowed as immutable
 // Fix: collect() to break the reference chain
@@ -285,12 +315,14 @@ fn get_server<'a>(servers: &'a [Server]) -> &'a Server { ... }
 **Trigger**: Design decisions, architecture changes, complex features
 
 **Responsibility**:
+
 - Plan new features
 - Design module structure
 - Define interfaces
 - Review design decisions
 
 **When to invoke**:
+
 ```
 - Adding new major features
 - Restructuring modules
@@ -299,172 +331,37 @@ fn get_server<'a>(servers: &'a [Server]) -> &'a Server { ... }
 ```
 
 **Key files to reference**:
+
 - `ROADMAP.md` - Project phases
 - `PLANS.md` - Original requirements
 
 ---
 
----
-
-## Workflow: Beast Mode Loop
-
-### Phase 1: RESEARCH
-
-**Steps**:
-1. Read relevant documentation (ROADMAP.md, RUST_DESIGN_RULES.md)
-2. Explore existing code patterns
-3. Identify unknowns
-4. Update research.md if needed
-
-**GATE**: Stop. Notify user. Wait for approval.
-
----
-
-### Phase 2: PLAN
-
-**Steps**:
-1. Create detailed implementation plan
-2. Define specific files to modify
-3. List required tests
-4. Update implementation_plan.md
-
-**GATE**: Stop. Notify user. Wait for approval.
-
----
-
-### Phase 3: IMPLEMENT
-
-**Steps**:
-1. Write code following RUST_DESIGN_RULES.md
-2. Run `cargo check` frequently
-3. Run `cargo clippy` for linting
-4. Run `cargo fmt` for formatting
-
-**Verification**:
-```bash
-cargo check      # Type checking
-cargo clippy     # Lints
-cargo fmt        # Formatting
-cargo test       # Unit tests
-```
-
-**GATE**: Verify against the plan.
-
----
-
----
-
 ## File Reference Guide
 
-| File | Purpose | When to Read |
-|------|---------|--------------|
-| `ROADMAP.md` | Project phases and priorities | Planning new work |
-| `PLANS.md` | Original requirements | Understanding goals |
-| `RUST_DESIGN_RULES.md` | Coding standards | Writing any code |
-| `src/vpn/client.rs` | VPN CLI wrapper | Working on connections |
-| `src/ui/components/` | UI widgets | Building UI |
-| `src/state/app_state.rs` | App state | Managing state |
-
----
-
-## Key Constants
-
-From RUST_DESIGN_RULES.md:
-
-```rust
-// Key bindings
-const KEY_CONNECT: char = 'c';
-const KEY_DISCONNECT: char = 'd';
-const KEY_QUIT: char = 'q';
-const KEY_HELP: char = '?';
-const KEY_SEARCH: char = '/';
-const KEY_STATS: char = 's';
-const KEY_SERVERS: char = 'r';
-
-// Movement
-const KEY_UP: char = 'k';
-const KEY_DOWN: char = 'j';
-const KEY_LEFT: char = 'h';
-const KEY_RIGHT: char = 'l';
-```
-
----
-
-## Common Patterns
-
-### Error Handling
-```rust
-use anyhow::{Context, Result};
-use thiserror::Error;
-
-pub type AppResult<T> = Result<T, AppError>;
-
-#[derive(Debug, Error)]
-pub enum AppError {
-    #[error("Connection failed: {0}")]
-    ConnectionFailed(String),
-    
-    #[error("Command failed: {0}")]
-    CommandFailed(#[from] std::io::Error),
-}
-```
-
-### State Management
-```rust
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AppView {
-    Connect,
-    Stats,
-    Settings,
-    Help,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ConnectionState {
-    Disconnected,
-    Connecting,
-    Connected { server: String, ip: String },
-    Disconnecting,
-    Error(String),
-}
-```
-
-### TUI Event Loop
-```rust
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
-
-fn run_tui() -> std::io::Result<()> {
-    loop {
-        if event::poll(std::time::Duration::from_millis(100))? {
-            match event::read()? {
-                Event::Key(KeyEvent { kind: KeyEventKind::Press, code, .. }) => {
-                    match code {
-                        KeyCode::Char('q') => break,
-                        _ => handle_key(code),
-                    }
-                }
-                _ => {}
-            }
-        }
-        render()?;
-    }
-    Ok(())
-}
-```
+| File                       | Purpose                       | When to Read              |
+| -------------------------- | ----------------------------- | ------------------------- |
+| `ROADMAP.md`               | Project phases and priorities | Planning new work         |
+| `PLANS.md`                 | Original requirements         | Understanding goals       |
+| `RUST_DESIGN_RULES.md`     | Coding standards              | Writing any code          |
+| `src/vpn/client.rs`        | VPN CLI wrapper               | Working on connections    |
+| `src/ui/components/`       | UI widgets                    | Building UI               |
+| `src/state/app_state.rs`   | App state                     | Managing state            |
+| `src/state/async_tasks.rs` | Async task manager            | Managing async operations |
 
 ---
 
 ## Triggers Summary
 
-| User Input | Agent to Invoke |
-|------------|-----------------|
-| "Implement X" | Rust Core Specialist |
-| "Add UI component" | TUI/UI Specialist |
-| "Connect to VPN" | VPN Backend Specialist |
-| "Add settings" | Config Specialist |
-| "Bug: X not working" | Debug Helper |
-| "cargo check failed" | Lint Hunter |
-| "How should I design X?" | Architect |
+| User Input               | Agent to Invoke        |
+| ------------------------ | ---------------------- |
+| "Implement X"            | Rust Core Specialist   |
+| "Add UI component"       | TUI/UI Specialist      |
+| "Connect to VPN"         | VPN Backend Specialist |
+| "Add settings"           | Config Specialist      |
+| "Bug: X not working"     | Debug Helper           |
+| "cargo check failed"     | Lint Hunter            |
+| "How should I design X?" | Architect              |
 
 ---
 

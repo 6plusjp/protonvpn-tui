@@ -11,7 +11,7 @@
 | ✅     | connect_random の非同期化       | 完了   | 小     |
 | ✅     | ファイルの分割                  | 完了   | 中     |
 | ✅     | AsyncTaskManager のメモリリーク | 完了   | 中     |
-| **中** | Clippy warning の修正           | 未着手 | 小     |
+| ✅     | Clippy warning の修正           | 完了   | 小     |
 | **中** | Settings 呼び出しのキャッシュ   | 未着手 | 小     |
 | **低** | notification_log の上限設定     | 未着手 | 小     |
 | **低** | EnterAlternateScreen 重複       | 未着手 | 極小   |

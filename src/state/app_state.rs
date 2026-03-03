@@ -4,6 +4,7 @@ use crate::config::Settings;
 use crate::state::ConnectionState;
 use crate::state::ServerFilter;
 use crate::state::ServerSort;
+use crate::state::SortDirection;
 use crate::vpn::Server;
 use crate::vpn::VpnState;
 use std::collections::HashMap;
@@ -30,6 +31,7 @@ pub struct AppState {
     pub search_query: String,
     pub filter: ServerFilter,
     pub sort: ServerSort,
+    pub sort_direction: SortDirection,
     pub config: Settings,
     pub servers: Vec<Server>,
     pub selected_server: Option<usize>,
@@ -58,6 +60,7 @@ impl AppState {
             search_query: String::new(),
             filter: ServerFilter::default(),
             sort: ServerSort::default(),
+            sort_direction: SortDirection::default(),
             config: Settings::default(),
             servers: Vec::new(),
             selected_server: None,
@@ -337,17 +340,19 @@ impl AppState {
                 .collect()
         };
 
-        match self.sort {
-            ServerSort::Name => {
-                result.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+        match (self.sort, self.sort_direction) {
+            (ServerSort::Id, SortDirection::Asc) => {
+                result.sort_by(|a, b| a.id.to_lowercase().cmp(&b.id.to_lowercase()))
             }
-            ServerSort::Country => {
+            (ServerSort::Id, SortDirection::Desc) => {
+                result.sort_by(|a, b| b.id.to_lowercase().cmp(&a.id.to_lowercase()))
+            }
+            (ServerSort::Country, SortDirection::Asc) => {
                 result.sort_by(|a, b| a.country.to_lowercase().cmp(&b.country.to_lowercase()))
             }
-            ServerSort::City => {
-                result.sort_by(|a, b| a.city.to_lowercase().cmp(&b.city.to_lowercase()))
+            (ServerSort::Country, SortDirection::Desc) => {
+                result.sort_by(|a, b| b.country.to_lowercase().cmp(&a.country.to_lowercase()))
             }
-            ServerSort::Id => result.sort_by(|a, b| a.id.to_lowercase().cmp(&b.id.to_lowercase())),
         }
 
         result
@@ -408,6 +413,10 @@ impl AppState {
     }
 
     pub fn cycle_sort(&mut self) {
+        self.sort_direction = self.sort_direction.toggle();
+    }
+
+    pub fn cycle_sort_field(&mut self) {
         self.sort = self.sort.next();
     }
 

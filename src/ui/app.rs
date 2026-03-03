@@ -115,6 +115,11 @@ impl TuiApp {
                 self.notification_timer = 15;
                 None
             }
+            KeyCode::Char('f') => {
+                self.state.cycle_sort_field();
+                self.notification_timer = 15;
+                None
+            }
             KeyCode::Char('j') | KeyCode::Down => {
                 self.state.select_next();
                 None
@@ -432,7 +437,12 @@ impl TuiApp {
             Line::from(vec![
                 Span::raw("  "),
                 Span::styled("s", Style::default().fg(Color::Yellow)),
-                Span::raw("  - Cycle sort (Name/Country/City/ID)"),
+                Span::raw("  - Toggle direction (↑/↓)"),
+            ]),
+            Line::from(vec![
+                Span::raw("  "),
+                Span::styled("f", Style::default().fg(Color::Yellow)),
+                Span::raw("  - Cycle field (ID/Country)"),
             ]),
             Line::from(vec![
                 Span::raw("  "),
@@ -457,6 +467,8 @@ impl TuiApp {
 
     fn render_footer(&self, f: &mut Frame<'_>, area: Rect) {
         let sort_label = self.state.sort.label();
+        let direction_label = self.state.sort_direction.label();
+        let sort_display = format!("{} {}", sort_label, direction_label);
 
         let action_spans: Vec<Span<'_>> = match self.state.current_view {
             AppView::Connect => vec![
@@ -475,7 +487,7 @@ impl TuiApp {
                 Span::raw("["),
                 Span::styled("s", Style::default().fg(Color::Yellow)),
                 Span::raw("] sort ("),
-                Span::raw(sort_label),
+                Span::raw(&sort_display),
                 Span::raw(")"),
             ],
             AppView::Stats => vec![Span::raw("statistics")],

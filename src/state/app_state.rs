@@ -317,6 +317,11 @@ impl AppState {
     pub fn filtered_servers(&self) -> Vec<Server> {
         let query = self.search_query.to_lowercase();
 
+        let connected_server_id = match &self.connection {
+            ConnectionState::Connected { server, .. } => Some(server.clone()),
+            _ => None,
+        };
+
         let mut result: Vec<Server> = if query.is_empty() {
             self.servers.clone()
         } else {
@@ -352,6 +357,16 @@ impl AppState {
             }
             (ServerSort::Country, SortDirection::Desc) => {
                 result.sort_by(|a, b| b.country.to_lowercase().cmp(&a.country.to_lowercase()))
+            }
+        }
+
+        if let Some(ref connected_id) = connected_server_id {
+            if let Some(pos) = result
+                .iter()
+                .position(|s| connected_id.starts_with(&s.id) || s.id.starts_with(connected_id))
+            {
+                let server = result.remove(pos);
+                result.insert(0, server);
             }
         }
 

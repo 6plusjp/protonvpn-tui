@@ -331,11 +331,20 @@ impl TuiApp {
             self.list_state.select(Some(idx));
         }
 
+        let connected_server_id = match &self.state.connection {
+            crate::state::ConnectionState::Connected { server, .. } => Some(server.clone()),
+            _ => None,
+        };
+
         let items: Vec<ListItem> = servers
             .iter()
             .enumerate()
             .map(|(idx, server)| {
                 let is_selected = self.state.selected_server == Some(idx);
+                let is_connected = connected_server_id
+                    .as_ref()
+                    .map(|cid| cid.starts_with(&server.id) || server.id.starts_with(cid))
+                    .unwrap_or(false);
 
                 let line = if is_selected {
                     Line::from(vec![
@@ -344,6 +353,16 @@ impl TuiApp {
                             server.name.as_str(),
                             Style::default()
                                 .fg(Color::Cyan)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                    ])
+                } else if is_connected {
+                    Line::from(vec![
+                        Span::raw("* "),
+                        Span::styled(
+                            server.name.as_str(),
+                            Style::default()
+                                .fg(Color::Green)
                                 .add_modifier(Modifier::BOLD),
                         ),
                     ])

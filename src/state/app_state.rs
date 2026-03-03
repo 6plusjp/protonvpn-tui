@@ -323,40 +323,17 @@ impl AppState {
     }
 
     pub fn connect_random(&mut self) {
-        use std::time::SystemTime;
-        let servers = self.filtered_servers();
-        if servers.is_empty() {
-            self.show_notification("No servers available".to_string(), NotificationType::Error);
-            return;
-        }
-        let idx = (SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as usize)
-            % servers.len();
-        if let Some(server) = servers.get(idx) {
-            let server_id = server.id.clone();
-            let _server_name = server.name.clone();
-            match self.vpn_state.connect(&server_id) {
-                Ok((server_id, ip)) => {
-                    let ip_str = ip.unwrap_or_default();
-                    self.connection = ConnectionState::Connected {
-                        server: server_id.clone(),
-                        ip: ip_str.clone(),
-                    };
-                    self.show_notification(
-                        format!("Connected to {} ({})", server_id, ip_str),
-                        NotificationType::Success,
-                    );
-                }
-                Err(e) => {
-                    self.show_notification(
-                        format!("Connection failed: {}", e),
-                        NotificationType::Error,
-                    );
-                }
-            }
-        }
+        self.previous_connection = Some(self.connection.clone());
+        self.connection = ConnectionState::Connecting;
+        self.show_notification(
+            "Connecting to random server...".to_string(),
+            NotificationType::Info,
+        );
+
+        let (tx, rx) = create_channel(1);
+        self.pending_connect = Some(rx);
+        self.async_manager
+            .spawn_connect_random(self.vpn_state.clone(), tx);
     }
 
     pub fn disconnect(&mut self) {

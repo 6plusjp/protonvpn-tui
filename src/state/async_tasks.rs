@@ -73,6 +73,19 @@ impl AsyncTaskManager {
             let _ = sender.blocking_send(result);
         });
     }
+
+    pub fn spawn_connect_random(
+        &self,
+        vpn_state: VpnState,
+        sender: mpsc::Sender<AsyncResult<(String, Option<String>)>>,
+    ) {
+        let handle = self.handle.clone();
+        handle.spawn_blocking(move || {
+            let mut state = vpn_state;
+            let result = state.connect_random();
+            let _ = sender.blocking_send(result);
+        });
+    }
 }
 
 impl Default for AsyncTaskManager {

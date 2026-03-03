@@ -46,6 +46,11 @@ impl VpnState {
         Ok((server_id, ip))
     }
 
+    pub fn connect_random(&mut self) -> AppResult<(String, Option<String>)> {
+        let (server_id, ip) = self.client.connect_random()?;
+        Ok((server_id, ip))
+    }
+
     pub fn disconnect(&mut self) -> AppResult<()> {
         self.client.disconnect()?;
         Ok(())

@@ -103,6 +103,42 @@ impl VpnClient {
         Ok((final_server, ip))
     }
 
+    pub fn connect_random(&mut self) -> AppResult<(String, Option<String>)> {
+        let output = Command::new(&self.cli_path)
+            .args(["connect", "--random"])
+            .output()
+            .map_err(|e| {
+                AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
+            })?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+
+        let combined = format!("{} {}", stdout, stderr);
+        let combined_lower = combined.to_lowercase();
+
+        if combined_lower.contains("error:") {
+            let error_msg = format!("{}\n{}", stdout.trim(), stderr.trim());
+            return Err(AppError::ConnectionFailed(error_msg));
+        }
+
+        if !output.status.success() {
+            let error_msg = format!("{}\n{}", stdout.trim(), stderr.trim());
+            return Err(AppError::ConnectionFailed(error_msg));
+        }
+
+        let (server_id, ip) = self.parse_connect_output(&combined);
+
+        let final_server = if !server_id.is_empty() {
+            server_id
+        } else {
+            "Random Server".to_string()
+        };
+        self.cache.set_connected(final_server.clone(), ip.clone());
+        self.save_cache()?;
+
+        Ok((final_server, ip))
+    }
+
     /// Parse connect output to extract server ID and IP
     fn parse_connect_output(&self, output: &str) -> (String, Option<String>) {
         let mut server_id = String::new();

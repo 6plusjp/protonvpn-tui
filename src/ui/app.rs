@@ -384,17 +384,41 @@ impl TuiApp {
     fn render_stats_view(&self, f: &mut Frame<'_>, area: Rect) {
         let block = Block::default().title(" Statistics ").borders(Borders::ALL);
 
-        let stats = [
-            "Download Speed: 0.00 KB/s",
-            "Upload Speed: 0.00 KB/s",
-            "Total Received: 0 B",
-            "Total Sent: 0 B",
-            "Session Time: 00:00:00",
-            "Server IP: Not connected",
-            "Protocol: N/A",
-        ];
+        let proton_settings = crate::config::Settings::load_proton_settings();
 
-        let items: Vec<ListItem> = stats.iter().map(|s| ListItem::new(*s)).collect();
+        let mut stats = Vec::new();
+
+        if let Some(ps) = proton_settings {
+            if let Some(protocol) = ps.protocol {
+                stats.push(format!("Protocol: {}", protocol));
+            }
+            if let Some(features) = ps.features {
+                if let Some(st) = features.split_tunneling {
+                    let mode = st.mode.as_deref().unwrap_or("unknown");
+                    let status = if st.enabled { "on" } else { "off" };
+                    stats.push(format!("Split Tunneling: {} ({})", status, mode));
+                }
+            }
+        }
+
+        stats.extend([
+            "Download Speed: 0.00 KB/s".to_string(),
+            "Upload Speed: 0.00 KB/s".to_string(),
+            "Total Received: 0 B".to_string(),
+            "Total Sent: 0 B".to_string(),
+            "Session Time: 00:00:00".to_string(),
+        ]);
+
+        if let crate::state::ConnectionState::Connected { ref server, ref ip } =
+            self.state.connection
+        {
+            stats.push(format!("Server: {}", server));
+            if !ip.is_empty() {
+                stats.push(format!("IP: {}", ip));
+            }
+        }
+
+        let items: Vec<ListItem> = stats.iter().map(|s| ListItem::new(s.as_str())).collect();
 
         let list = List::new(items)
             .block(block)

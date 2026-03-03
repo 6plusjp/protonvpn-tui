@@ -4,6 +4,9 @@
 mod app_state;
 pub use app_state::*;
 
+mod async_tasks;
+pub use async_tasks::*;
+
 mod connection_state;
 pub use connection_state::*;
 

@@ -209,6 +209,44 @@ impl TaskExecutor {
 
 ---
 
+### ✅ 完了: AsyncTaskManager の実装
+
+**状態**: 完了
+
+`AsyncTaskManager` を作成し、`tokio` ベースの非同期処理に切り替え:
+
+```rust
+// src/state/async_tasks.rs
+pub struct AsyncTaskManager {
+    handle: Arc<tokio::runtime::Handle>,
+}
+
+impl AsyncTaskManager {
+    pub fn spawn_refresh_servers(&self, vpn_state: VpnState, sender: mpsc::Sender<...>) {
+        let handle = self.handle.clone();
+        handle.spawn_blocking(move || {
+            let mut state = vpn_state;
+            let result = state.refresh_servers();
+            let _ = sender.blocking_send(result);
+        });
+    }
+    // ... connect, disconnect も同様に実装
+}
+```
+
+**変更ファイル**:
+- `src/state/async_tasks.rs` - 新規作成 (AsyncTaskManager)
+- `src/state/mod.rs` - モジュール追加
+- `src/state/app_state.rs` - std::thread → tokio::spawn_blocking に置換
+
+**改善点**:
+1. ✅ VpnState を再利用 (以前は每次新規作成)
+2. ✅ tokio のスレッドプールを使用 (以前は std::thread)
+3. ✅ tokio::sync::mpsc を使用 (以前は std::sync::mpsc)
+4. ✅ タスクのライフサイクルが明確
+
+---
+
 ## 問題点 6: connect_random の非同期的実装
 
 ### 現状
@@ -258,7 +296,7 @@ pub fn connect_random(&mut self) {
 | ✅完了 | 設定カウント計算の重複除去 | 完了 | 小 |
 | ✅完了 | ConnectionState 重複の解決 | 完了 | 中 |
 | ✅完了 | 選択メソッドの統一的改善 | 完了 | 小 |
-| **中** | 非同期処理の tokio 化 | 未着手 | 大 |
+| ✅完了 | 非同期処理の tokio 化 | 完了 | 大 |
 | **低** | ファイルの分割 | 未着手 | 中 |
 | **低** | connect_random の一貫性 | 未着手 | 小 |
 | **低** | AppState の分割 | 未着手 | 大 |
@@ -267,12 +305,12 @@ pub fn connect_random(&mut self) {
 
 ## 結論
 
-最初の3つの改善が完了した:
+最初の4つの改善が完了した:
 
 1. ✅ **設定カウント計算のヘルパーメソッド追加** - 7箇所の重複を削除
 2. ✅ **ConnectionState の統合** - VpnState から重複を削除
 3. ✅ **選択メソッドのリファクタリング** - Navigatable trait で約40行削減
+4. ✅ **非同期処理の tokio 化** - tokio を使用してスレッド管理を改善
 
 残りのおすすめ改善:
-- **非同期処理の tokio 化**: Cargo.toml に tokio があるのに未活用
 - **ファイル分割**: app.rs がまだ800行以上

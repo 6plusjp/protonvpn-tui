@@ -1,6 +1,7 @@
 //! Application state management
 
 use crate::config::Settings;
+use crate::state::async_tasks::{create_channel, AsyncResult, AsyncTaskManager};
 use crate::state::ConnectionState;
 use crate::state::ServerFilter;
 use crate::state::ServerSort;
@@ -8,6 +9,7 @@ use crate::state::SortDirection;
 use crate::vpn::Server;
 use crate::vpn::VpnState;
 use std::collections::HashMap;
+use tokio::sync::mpsc;
 
 pub trait Navigatable {
     fn move_next(&mut self, bounds: usize);
@@ -104,12 +106,11 @@ pub struct AppState {
     pub vpn_state: VpnState,
     pub notification: Option<Notification>,
     pub notification_log: Vec<Notification>,
-    pending_refresh:
-        Option<std::sync::mpsc::Receiver<crate::error::AppResult<Vec<crate::vpn::Server>>>>,
+    async_manager: AsyncTaskManager,
+    pending_refresh: Option<mpsc::Receiver<AsyncResult<Vec<Server>>>>,
     previous_connection: Option<ConnectionState>,
-    pending_connect:
-        Option<std::sync::mpsc::Receiver<Result<(String, Option<String>), crate::error::AppError>>>,
-    pending_disconnect: Option<std::sync::mpsc::Receiver<Result<(), crate::error::AppError>>>,
+    pending_connect: Option<mpsc::Receiver<AsyncResult<(String, Option<String>)>>>,
+    pending_disconnect: Option<mpsc::Receiver<AsyncResult<()>>>,
 }
 
 impl Default for AppState {
@@ -134,6 +135,7 @@ impl AppState {
             vpn_state: VpnState::new(),
             notification: None,
             notification_log: Vec::new(),
+            async_manager: AsyncTaskManager::new(),
             pending_refresh: None,
             previous_connection: None,
             pending_connect: None,
@@ -167,7 +169,7 @@ impl AppState {
 
     pub fn sync_connection_state(&mut self) {
         // Check for pending server refresh result
-        if let Some(rx) = &self.pending_refresh {
+        if let Some(rx) = self.pending_refresh.as_mut() {
             if let Ok(result) = rx.try_recv() {
                 match result {
                     Ok(servers) => {
@@ -191,7 +193,7 @@ impl AppState {
         // Only check pending connection result when connecting
         if self.connection.is_connecting() {
             // Try to receive result from background thread
-            if let Some(rx) = &self.pending_connect {
+            if let Some(rx) = self.pending_connect.as_mut() {
                 if let Ok(result) = rx.try_recv() {
                     match result {
                         Ok((server, ip)) => {
@@ -226,7 +228,7 @@ impl AppState {
         }
 
         if self.connection.is_disconnecting() {
-            if let Some(rx) = &self.pending_disconnect {
+            if let Some(rx) = self.pending_disconnect.as_mut() {
                 if let Ok(result) = rx.try_recv() {
                     match result {
                         Ok(()) => {
@@ -282,13 +284,10 @@ impl AppState {
 
         self.show_notification("Refreshing servers...".to_string(), NotificationType::Info);
 
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, rx) = create_channel(1);
         self.pending_refresh = Some(rx);
-        std::thread::spawn(move || {
-            let mut vpn_state = VpnState::new();
-            let result = vpn_state.refresh_servers();
-            let _ = tx.send(result);
-        });
+        self.async_manager
+            .spawn_refresh_servers(self.vpn_state.clone(), tx);
     }
 
     pub fn connect(&mut self) {
@@ -317,13 +316,10 @@ impl AppState {
         self.connection = ConnectionState::Connecting;
         self.show_notification("Connecting...".to_string(), NotificationType::Info);
 
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, rx) = create_channel(1);
         self.pending_connect = Some(rx);
-        std::thread::spawn(move || {
-            let mut vpn_state = VpnState::new();
-            let result = vpn_state.connect(&server_id);
-            let _ = tx.send(result);
-        });
+        self.async_manager
+            .spawn_connect(self.vpn_state.clone(), server_id, tx);
     }
 
     pub fn connect_random(&mut self) {
@@ -372,13 +368,10 @@ impl AppState {
         self.connection = ConnectionState::Disconnecting;
         self.show_notification("Disconnecting...".to_string(), NotificationType::Info);
 
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, rx) = create_channel(1);
         self.pending_disconnect = Some(rx);
-        std::thread::spawn(move || {
-            let mut vpn_state = VpnState::new();
-            let result = vpn_state.disconnect();
-            let _ = tx.send(result);
-        });
+        self.async_manager
+            .spawn_disconnect(self.vpn_state.clone(), tx);
     }
 
     pub fn filtered_servers(&self) -> Vec<Server> {

@@ -1,4 +1,5 @@
 use crate::state::{AppState, AppView};
+use crate::ui::views;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
     execute,
@@ -9,7 +10,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph},
+    widgets::{Block, Borders, Clear, ListState, Paragraph},
     Frame, Terminal,
 };
 use std::io;
@@ -371,265 +372,18 @@ impl TuiApp {
 
     fn render_main(&mut self, f: &mut Frame<'_>, area: Rect) {
         match self.state.current_view {
-            AppView::Connect => self.render_connect_view(f, area),
-            AppView::Stats => self.render_stats_view(f, area),
-            AppView::Settings => self.render_settings_view(f, area),
-            AppView::Help => self.render_help_view(f, area),
-        }
-    }
-
-    fn render_connect_view(&mut self, f: &mut Frame<'_>, area: Rect) {
-        let block = Block::default().title(" Servers ").borders(Borders::ALL);
-
-        let servers = self.state.filtered_servers();
-
-        // Update list state with selected server
-        if let Some(idx) = self.state.selected_server {
-            self.list_state.select(Some(idx));
-        }
-
-        let connected_server_id = match &self.state.connection {
-            crate::state::ConnectionState::Connected { server, .. } => Some(server.clone()),
-            _ => None,
-        };
-
-        let items: Vec<ListItem> = servers
-            .iter()
-            .enumerate()
-            .map(|(idx, server)| {
-                let is_selected = self.state.selected_server == Some(idx);
-                let is_connected = connected_server_id
-                    .as_ref()
-                    .map(|cid| cid.starts_with(&server.id) || server.id.starts_with(cid))
-                    .unwrap_or(false);
-
-                let line = if is_selected {
-                    Line::from(vec![
-                        Span::raw("> "),
-                        Span::styled(
-                            server.name.as_str(),
-                            Style::default()
-                                .fg(Color::Cyan)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                    ])
-                } else if is_connected {
-                    Line::from(vec![
-                        Span::raw("* "),
-                        Span::styled(
-                            server.name.as_str(),
-                            Style::default()
-                                .fg(Color::Green)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                    ])
-                } else {
-                    Line::from(vec![Span::raw("  "), Span::raw(server.name.as_str())])
-                };
-
-                ListItem::new(line)
-            })
-            .collect();
-
-        let list = List::new(items)
-            .block(block)
-            .style(Style::default().fg(Color::White));
-
-        f.render_stateful_widget(list, area, &mut self.list_state);
-    }
-
-    fn render_stats_view(&self, f: &mut Frame<'_>, area: Rect) {
-        let block = Block::default().title(" Statistics ").borders(Borders::ALL);
-
-        let proton_settings = crate::config::Settings::load_proton_settings();
-
-        let mut stats = Vec::new();
-
-        if let Some(ps) = proton_settings {
-            if let Some(protocol) = ps.protocol {
-                stats.push(format!("Protocol: {}", protocol));
+            AppView::Connect => views::connect_view::render_connect_view(
+                &mut self.state,
+                &mut self.list_state,
+                f,
+                area,
+            ),
+            AppView::Stats => views::stats_view::render_stats_view(&self.state, f, area),
+            AppView::Settings => {
+                views::settings_view::render_settings_view(&mut self.state, f, area)
             }
-            if let Some(features) = ps.features {
-                if let Some(st) = features.split_tunneling {
-                    let mode = st.mode.as_deref().unwrap_or("unknown");
-                    let status = if st.enabled { "on" } else { "off" };
-                    stats.push(format!("Split Tunneling: {} ({})", status, mode));
-                }
-            }
+            AppView::Help => views::help_view::render_help_view(f, area),
         }
-
-        stats.extend([
-            "Download Speed: 0.00 KB/s".to_string(),
-            "Upload Speed: 0.00 KB/s".to_string(),
-            "Total Received: 0 B".to_string(),
-            "Total Sent: 0 B".to_string(),
-            "Session Time: 00:00:00".to_string(),
-        ]);
-
-        if let crate::state::ConnectionState::Connected { ref server, ref ip } =
-            self.state.connection
-        {
-            stats.push(format!("Server: {}", server));
-            if !ip.is_empty() {
-                stats.push(format!("IP: {}", ip));
-            }
-        }
-
-        let items: Vec<ListItem> = stats.iter().map(|s| ListItem::new(s.as_str())).collect();
-
-        let list = List::new(items)
-            .block(block)
-            .style(Style::default().fg(Color::White));
-
-        f.render_widget(list, area);
-    }
-
-    fn render_settings_view(&mut self, f: &mut Frame<'_>, area: Rect) {
-        let block = Block::default().title(" Settings ").borders(Borders::ALL);
-
-        let proton_settings = crate::config::Settings::load_proton_settings();
-
-        let settings = match proton_settings {
-            Some(ps) => {
-                let killswitch = match ps.killswitch {
-                    Some(0) => "off",
-                    Some(1) => "on",
-                    _ => "unknown",
-                };
-                let ipv6 = if ps.ipv6 == Some(true) {
-                    "enabled"
-                } else {
-                    "disabled"
-                };
-                let dns = if ps.custom_dns.enabled {
-                    format!("custom ({})", ps.custom_dns.ip_list.join(", "))
-                } else {
-                    "default".to_string()
-                };
-                let netshield = match ps.features.as_ref().and_then(|f| f.netshield) {
-                    Some(0) => "off",
-                    Some(1) => "standard",
-                    Some(2) => "plus",
-                    _ => "unknown",
-                };
-                let moderate_nat = ps
-                    .features
-                    .as_ref()
-                    .and_then(|f| f.moderate_nat)
-                    .map(|v| if v { "on" } else { "off" })
-                    .unwrap_or("off");
-                let vpn_accelerator = ps
-                    .features
-                    .as_ref()
-                    .and_then(|f| f.vpn_accelerator)
-                    .map(|v| if v { "on" } else { "off" })
-                    .unwrap_or("off");
-                let port_forwarding = ps
-                    .features
-                    .as_ref()
-                    .and_then(|f| f.port_forwarding)
-                    .map(|v| if v { "on" } else { "off" })
-                    .unwrap_or("off");
-
-                vec![
-                    format!("Kill Switch: {}", killswitch),
-                    format!("IPv6: {}", ipv6),
-                    format!("DNS: {}", dns),
-                    format!("NetShield: {}", netshield),
-                    format!("Moderate NAT: {}", moderate_nat),
-                    format!("VPN Accelerator: {}", vpn_accelerator),
-                    format!("Port Forwarding: {}", port_forwarding),
-                ]
-            }
-            None => vec!["No Proton settings found".to_string()],
-        };
-
-        let items: Vec<ListItem> = settings
-            .iter()
-            .enumerate()
-            .map(|(idx, s)| {
-                let is_selected = self.state.settings_selected == Some(idx);
-                let line = if is_selected {
-                    Line::from(vec![
-                        Span::raw("> "),
-                        Span::styled(
-                            s.as_str(),
-                            Style::default()
-                                .fg(Color::Cyan)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                    ])
-                } else {
-                    Line::from(vec![Span::raw("  "), Span::raw(s.as_str())])
-                };
-                ListItem::new(line)
-            })
-            .collect();
-
-        let list = List::new(items)
-            .block(block)
-            .style(Style::default().fg(Color::White));
-
-        f.render_widget(list, area);
-    }
-
-    fn render_help_view(&self, f: &mut Frame<'_>, area: Rect) {
-        let block = Block::default()
-            .title(" Help ")
-            .borders(Borders::ALL)
-            .style(Style::default().fg(Color::White));
-
-        let help_text = vec![
-            Line::from(vec![
-                Span::styled("Key", Style::default().fg(Color::Yellow)),
-                Span::raw(": "),
-                Span::styled("Action", Style::default().fg(Color::Cyan)),
-            ]),
-            Line::from(""),
-            Line::from(vec![
-                Span::raw("  "),
-                Span::styled("c", Style::default().fg(Color::Yellow)),
-                Span::raw("  - Connect to selected server"),
-            ]),
-            Line::from(vec![
-                Span::raw("  "),
-                Span::styled("d", Style::default().fg(Color::Yellow)),
-                Span::raw("  - Disconnect from VPN"),
-            ]),
-            Line::from(vec![
-                Span::raw("  "),
-                Span::styled("r", Style::default().fg(Color::Yellow)),
-                Span::raw("  - Refresh server list"),
-            ]),
-            Line::from(vec![
-                Span::raw("  "),
-                Span::styled("s", Style::default().fg(Color::Yellow)),
-                Span::raw("  - Toggle direction (↑/↓)"),
-            ]),
-            Line::from(vec![
-                Span::raw("  "),
-                Span::styled("f", Style::default().fg(Color::Yellow)),
-                Span::raw("  - Cycle field (ID/Country)"),
-            ]),
-            Line::from(vec![
-                Span::raw("  "),
-                Span::styled("j/k", Style::default().fg(Color::Yellow)),
-                Span::raw("  - Navigate server list"),
-            ]),
-            Line::from(vec![
-                Span::raw("  "),
-                Span::styled("Tab", Style::default().fg(Color::Yellow)),
-                Span::raw("  - Switch view"),
-            ]),
-            Line::from(vec![
-                Span::raw("  "),
-                Span::styled("q", Style::default().fg(Color::Yellow)),
-                Span::raw("  - Quit"),
-            ]),
-        ];
-
-        f.render_widget(block, area);
-        f.render_widget(Paragraph::new(help_text), area);
     }
 
     fn render_footer(&self, f: &mut Frame<'_>, area: Rect) {

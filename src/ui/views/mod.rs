@@ -1,3 +1,6 @@
 //! UI views
 
-// Full views will go here
+pub mod connect_view;
+pub mod help_view;
+pub mod settings_view;
+pub mod stats_view;

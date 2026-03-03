@@ -32,7 +32,11 @@ impl ConnectionState {
         )
     }
 
-    pub fn can_disconnect(&self) -> bool {
-        matches!(self, ConnectionState::Connected { .. })
+    pub fn is_disconnecting(&self) -> bool {
+        matches!(self, ConnectionState::Disconnecting)
+    }
+
+    pub fn is_disconnected(&self) -> bool {
+        matches!(self, ConnectionState::Disconnected)
     }
 }

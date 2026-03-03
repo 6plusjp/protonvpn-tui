@@ -63,11 +63,6 @@ impl VpnState {
     }
 
     pub fn disconnect(&mut self) -> AppResult<()> {
-        if !self.state.can_disconnect() {
-            return Err(crate::error::VpnError::NotConnected.into());
-        }
-
-        self.state = ConnectionState::Disconnecting;
         self.client.disconnect()?;
         self.state = ConnectionState::Disconnected;
         Ok(())

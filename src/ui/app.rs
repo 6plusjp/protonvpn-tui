@@ -30,11 +30,8 @@ impl TuiApp {
         }));
 
         let mut state = AppState::new();
-        // Sync connection state from system (check proton0)
         state.sync_connection_state();
-        // Load cached servers
-        state.load_cached_servers();
-        // Show startup notification
+        state.refresh_servers();
 
         Ok(Self {
             state,
@@ -459,30 +456,48 @@ impl TuiApp {
     }
 
     fn render_footer(&self, f: &mut Frame<'_>, area: Rect) {
-        let (action, sort_info) = match self.state.current_view {
-            AppView::Connect => (
-                "j/k: move | c: connect | d: disconnect | r: refresh",
-                format!(" | s: sort ({})", self.state.sort.label()),
-            ),
-            AppView::Stats => ("Statistics view", String::new()),
-            AppView::Settings => ("Settings view", String::new()),
-            AppView::Help => ("Press Tab or q to return", String::new()),
+        let sort_label = self.state.sort.label();
+
+        let action_spans: Vec<Span<'_>> = match self.state.current_view {
+            AppView::Connect => vec![
+                Span::raw("["),
+                Span::styled("j/k", Style::default().fg(Color::Yellow)),
+                Span::raw("] move | "),
+                Span::raw("["),
+                Span::styled("c", Style::default().fg(Color::Yellow)),
+                Span::raw("] connect | "),
+                Span::raw("["),
+                Span::styled("d", Style::default().fg(Color::Yellow)),
+                Span::raw("] disconnect | "),
+                Span::raw("["),
+                Span::styled("r", Style::default().fg(Color::Yellow)),
+                Span::raw("] refresh | "),
+                Span::raw("["),
+                Span::styled("s", Style::default().fg(Color::Yellow)),
+                Span::raw("] sort ("),
+                Span::raw(sort_label),
+                Span::raw(")"),
+            ],
+            AppView::Stats => vec![Span::raw("statistics")],
+            AppView::Settings => vec![Span::raw("settings")],
+            AppView::Help => vec![Span::raw("Press Tab or q to return")],
         };
 
         let text = Line::from(vec![
             Span::raw("["),
             Span::styled("?", Style::default().fg(Color::Yellow)),
-            Span::raw("] Help "),
+            Span::raw("] help "),
             Span::raw("["),
             Span::styled("Tab", Style::default().fg(Color::Yellow)),
-            Span::raw("] Switch View "),
+            Span::raw("] switch view "),
             Span::raw("["),
             Span::styled("q", Style::default().fg(Color::Yellow)),
-            Span::raw("] Quit"),
+            Span::raw("] quit"),
             Span::raw(" | "),
-            Span::styled(action, Style::default().fg(Color::Cyan)),
-            Span::styled(sort_info, Style::default().fg(Color::Green)),
         ]);
+
+        let mut text = Line::from(text);
+        text.spans.extend(action_spans);
 
         f.render_widget(Paragraph::new(text), area);
     }

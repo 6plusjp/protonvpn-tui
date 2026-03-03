@@ -150,30 +150,20 @@ impl VpnClient {
 
     /// Disconnect from VPN
     pub fn disconnect(&mut self) -> AppResult<()> {
-        let output = Command::new(&self.cli_path)
-            .args(["disconnect"])
-            .output()
-            .map_err(|e| {
-                AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
-            })?;
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let stderr_lower = stderr.to_lowercase();
+        let _ = Command::new(&self.cli_path).args(["disconnect"]).output();
 
-        // Check for explicit error indicators
-        let has_error = stderr_lower.contains("error:") || stderr_lower.contains("failed");
-
-        // Success if: exit code is 0, OR no explicit error found
-        if !output.status.success() && has_error {
-            let error_msg = format!("{}\n{}", stdout.trim(), stderr.trim());
-            return Err(AppError::ConnectionFailed(error_msg));
+        for _ in 0..10 {
+            if !self.is_connected() {
+                self.cache.set_disconnected();
+                self.save_cache()?;
+                return Ok(());
+            }
+            std::thread::sleep(std::time::Duration::from_millis(500));
         }
 
-        // Update local connection status
-        self.cache.set_disconnected();
-        self.save_cache()?;
-
-        Ok(())
+        Err(AppError::ConnectionFailed(
+            "Failed to disconnect".to_string(),
+        ))
     }
 
     /// Check if connected using system-level check (proton0 interface)

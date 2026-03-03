@@ -41,6 +41,7 @@ pub struct AppState {
     previous_connection: Option<ConnectionState>,
     pending_connect:
         Option<std::sync::mpsc::Receiver<Result<(String, Option<String>), crate::error::AppError>>>,
+    pending_disconnect: Option<std::sync::mpsc::Receiver<Result<(), crate::error::AppError>>>,
 }
 
 impl Default for AppState {
@@ -66,6 +67,7 @@ impl AppState {
             pending_refresh: None,
             previous_connection: None,
             pending_connect: None,
+            pending_disconnect: None,
         }
     }
 
@@ -153,6 +155,36 @@ impl AppState {
             }
         }
 
+        if self.connection.is_disconnecting() {
+            if let Some(rx) = &self.pending_disconnect {
+                if let Ok(result) = rx.try_recv() {
+                    match result {
+                        Ok(()) => {
+                            self.connection = ConnectionState::Disconnected;
+                            self.show_notification(
+                                "Disconnected".to_string(),
+                                NotificationType::Info,
+                            );
+                            self.previous_connection = None;
+                            self.pending_disconnect = None;
+                        }
+                        Err(e) => {
+                            if let Some(prev) = self.previous_connection.take() {
+                                self.connection = prev;
+                            } else {
+                                self.connection = ConnectionState::Disconnected;
+                            }
+                            self.show_notification(
+                                format!("Disconnect failed: {}", e),
+                                NotificationType::Error,
+                            );
+                            self.pending_disconnect = None;
+                        }
+                    }
+                }
+            }
+        }
+
         // When already connected, don't keep checking system state
         // This prevents flickering between connected/disconnected
         if self.connection.is_connected() {
@@ -168,17 +200,6 @@ impl AppState {
                 };
             }
             return;
-        }
-    }
-
-    pub fn load_cached_servers(&mut self) {
-        match self.vpn_state.get_servers() {
-            Ok(servers) => {
-                if !servers.is_empty() {
-                    self.servers = servers;
-                }
-            }
-            Err(_) => {}
         }
     }
 
@@ -273,18 +294,21 @@ impl AppState {
     }
 
     pub fn disconnect(&mut self) {
-        match self.vpn_state.disconnect() {
-            Ok(()) => {
-                self.connection = ConnectionState::Disconnected;
-                self.show_notification("Disconnected".to_string(), NotificationType::Info);
-            }
-            Err(e) => {
-                self.show_notification(
-                    format!("Disconnect failed: {}", e),
-                    NotificationType::Error,
-                );
-            }
+        if self.connection.is_disconnected() {
+            return;
         }
+
+        self.previous_connection = Some(self.connection.clone());
+        self.connection = ConnectionState::Disconnecting;
+        self.show_notification("Disconnecting...".to_string(), NotificationType::Info);
+
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.pending_disconnect = Some(rx);
+        std::thread::spawn(move || {
+            let mut vpn_state = VpnState::new();
+            let result = vpn_state.disconnect();
+            let _ = tx.send(result);
+        });
     }
 
     pub fn filtered_servers(&self) -> Vec<Server> {

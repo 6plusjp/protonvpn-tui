@@ -9,6 +9,71 @@ use crate::vpn::Server;
 use crate::vpn::VpnState;
 use std::collections::HashMap;
 
+pub trait Navigatable {
+    fn move_next(&mut self, bounds: usize);
+    fn move_prev(&mut self, bounds: usize);
+    fn move_first(&mut self, bounds: usize);
+    fn move_last(&mut self, bounds: usize);
+    fn move_page_down(&mut self, bounds: usize);
+    fn move_page_up(&mut self, bounds: usize);
+}
+
+impl Navigatable for Option<usize> {
+    fn move_next(&mut self, bounds: usize) {
+        if bounds == 0 {
+            return;
+        }
+        *self = Some(match *self {
+            Some(i) => (i + 1).min(bounds - 1),
+            None => 0,
+        });
+    }
+
+    fn move_prev(&mut self, bounds: usize) {
+        if bounds == 0 {
+            return;
+        }
+        *self = Some(match *self {
+            Some(i) => i.saturating_sub(1),
+            None => 0,
+        });
+    }
+
+    fn move_first(&mut self, bounds: usize) {
+        if bounds > 0 {
+            *self = Some(0);
+        }
+    }
+
+    fn move_last(&mut self, bounds: usize) {
+        if bounds > 0 {
+            *self = Some(bounds - 1);
+        }
+    }
+
+    fn move_page_down(&mut self, bounds: usize) {
+        if bounds == 0 {
+            return;
+        }
+        let page_size = 10;
+        *self = Some(match *self {
+            Some(i) => (i + page_size).min(bounds - 1),
+            None => 0,
+        });
+    }
+
+    fn move_page_up(&mut self, bounds: usize) {
+        if bounds == 0 {
+            return;
+        }
+        let page_size = 10;
+        *self = Some(match *self {
+            Some(i) => i.saturating_sub(page_size),
+            None => 0,
+        });
+    }
+}
+
 /// Notification type for UI feedback
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NotificationType {
@@ -442,124 +507,56 @@ impl AppState {
     }
 
     pub fn select_next(&mut self) {
-        let filtered = self.filtered_servers();
-        if filtered.is_empty() {
-            return;
-        }
-        if let Some(idx) = self.selected_server {
-            self.selected_server = Some((idx + 1).min(filtered.len() - 1));
-        } else {
-            self.selected_server = Some(0);
-        }
+        self.selected_server
+            .move_next(self.filtered_servers().len());
     }
 
     pub fn select_prev(&mut self) {
-        let filtered = self.filtered_servers();
-        if filtered.is_empty() {
-            return;
-        }
-        if let Some(idx) = self.selected_server {
-            self.selected_server = Some(idx.saturating_sub(1));
-        } else {
-            self.selected_server = Some(0);
-        }
+        self.selected_server
+            .move_prev(self.filtered_servers().len());
     }
 
     pub fn select_first(&mut self) {
-        let filtered = self.filtered_servers();
-        if !filtered.is_empty() {
-            self.selected_server = Some(0);
-        }
+        self.selected_server
+            .move_first(self.filtered_servers().len());
     }
 
     pub fn select_last(&mut self) {
-        let filtered = self.filtered_servers();
-        if !filtered.is_empty() {
-            self.selected_server = Some(filtered.len() - 1);
-        }
+        self.selected_server
+            .move_last(self.filtered_servers().len());
     }
 
     pub fn select_page_down(&mut self) {
-        let filtered = self.filtered_servers();
-        if filtered.is_empty() {
-            return;
-        }
-        let page_size = 10;
-        if let Some(idx) = self.selected_server {
-            self.selected_server = Some((idx + page_size).min(filtered.len() - 1));
-        } else {
-            self.selected_server = Some(0);
-        }
+        self.selected_server
+            .move_page_down(self.filtered_servers().len());
     }
 
     pub fn select_page_up(&mut self) {
-        let filtered = self.filtered_servers();
-        if filtered.is_empty() {
-            return;
-        }
-        let page_size = 10;
-        if let Some(idx) = self.selected_server {
-            self.selected_server = Some(idx.saturating_sub(page_size));
-        } else {
-            self.selected_server = Some(0);
-        }
+        self.selected_server
+            .move_page_up(self.filtered_servers().len());
     }
 
     pub fn settings_select_next(&mut self, count: usize) {
-        if count == 0 {
-            return;
-        }
-        if let Some(idx) = self.settings_selected {
-            self.settings_selected = Some((idx + 1).min(count - 1));
-        } else {
-            self.settings_selected = Some(0);
-        }
+        self.settings_selected.move_next(count);
     }
 
     pub fn settings_select_prev(&mut self, count: usize) {
-        if count == 0 {
-            return;
-        }
-        if let Some(idx) = self.settings_selected {
-            self.settings_selected = Some(idx.saturating_sub(1));
-        } else {
-            self.settings_selected = Some(0);
-        }
+        self.settings_selected.move_prev(count);
     }
 
     pub fn settings_select_first(&mut self, count: usize) {
-        if count > 0 {
-            self.settings_selected = Some(0);
-        }
+        self.settings_selected.move_first(count);
     }
 
     pub fn settings_select_last(&mut self, count: usize) {
-        if count > 0 {
-            self.settings_selected = Some(count - 1);
-        }
+        self.settings_selected.move_last(count);
     }
 
     pub fn settings_select_page_down(&mut self, count: usize) {
-        if count == 0 {
-            return;
-        }
-        let page_size = 10;
-        if let Some(idx) = self.settings_selected {
-            self.settings_selected = Some((idx + page_size).min(count - 1));
-        } else {
-            self.settings_selected = Some(0);
-        }
+        self.settings_selected.move_page_down(count);
     }
 
     pub fn settings_select_page_up(&mut self, count: usize) {
-        if count == 0 {
-            return;
-        }
-        let page_size = 10;
-        if let Some(idx) = self.settings_selected {
-            self.settings_selected = Some(idx.saturating_sub(page_size));
-        } else {
-            self.settings_selected = Some(0);
-        }
+        self.settings_selected.move_page_up(count);
     }
 }

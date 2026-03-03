@@ -1,16 +1,11 @@
-//! VPN state machine
-//!
-
 use super::client::VpnClient;
 use super::types::Server;
 use crate::error::AppResult;
-use crate::state::ConnectionState;
 
 /// VPN state manager
 #[derive(Debug, Clone)]
 pub struct VpnState {
     client: VpnClient,
-    state: ConnectionState,
 }
 
 impl Default for VpnState {
@@ -23,12 +18,7 @@ impl VpnState {
     pub fn new() -> Self {
         Self {
             client: VpnClient::new(),
-            state: ConnectionState::Disconnected,
         }
-    }
-
-    pub fn state(&self) -> &ConnectionState {
-        &self.state
     }
 
     /// Check if currently connected (from local cache)
@@ -52,19 +42,12 @@ impl VpnState {
     }
 
     pub fn connect(&mut self, server: &str) -> AppResult<(String, Option<String>)> {
-        // Allow reconnect - client will handle "already connected" case
-        self.state = ConnectionState::Connecting;
         let (server_id, ip) = self.client.connect(server)?;
-        self.state = ConnectionState::Connected {
-            server: server_id.clone(),
-            ip: ip.clone().unwrap_or_default(),
-        };
         Ok((server_id, ip))
     }
 
     pub fn disconnect(&mut self) -> AppResult<()> {
         self.client.disconnect()?;
-        self.state = ConnectionState::Disconnected;
         Ok(())
     }
 

@@ -100,46 +100,7 @@ impl TuiApp {
                     AppView::Connect => self.state.select_page_down(),
                     AppView::Settings => {
                         let count = crate::config::Settings::load_proton_settings()
-                            .map(|ps| {
-                                let mut c = 0;
-                                if ps.killswitch.is_some() {
-                                    c += 1;
-                                }
-                                if ps.ipv6.is_some() {
-                                    c += 1;
-                                }
-                                if ps.custom_dns.enabled || ps.custom_dns.ip_list.is_empty() {
-                                    c += 1;
-                                }
-                                if ps
-                                    .features
-                                    .as_ref()
-                                    .map(|f| f.netshield.is_some())
-                                    .unwrap_or(false)
-                                {
-                                    c += 1;
-                                }
-                                if ps.features.as_ref().and_then(|f| f.moderate_nat).is_some() {
-                                    c += 1;
-                                }
-                                if ps
-                                    .features
-                                    .as_ref()
-                                    .and_then(|f| f.vpn_accelerator)
-                                    .is_some()
-                                {
-                                    c += 1;
-                                }
-                                if ps
-                                    .features
-                                    .as_ref()
-                                    .and_then(|f| f.port_forwarding)
-                                    .is_some()
-                                {
-                                    c += 1;
-                                }
-                                c
-                            })
+                            .map(|ps| ps.settings_count())
                             .unwrap_or(0);
                         self.state.settings_select_page_down(count);
                     }
@@ -173,46 +134,7 @@ impl TuiApp {
                     AppView::Connect => self.state.select_next(),
                     AppView::Settings => {
                         let count = crate::config::Settings::load_proton_settings()
-                            .map(|ps| {
-                                let mut c = 0;
-                                if ps.killswitch.is_some() {
-                                    c += 1;
-                                }
-                                if ps.ipv6.is_some() {
-                                    c += 1;
-                                }
-                                if ps.custom_dns.enabled || ps.custom_dns.ip_list.is_empty() {
-                                    c += 1;
-                                }
-                                if ps
-                                    .features
-                                    .as_ref()
-                                    .map(|f| f.netshield.is_some())
-                                    .unwrap_or(false)
-                                {
-                                    c += 1;
-                                }
-                                if ps.features.as_ref().and_then(|f| f.moderate_nat).is_some() {
-                                    c += 1;
-                                }
-                                if ps
-                                    .features
-                                    .as_ref()
-                                    .and_then(|f| f.vpn_accelerator)
-                                    .is_some()
-                                {
-                                    c += 1;
-                                }
-                                if ps
-                                    .features
-                                    .as_ref()
-                                    .and_then(|f| f.port_forwarding)
-                                    .is_some()
-                                {
-                                    c += 1;
-                                }
-                                c
-                            })
+                            .map(|ps| ps.settings_count())
                             .unwrap_or(0);
                         self.state.settings_select_next(count);
                     }
@@ -228,46 +150,7 @@ impl TuiApp {
                     }
                     AppView::Settings => {
                         let count = crate::config::Settings::load_proton_settings()
-                            .map(|ps| {
-                                let mut c = 0;
-                                if ps.killswitch.is_some() {
-                                    c += 1;
-                                }
-                                if ps.ipv6.is_some() {
-                                    c += 1;
-                                }
-                                if ps.custom_dns.enabled || ps.custom_dns.ip_list.is_empty() {
-                                    c += 1;
-                                }
-                                if ps
-                                    .features
-                                    .as_ref()
-                                    .map(|f| f.netshield.is_some())
-                                    .unwrap_or(false)
-                                {
-                                    c += 1;
-                                }
-                                if ps.features.as_ref().and_then(|f| f.moderate_nat).is_some() {
-                                    c += 1;
-                                }
-                                if ps
-                                    .features
-                                    .as_ref()
-                                    .and_then(|f| f.vpn_accelerator)
-                                    .is_some()
-                                {
-                                    c += 1;
-                                }
-                                if ps
-                                    .features
-                                    .as_ref()
-                                    .and_then(|f| f.port_forwarding)
-                                    .is_some()
-                                {
-                                    c += 1;
-                                }
-                                c
-                            })
+                            .map(|ps| ps.settings_count())
                             .unwrap_or(0);
                         self.state.settings_select_prev(count);
                         self.pending_g = false;
@@ -283,46 +166,7 @@ impl TuiApp {
                         AppView::Connect => self.state.select_first(),
                         AppView::Settings => {
                             let count = crate::config::Settings::load_proton_settings()
-                                .map(|ps| {
-                                    let mut c = 0;
-                                    if ps.killswitch.is_some() {
-                                        c += 1;
-                                    }
-                                    if ps.ipv6.is_some() {
-                                        c += 1;
-                                    }
-                                    if ps.custom_dns.enabled || ps.custom_dns.ip_list.is_empty() {
-                                        c += 1;
-                                    }
-                                    if ps
-                                        .features
-                                        .as_ref()
-                                        .map(|f| f.netshield.is_some())
-                                        .unwrap_or(false)
-                                    {
-                                        c += 1;
-                                    }
-                                    if ps.features.as_ref().and_then(|f| f.moderate_nat).is_some() {
-                                        c += 1;
-                                    }
-                                    if ps
-                                        .features
-                                        .as_ref()
-                                        .and_then(|f| f.vpn_accelerator)
-                                        .is_some()
-                                    {
-                                        c += 1;
-                                    }
-                                    if ps
-                                        .features
-                                        .as_ref()
-                                        .and_then(|f| f.port_forwarding)
-                                        .is_some()
-                                    {
-                                        c += 1;
-                                    }
-                                    c
-                                })
+                                .map(|ps| ps.settings_count())
                                 .unwrap_or(0);
                             self.state.settings_select_first(count);
                         }
@@ -340,46 +184,7 @@ impl TuiApp {
                     AppView::Connect => self.state.select_last(),
                     AppView::Settings => {
                         let count = crate::config::Settings::load_proton_settings()
-                            .map(|ps| {
-                                let mut c = 0;
-                                if ps.killswitch.is_some() {
-                                    c += 1;
-                                }
-                                if ps.ipv6.is_some() {
-                                    c += 1;
-                                }
-                                if ps.custom_dns.enabled || ps.custom_dns.ip_list.is_empty() {
-                                    c += 1;
-                                }
-                                if ps
-                                    .features
-                                    .as_ref()
-                                    .map(|f| f.netshield.is_some())
-                                    .unwrap_or(false)
-                                {
-                                    c += 1;
-                                }
-                                if ps.features.as_ref().and_then(|f| f.moderate_nat).is_some() {
-                                    c += 1;
-                                }
-                                if ps
-                                    .features
-                                    .as_ref()
-                                    .and_then(|f| f.vpn_accelerator)
-                                    .is_some()
-                                {
-                                    c += 1;
-                                }
-                                if ps
-                                    .features
-                                    .as_ref()
-                                    .and_then(|f| f.port_forwarding)
-                                    .is_some()
-                                {
-                                    c += 1;
-                                }
-                                c
-                            })
+                            .map(|ps| ps.settings_count())
                             .unwrap_or(0);
                         self.state.settings_select_last(count);
                     }
@@ -394,46 +199,7 @@ impl TuiApp {
                     AppView::Connect => self.state.select_page_up(),
                     AppView::Settings => {
                         let count = crate::config::Settings::load_proton_settings()
-                            .map(|ps| {
-                                let mut c = 0;
-                                if ps.killswitch.is_some() {
-                                    c += 1;
-                                }
-                                if ps.ipv6.is_some() {
-                                    c += 1;
-                                }
-                                if ps.custom_dns.enabled || ps.custom_dns.ip_list.is_empty() {
-                                    c += 1;
-                                }
-                                if ps
-                                    .features
-                                    .as_ref()
-                                    .map(|f| f.netshield.is_some())
-                                    .unwrap_or(false)
-                                {
-                                    c += 1;
-                                }
-                                if ps.features.as_ref().and_then(|f| f.moderate_nat).is_some() {
-                                    c += 1;
-                                }
-                                if ps
-                                    .features
-                                    .as_ref()
-                                    .and_then(|f| f.vpn_accelerator)
-                                    .is_some()
-                                {
-                                    c += 1;
-                                }
-                                if ps
-                                    .features
-                                    .as_ref()
-                                    .and_then(|f| f.port_forwarding)
-                                    .is_some()
-                                {
-                                    c += 1;
-                                }
-                                c
-                            })
+                            .map(|ps| ps.settings_count())
                             .unwrap_or(0);
                         self.state.settings_select_page_up(count);
                     }

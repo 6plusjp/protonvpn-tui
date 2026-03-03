@@ -109,3 +109,46 @@ impl Settings {
         serde_json::from_str(&content).ok()
     }
 }
+
+impl ProtonSettings {
+    pub fn settings_count(&self) -> usize {
+        let mut c = 0;
+        if self.killswitch.is_some() {
+            c += 1;
+        }
+        if self.ipv6.is_some() {
+            c += 1;
+        }
+        if self.custom_dns.enabled || self.custom_dns.ip_list.is_empty() {
+            c += 1;
+        }
+        if self.features.as_ref().and_then(|f| f.netshield).is_some() {
+            c += 1;
+        }
+        if self
+            .features
+            .as_ref()
+            .and_then(|f| f.moderate_nat)
+            .is_some()
+        {
+            c += 1;
+        }
+        if self
+            .features
+            .as_ref()
+            .and_then(|f| f.vpn_accelerator)
+            .is_some()
+        {
+            c += 1;
+        }
+        if self
+            .features
+            .as_ref()
+            .and_then(|f| f.port_forwarding)
+            .is_some()
+        {
+            c += 1;
+        }
+        c
+    }
+}

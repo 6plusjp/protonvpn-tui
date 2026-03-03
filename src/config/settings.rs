@@ -3,6 +3,43 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+/// Proton VPN settings (from ~/.config/Proton/VPN/settings.json)
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ProtonSettings {
+    pub protocol: Option<String>,
+    pub killswitch: Option<i32>,
+    pub ipv6: Option<bool>,
+    #[serde(rename = "custom_dns")]
+    pub custom_dns: ProtonCustomDns,
+    pub features: Option<ProtonFeatures>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ProtonCustomDns {
+    pub enabled: bool,
+    #[serde(rename = "ip_list")]
+    pub ip_list: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ProtonFeatures {
+    pub netshield: Option<i32>,
+    #[serde(rename = "moderate_nat")]
+    pub moderate_nat: Option<bool>,
+    #[serde(rename = "vpn_accelerator")]
+    pub vpn_accelerator: Option<bool>,
+    #[serde(rename = "port_forwarding")]
+    pub port_forwarding: Option<bool>,
+    #[serde(rename = "split_tunneling")]
+    pub split_tunneling: Option<ProtonSplitTunneling>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ProtonSplitTunneling {
+    pub enabled: bool,
+    pub mode: Option<String>,
+}
+
 /// General settings
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GeneralSettings {
@@ -60,5 +97,15 @@ impl Settings {
         let content = toml::to_string_pretty(self)?;
         std::fs::write(path, content)?;
         Ok(())
+    }
+
+    /// Load Proton VPN settings from ~/.config/Proton/VPN/settings.json
+    pub fn load_proton_settings() -> Option<ProtonSettings> {
+        let config_path = dirs::config_dir()?
+            .join("Proton")
+            .join("VPN")
+            .join("settings.json");
+        let content = std::fs::read_to_string(config_path).ok()?;
+        serde_json::from_str(&content).ok()
     }
 }

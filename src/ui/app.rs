@@ -96,7 +96,55 @@ impl TuiApp {
             }
             // Ctrl+d = page down (must be before 'd' for disconnect)
             KeyCode::Char('d') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.state.select_page_down();
+                match self.state.current_view {
+                    AppView::Connect => self.state.select_page_down(),
+                    AppView::Settings => {
+                        let count = crate::config::Settings::load_proton_settings()
+                            .map(|ps| {
+                                let mut c = 0;
+                                if ps.killswitch.is_some() {
+                                    c += 1;
+                                }
+                                if ps.ipv6.is_some() {
+                                    c += 1;
+                                }
+                                if ps.custom_dns.enabled || ps.custom_dns.ip_list.is_empty() {
+                                    c += 1;
+                                }
+                                if ps
+                                    .features
+                                    .as_ref()
+                                    .map(|f| f.netshield.is_some())
+                                    .unwrap_or(false)
+                                {
+                                    c += 1;
+                                }
+                                if ps.features.as_ref().and_then(|f| f.moderate_nat).is_some() {
+                                    c += 1;
+                                }
+                                if ps
+                                    .features
+                                    .as_ref()
+                                    .and_then(|f| f.vpn_accelerator)
+                                    .is_some()
+                                {
+                                    c += 1;
+                                }
+                                if ps
+                                    .features
+                                    .as_ref()
+                                    .and_then(|f| f.port_forwarding)
+                                    .is_some()
+                                {
+                                    c += 1;
+                                }
+                                c
+                            })
+                            .unwrap_or(0);
+                        self.state.settings_select_page_down(count);
+                    }
+                    _ => {}
+                }
                 self.pending_g = false;
                 None
             }
@@ -121,18 +169,165 @@ impl TuiApp {
                 None
             }
             KeyCode::Char('j') | KeyCode::Down => {
-                self.state.select_next();
+                match self.state.current_view {
+                    AppView::Connect => self.state.select_next(),
+                    AppView::Settings => {
+                        let count = crate::config::Settings::load_proton_settings()
+                            .map(|ps| {
+                                let mut c = 0;
+                                if ps.killswitch.is_some() {
+                                    c += 1;
+                                }
+                                if ps.ipv6.is_some() {
+                                    c += 1;
+                                }
+                                if ps.custom_dns.enabled || ps.custom_dns.ip_list.is_empty() {
+                                    c += 1;
+                                }
+                                if ps
+                                    .features
+                                    .as_ref()
+                                    .map(|f| f.netshield.is_some())
+                                    .unwrap_or(false)
+                                {
+                                    c += 1;
+                                }
+                                if ps.features.as_ref().and_then(|f| f.moderate_nat).is_some() {
+                                    c += 1;
+                                }
+                                if ps
+                                    .features
+                                    .as_ref()
+                                    .and_then(|f| f.vpn_accelerator)
+                                    .is_some()
+                                {
+                                    c += 1;
+                                }
+                                if ps
+                                    .features
+                                    .as_ref()
+                                    .and_then(|f| f.port_forwarding)
+                                    .is_some()
+                                {
+                                    c += 1;
+                                }
+                                c
+                            })
+                            .unwrap_or(0);
+                        self.state.settings_select_next(count);
+                    }
+                    _ => {}
+                }
                 None
             }
             KeyCode::Char('k') | KeyCode::Up => {
-                self.state.select_prev();
-                self.pending_g = false;
+                match self.state.current_view {
+                    AppView::Connect => {
+                        self.state.select_prev();
+                        self.pending_g = false;
+                    }
+                    AppView::Settings => {
+                        let count = crate::config::Settings::load_proton_settings()
+                            .map(|ps| {
+                                let mut c = 0;
+                                if ps.killswitch.is_some() {
+                                    c += 1;
+                                }
+                                if ps.ipv6.is_some() {
+                                    c += 1;
+                                }
+                                if ps.custom_dns.enabled || ps.custom_dns.ip_list.is_empty() {
+                                    c += 1;
+                                }
+                                if ps
+                                    .features
+                                    .as_ref()
+                                    .map(|f| f.netshield.is_some())
+                                    .unwrap_or(false)
+                                {
+                                    c += 1;
+                                }
+                                if ps.features.as_ref().and_then(|f| f.moderate_nat).is_some() {
+                                    c += 1;
+                                }
+                                if ps
+                                    .features
+                                    .as_ref()
+                                    .and_then(|f| f.vpn_accelerator)
+                                    .is_some()
+                                {
+                                    c += 1;
+                                }
+                                if ps
+                                    .features
+                                    .as_ref()
+                                    .and_then(|f| f.port_forwarding)
+                                    .is_some()
+                                {
+                                    c += 1;
+                                }
+                                c
+                            })
+                            .unwrap_or(0);
+                        self.state.settings_select_prev(count);
+                        self.pending_g = false;
+                    }
+                    _ => {}
+                }
                 None
             }
             // Vim: gg = go to top
             KeyCode::Char('g') => {
                 if self.pending_g {
-                    self.state.select_first();
+                    match self.state.current_view {
+                        AppView::Connect => self.state.select_first(),
+                        AppView::Settings => {
+                            let count = crate::config::Settings::load_proton_settings()
+                                .map(|ps| {
+                                    let mut c = 0;
+                                    if ps.killswitch.is_some() {
+                                        c += 1;
+                                    }
+                                    if ps.ipv6.is_some() {
+                                        c += 1;
+                                    }
+                                    if ps.custom_dns.enabled || ps.custom_dns.ip_list.is_empty() {
+                                        c += 1;
+                                    }
+                                    if ps
+                                        .features
+                                        .as_ref()
+                                        .map(|f| f.netshield.is_some())
+                                        .unwrap_or(false)
+                                    {
+                                        c += 1;
+                                    }
+                                    if ps.features.as_ref().and_then(|f| f.moderate_nat).is_some() {
+                                        c += 1;
+                                    }
+                                    if ps
+                                        .features
+                                        .as_ref()
+                                        .and_then(|f| f.vpn_accelerator)
+                                        .is_some()
+                                    {
+                                        c += 1;
+                                    }
+                                    if ps
+                                        .features
+                                        .as_ref()
+                                        .and_then(|f| f.port_forwarding)
+                                        .is_some()
+                                    {
+                                        c += 1;
+                                    }
+                                    c
+                                })
+                                .unwrap_or(0);
+                            self.state.settings_select_first(count);
+                        }
+                        _ => {}
+                    }
                     self.pending_g = false;
                 } else {
                     self.pending_g = true;
@@ -141,13 +336,109 @@ impl TuiApp {
             }
             // Vim: G = go to bottom
             KeyCode::Char('G') => {
-                self.state.select_last();
+                match self.state.current_view {
+                    AppView::Connect => self.state.select_last(),
+                    AppView::Settings => {
+                        let count = crate::config::Settings::load_proton_settings()
+                            .map(|ps| {
+                                let mut c = 0;
+                                if ps.killswitch.is_some() {
+                                    c += 1;
+                                }
+                                if ps.ipv6.is_some() {
+                                    c += 1;
+                                }
+                                if ps.custom_dns.enabled || ps.custom_dns.ip_list.is_empty() {
+                                    c += 1;
+                                }
+                                if ps
+                                    .features
+                                    .as_ref()
+                                    .map(|f| f.netshield.is_some())
+                                    .unwrap_or(false)
+                                {
+                                    c += 1;
+                                }
+                                if ps.features.as_ref().and_then(|f| f.moderate_nat).is_some() {
+                                    c += 1;
+                                }
+                                if ps
+                                    .features
+                                    .as_ref()
+                                    .and_then(|f| f.vpn_accelerator)
+                                    .is_some()
+                                {
+                                    c += 1;
+                                }
+                                if ps
+                                    .features
+                                    .as_ref()
+                                    .and_then(|f| f.port_forwarding)
+                                    .is_some()
+                                {
+                                    c += 1;
+                                }
+                                c
+                            })
+                            .unwrap_or(0);
+                        self.state.settings_select_last(count);
+                    }
+                    _ => {}
+                }
                 self.pending_g = false;
                 None
             }
             // Ctrl+u = page up
             KeyCode::Char('u') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.state.select_page_up();
+                match self.state.current_view {
+                    AppView::Connect => self.state.select_page_up(),
+                    AppView::Settings => {
+                        let count = crate::config::Settings::load_proton_settings()
+                            .map(|ps| {
+                                let mut c = 0;
+                                if ps.killswitch.is_some() {
+                                    c += 1;
+                                }
+                                if ps.ipv6.is_some() {
+                                    c += 1;
+                                }
+                                if ps.custom_dns.enabled || ps.custom_dns.ip_list.is_empty() {
+                                    c += 1;
+                                }
+                                if ps
+                                    .features
+                                    .as_ref()
+                                    .map(|f| f.netshield.is_some())
+                                    .unwrap_or(false)
+                                {
+                                    c += 1;
+                                }
+                                if ps.features.as_ref().and_then(|f| f.moderate_nat).is_some() {
+                                    c += 1;
+                                }
+                                if ps
+                                    .features
+                                    .as_ref()
+                                    .and_then(|f| f.vpn_accelerator)
+                                    .is_some()
+                                {
+                                    c += 1;
+                                }
+                                if ps
+                                    .features
+                                    .as_ref()
+                                    .and_then(|f| f.port_forwarding)
+                                    .is_some()
+                                {
+                                    c += 1;
+                                }
+                                c
+                            })
+                            .unwrap_or(0);
+                        self.state.settings_select_page_up(count);
+                    }
+                    _ => {}
+                }
                 self.pending_g = false;
                 None
             }
@@ -427,7 +718,7 @@ impl TuiApp {
         f.render_widget(list, area);
     }
 
-    fn render_settings_view(&self, f: &mut Frame<'_>, area: Rect) {
+    fn render_settings_view(&mut self, f: &mut Frame<'_>, area: Rect) {
         let block = Block::default().title(" Settings ").borders(Borders::ALL);
 
         let proton_settings = crate::config::Settings::load_proton_settings();
@@ -487,7 +778,27 @@ impl TuiApp {
             None => vec!["No Proton settings found".to_string()],
         };
 
-        let items: Vec<ListItem> = settings.iter().map(|s| ListItem::new(s.as_str())).collect();
+        let items: Vec<ListItem> = settings
+            .iter()
+            .enumerate()
+            .map(|(idx, s)| {
+                let is_selected = self.state.settings_selected == Some(idx);
+                let line = if is_selected {
+                    Line::from(vec![
+                        Span::raw("> "),
+                        Span::styled(
+                            s.as_str(),
+                            Style::default()
+                                .fg(Color::Cyan)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                    ])
+                } else {
+                    Line::from(vec![Span::raw("  "), Span::raw(s.as_str())])
+                };
+                ListItem::new(line)
+            })
+            .collect();
 
         let list = List::new(items)
             .block(block)

@@ -35,6 +35,7 @@ pub struct AppState {
     pub config: Settings,
     pub servers: Vec<Server>,
     pub selected_server: Option<usize>,
+    pub settings_selected: Option<usize>,
     pub vpn_state: VpnState,
     pub notification: Option<Notification>,
     pub notification_log: Vec<Notification>,
@@ -64,6 +65,7 @@ impl AppState {
             config: Settings::default(),
             servers: Vec::new(),
             selected_server: None,
+            settings_selected: None,
             vpn_state: VpnState::new(),
             notification: None,
             notification_log: Vec::new(),
@@ -500,6 +502,64 @@ impl AppState {
             self.selected_server = Some(idx.saturating_sub(page_size));
         } else {
             self.selected_server = Some(0);
+        }
+    }
+
+    pub fn settings_select_next(&mut self, count: usize) {
+        if count == 0 {
+            return;
+        }
+        if let Some(idx) = self.settings_selected {
+            self.settings_selected = Some((idx + 1).min(count - 1));
+        } else {
+            self.settings_selected = Some(0);
+        }
+    }
+
+    pub fn settings_select_prev(&mut self, count: usize) {
+        if count == 0 {
+            return;
+        }
+        if let Some(idx) = self.settings_selected {
+            self.settings_selected = Some(idx.saturating_sub(1));
+        } else {
+            self.settings_selected = Some(0);
+        }
+    }
+
+    pub fn settings_select_first(&mut self, count: usize) {
+        if count > 0 {
+            self.settings_selected = Some(0);
+        }
+    }
+
+    pub fn settings_select_last(&mut self, count: usize) {
+        if count > 0 {
+            self.settings_selected = Some(count - 1);
+        }
+    }
+
+    pub fn settings_select_page_down(&mut self, count: usize) {
+        if count == 0 {
+            return;
+        }
+        let page_size = 10;
+        if let Some(idx) = self.settings_selected {
+            self.settings_selected = Some((idx + page_size).min(count - 1));
+        } else {
+            self.settings_selected = Some(0);
+        }
+    }
+
+    pub fn settings_select_page_up(&mut self, count: usize) {
+        if count == 0 {
+            return;
+        }
+        let page_size = 10;
+        if let Some(idx) = self.settings_selected {
+            self.settings_selected = Some(idx.saturating_sub(page_size));
+        } else {
+            self.settings_selected = Some(0);
         }
     }
 }

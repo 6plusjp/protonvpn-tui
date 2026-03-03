@@ -11,6 +11,11 @@ use crate::vpn::VpnState;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 
+pub type ConnectResult = (String, Option<String>);
+pub type ConnectReceiver = mpsc::Receiver<AsyncResult<ConnectResult>>;
+pub type ServerReceiver = mpsc::Receiver<AsyncResult<Vec<Server>>>;
+pub type DisconnectReceiver = mpsc::Receiver<AsyncResult<()>>;
+
 pub trait Navigatable {
     fn move_next(&mut self, bounds: usize);
     fn move_prev(&mut self, bounds: usize);
@@ -107,10 +112,11 @@ pub struct AppState {
     pub notification: Option<Notification>,
     pub notification_log: Vec<Notification>,
     async_manager: AsyncTaskManager,
-    pending_refresh: Option<mpsc::Receiver<AsyncResult<Vec<Server>>>>,
+    #[allow(clippy::type_complexity)]
+    pending_refresh: Option<ServerReceiver>,
     previous_connection: Option<ConnectionState>,
-    pending_connect: Option<mpsc::Receiver<AsyncResult<(String, Option<String>)>>>,
-    pending_disconnect: Option<mpsc::Receiver<AsyncResult<()>>>,
+    pending_connect: Option<ConnectReceiver>,
+    pending_disconnect: Option<DisconnectReceiver>,
 }
 
 impl Default for AppState {
@@ -264,14 +270,11 @@ impl AppState {
         }
 
         // When disconnected, check if externally connected
-        if self.connection == ConnectionState::Disconnected {
-            if self.vpn_state.is_connected() {
-                self.connection = ConnectionState::Connected {
-                    server: "Unknown".to_string(),
-                    ip: String::new(),
-                };
-            }
-            return;
+        if self.connection == ConnectionState::Disconnected && self.vpn_state.is_connected() {
+            self.connection = ConnectionState::Connected {
+                server: "Unknown".to_string(),
+                ip: String::new(),
+            };
         }
     }
 

@@ -151,21 +151,16 @@ impl VpnClient {
             if line.contains("IP address") || line.contains("IP:") || line.contains("address is") {
                 let parts: Vec<&str> = line.split_whitespace().collect();
                 for (i, part) in parts.iter().enumerate() {
-                    if *part == "is" || *part == ":" || *part == "IP" {
-                        if i + 1 < parts.len() {
-                            let potential_ip = parts[i + 1].trim_end_matches('.');
-                            if potential_ip.contains('.')
-                                && potential_ip.chars().filter(|&c| c == '.').count() == 3
-                            {
-                                // Looks like an IP address
-                                if !potential_ip.starts_with("10.")
-                                    && !potential_ip.starts_with("172.")
-                                    && !potential_ip.starts_with("192.168")
-                                {
-                                    ip = Some(potential_ip.to_string());
-                                    break;
-                                }
-                            }
+                    if (*part == "is" || *part == ":" || *part == "IP") && i + 1 < parts.len() {
+                        let potential_ip = parts[i + 1].trim_end_matches('.');
+                        if potential_ip.contains('.')
+                            && potential_ip.chars().filter(|&c| c == '.').count() == 3
+                            && !potential_ip.starts_with("10.")
+                            && !potential_ip.starts_with("172.")
+                            && !potential_ip.starts_with("192.168")
+                        {
+                            ip = Some(potential_ip.to_string());
+                            break;
                         }
                     }
                 }

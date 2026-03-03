@@ -269,13 +269,13 @@ impl TuiApp {
         let msg_single_line = raw_msg.replace('\n', " ");
         let max_len = 35;
         let message = if msg_single_line.len() > max_len {
-            format!("{}", &msg_single_line[..max_len - 3])
+            msg_single_line[..max_len - 3].to_string()
         } else {
             msg_single_line
         };
 
         // Calculate popup size
-        let popup_width = (message.len() + 4).max(30).min(54) as u16;
+        let popup_width = (message.len() + 4).clamp(30, 54) as u16;
         let popup_height = if title.is_some() { 4 } else { 3 };
 
         // Position in top-right corner
@@ -416,7 +416,7 @@ impl TuiApp {
             AppView::Help => vec![Span::raw("Press Tab or q to return")],
         };
 
-        let text = Line::from(vec![
+        let mut text = Line::from(vec![
             Span::raw("["),
             Span::styled("?", Style::default().fg(Color::Yellow)),
             Span::raw("] help "),
@@ -429,7 +429,6 @@ impl TuiApp {
             Span::raw(" | "),
         ]);
 
-        let mut text = Line::from(text);
         text.spans.extend(action_spans);
 
         f.render_widget(Paragraph::new(text), area);

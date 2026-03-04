@@ -301,10 +301,9 @@ impl AppState {
     }
 
     pub fn refresh_servers(&mut self) {
-        if let Ok(cached) = self.vpn_state.get_servers() {
-            if !cached.is_empty() {
-                self.servers = cached;
-            }
+        let cached = self.vpn_state.get_servers();
+        if !cached.is_empty() {
+            self.servers = cached;
         }
 
         self.show_notification("Refreshing servers...".to_string(), NotificationType::Info);

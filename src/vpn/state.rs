@@ -60,8 +60,13 @@ impl VpnState {
         self.client.list_servers()
     }
 
+    /// Get cached servers only (fast, no CLI call)
+    pub fn get_servers(&self) -> Vec<Server> {
+        self.client.get_servers()
+    }
+
     /// Get cached servers, refresh from CLI if empty
-    pub fn get_servers(&mut self) -> AppResult<Vec<Server>> {
+    pub fn get_servers_or_refresh(&mut self) -> AppResult<Vec<Server>> {
         let cached = self.client.get_servers();
         if cached.is_empty() {
             return self.refresh_servers();

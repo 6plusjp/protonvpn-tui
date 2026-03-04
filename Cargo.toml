@@ -15,9 +15,6 @@ clap = { version = "4", features = ["derive"] }
 crossterm = "0.27"
 ratatui = { version = "0.26", default-features = false, features = ["crossterm"] }
 
-# Async
-tokio = { version = "1", features = ["full"] }
-
 # Serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

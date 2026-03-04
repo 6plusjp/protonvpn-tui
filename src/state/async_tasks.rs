@@ -1,10 +1,11 @@
-//! Async task management using tokio for blocking I/O operations.
+//! Async task management using std::thread for blocking I/O operations.
+//!
+//! Uses std::thread since all operations are blocking CLI commands.
+//! This avoids the overhead of tokio runtime while maintaining the same functionality.
 
 use crate::error::AppError;
 use crate::vpn::VpnState;
-use std::sync::Arc;
-use tokio::runtime::Handle;
-use tokio::sync::mpsc;
+use std::sync::mpsc;
 
 pub type AsyncResult<T> = Result<T, AppError>;
 
@@ -15,27 +16,12 @@ pub enum AsyncOperation {
     DisconnectComplete(Result<(), AppError>),
 }
 
-pub struct AsyncTaskManager {
-    runtime: Arc<tokio::runtime::Runtime>,
-    handle: Arc<Handle>,
-}
+#[derive(Clone)]
+pub struct AsyncTaskManager;
 
 impl AsyncTaskManager {
     pub fn new() -> Self {
-        let runtime = tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
-            .thread_name("protonvpn-async")
-            .build()
-            .expect("Failed to create tokio runtime");
-
-        let runtime = Arc::new(runtime);
-        let handle = Arc::new(runtime.handle().clone());
-
-        Self { runtime, handle }
-    }
-
-    pub fn handle(&self) -> Arc<Handle> {
-        self.handle.clone()
+        Self
     }
 }
 
@@ -45,11 +31,10 @@ impl AsyncTaskManager {
         vpn_state: VpnState,
         sender: mpsc::Sender<AsyncResult<Vec<crate::vpn::Server>>>,
     ) {
-        let handle = self.handle.clone();
-        handle.spawn_blocking(move || {
+        std::thread::spawn(move || {
             let mut state = vpn_state;
             let result = state.refresh_servers();
-            let _ = sender.blocking_send(result);
+            let _ = sender.send(result);
         });
     }
 
@@ -59,20 +44,18 @@ impl AsyncTaskManager {
         server_id: String,
         sender: mpsc::Sender<AsyncResult<(String, Option<String>)>>,
     ) {
-        let handle = self.handle.clone();
-        handle.spawn_blocking(move || {
+        std::thread::spawn(move || {
             let mut state = vpn_state;
             let result = state.connect(&server_id);
-            let _ = sender.blocking_send(result);
+            let _ = sender.send(result);
         });
     }
 
     pub fn spawn_disconnect(&self, vpn_state: VpnState, sender: mpsc::Sender<AsyncResult<()>>) {
-        let handle = self.handle.clone();
-        handle.spawn_blocking(move || {
+        std::thread::spawn(move || {
             let mut state = vpn_state;
             let result = state.disconnect();
-            let _ = sender.blocking_send(result);
+            let _ = sender.send(result);
         });
     }
 
@@ -81,21 +64,11 @@ impl AsyncTaskManager {
         vpn_state: VpnState,
         sender: mpsc::Sender<AsyncResult<(String, Option<String>)>>,
     ) {
-        let handle = self.handle.clone();
-        handle.spawn_blocking(move || {
+        std::thread::spawn(move || {
             let mut state = vpn_state;
             let result = state.connect_random();
-            let _ = sender.blocking_send(result);
+            let _ = sender.send(result);
         });
-    }
-}
-
-impl Clone for AsyncTaskManager {
-    fn clone(&self) -> Self {
-        Self {
-            runtime: self.runtime.clone(),
-            handle: self.handle.clone(),
-        }
     }
 }
 
@@ -105,6 +78,6 @@ impl Default for AsyncTaskManager {
     }
 }
 
-pub fn create_channel<T>(buffer: usize) -> (mpsc::Sender<T>, mpsc::Receiver<T>) {
-    mpsc::channel(buffer)
+pub fn create_channel<T>() -> (mpsc::Sender<T>, mpsc::Receiver<T>) {
+    mpsc::channel()
 }

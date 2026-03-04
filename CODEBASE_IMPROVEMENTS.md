@@ -16,7 +16,7 @@
 | ✅     | notification_log の上限設定     | 完了   | 小     |
 | ✅     | EnterAlternateScreen 重複       | 完了   | 極小   |
 | ✅     | マジック Numbers の定数化       | 完了   | 小     |
-| **低** | テストの追加                    | 未着手 | 中     |
+| ✅     | テストの追加                    | 完了   | 中     |
 | **低** | VpnState API の対称性修正       | 完了   | 小     |
 | **低** | generate_fuzzy_variants 最適化  | 未着手 | 小     |
 | **低** | help_view のキー更新           | 完了   | 小     |

@@ -14,7 +14,7 @@ use std::process::Command;
 use chrono::Utc;
 
 use super::cache::ServerCache;
-use super::types::{ConnectionStats, Server, ServerFeatures};
+use super::types::{Server, ServerFeatures};
 use crate::error::{AppError, AppResult};
 
 /// VPN client for interacting with protonvpn CLI
@@ -74,21 +74,9 @@ impl VpnClient {
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
 
-        // Check for error messages in output regardless of exit code
+        self.check_cli_error(&output, &stdout, &stderr)?;
+
         let combined = format!("{} {}", stdout, stderr);
-        let combined_lower = combined.to_lowercase();
-
-        if combined_lower.contains("error:") {
-            let error_msg = format!("{}\n{}", stdout.trim(), stderr.trim());
-            return Err(AppError::ConnectionFailed(error_msg));
-        }
-
-        // Also check exit code
-        if !output.status.success() {
-            let error_msg = format!("{}\n{}", stdout.trim(), stderr.trim());
-            return Err(AppError::ConnectionFailed(error_msg));
-        }
-
         let (server_id, ip) = self.parse_connect_output(&combined);
 
         // Update local connection status with actual server info
@@ -113,19 +101,9 @@ impl VpnClient {
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
 
+        self.check_cli_error(&output, &stdout, &stderr)?;
+
         let combined = format!("{} {}", stdout, stderr);
-        let combined_lower = combined.to_lowercase();
-
-        if combined_lower.contains("error:") {
-            let error_msg = format!("{}\n{}", stdout.trim(), stderr.trim());
-            return Err(AppError::ConnectionFailed(error_msg));
-        }
-
-        if !output.status.success() {
-            let error_msg = format!("{}\n{}", stdout.trim(), stderr.trim());
-            return Err(AppError::ConnectionFailed(error_msg));
-        }
-
         let (server_id, ip) = self.parse_connect_output(&combined);
 
         let final_server = if !server_id.is_empty() {
@@ -137,6 +115,21 @@ impl VpnClient {
         self.save_cache()?;
 
         Ok((final_server, ip))
+    }
+
+    fn check_cli_error(
+        &self,
+        output: &std::process::Output,
+        stdout: &str,
+        stderr: &str,
+    ) -> AppResult<()> {
+        let combined = format!("{} {}", stdout, stderr).to_lowercase();
+
+        if combined.contains("error:") || !output.status.success() {
+            let error_msg = format!("{}\n{}", stdout.trim(), stderr.trim());
+            return Err(AppError::ConnectionFailed(error_msg));
+        }
+        Ok(())
     }
 
     /// Parse connect output to extract server ID and IP
@@ -416,16 +409,5 @@ impl VpnClient {
         } else {
             Ok("Disconnected".to_string())
         }
-    }
-
-    /// Get connection statistics
-    pub fn stats(&self) -> AppResult<ConnectionStats> {
-        Ok(ConnectionStats {
-            bytes_sent: 0,
-            bytes_received: 0,
-            connected_at: self.cache.connected_at.unwrap_or(Utc::now()),
-            server_ip: String::new(),
-            protocol: String::from("WireGuard"),
-        })
     }
 }

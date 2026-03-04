@@ -38,6 +38,9 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # Paths
 dirs = "5"
+
+# Utils
+once_cell = "1"
 [dev-dependencies]
 tempfile = "3"
 assert_cmd = "1"

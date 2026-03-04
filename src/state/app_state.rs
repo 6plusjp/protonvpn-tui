@@ -8,7 +8,6 @@ use crate::state::ServerSort;
 use crate::state::SortDirection;
 use crate::vpn::Server;
 use crate::vpn::VpnState;
-use std::collections::HashMap;
 use std::sync::OnceLock;
 use tokio::sync::mpsc;
 
@@ -457,28 +456,14 @@ impl AppState {
             variants.push(no_vowels);
         }
 
-        let country_expansions = HashMap::from([
-            ("jp", "japan"),
-            ("us", "united states"),
-            ("uk", "united kingdom"),
-            ("de", "germany"),
-            ("fr", "france"),
-            ("au", "australia"),
-            ("ca", "canada"),
-            ("nl", "netherlands"),
-            ("se", "sweden"),
-            ("ch", "switzerland"),
-            ("kr", "south korea"),
-            ("sg", "singapore"),
-            ("hk", "hong kong"),
-            ("br", "brazil"),
-            ("in", "india"),
-            ("ru", "russia"),
-            ("cn", "china"),
-        ]);
+        let servers = self.vpn_state.get_servers();
+        let query_lower = query.to_lowercase();
 
-        if let Some(expansion) = country_expansions.get(query) {
-            variants.push(expansion.to_string());
+        for server in &servers {
+            if server.id.to_lowercase() == query_lower {
+                variants.push(server.country.to_lowercase());
+                break;
+            }
         }
 
         variants

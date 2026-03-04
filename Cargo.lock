@@ -699,6 +699,7 @@ dependencies = [
  "clap",
  "crossterm",
  "dirs",
+ "once_cell",
  "ratatui",
  "serde",
  "serde_json",

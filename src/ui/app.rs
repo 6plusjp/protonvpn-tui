@@ -1,3 +1,7 @@
+use crate::constants::ui::{
+    NOTIFICATION_MSG_MAX_LEN, NOTIFICATION_TIMER_DEFAULT, NOTIFICATION_TIMER_SHORT,
+    POPUP_WIDTH_MAX, POPUP_WIDTH_MIN,
+};
 use crate::state::{AppState, AppView};
 use crate::ui::views;
 use crossterm::{
@@ -15,12 +19,6 @@ use ratatui::{
 };
 use std::io;
 use std::panic;
-
-const NOTIFICATION_TIMER_DEFAULT: u8 = 30;
-const NOTIFICATION_TIMER_SHORT: u8 = 15;
-const NOTIFICATION_MSG_MAX_LEN: usize = 35;
-const POPUP_WIDTH_MIN: usize = 30;
-const POPUP_WIDTH_MAX: usize = 54;
 
 pub struct TuiApp {
     state: AppState,
@@ -70,6 +68,12 @@ impl TuiApp {
 
             if event::poll(std::time::Duration::from_millis(100))? {
                 if let Event::Key(key_event) = event::read()? {
+                    // Handle Ctrl+C for graceful shutdown
+                    if key_event.code == KeyCode::Char('c')
+                        && key_event.modifiers.contains(KeyModifiers::CONTROL)
+                    {
+                        break;
+                    }
                     if key_event.kind == KeyEventKind::Press {
                         if let Some(action) = self.handle_key(key_event) {
                             match action {

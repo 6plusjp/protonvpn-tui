@@ -119,7 +119,7 @@ impl ProtonSettings {
         if self.ipv6.is_some() {
             c += 1;
         }
-        if self.custom_dns.enabled || self.custom_dns.ip_list.is_empty() {
+        if self.custom_dns.enabled {
             c += 1;
         }
         if self.features.as_ref().and_then(|f| f.netshield).is_some() {

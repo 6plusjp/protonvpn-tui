@@ -21,8 +21,13 @@ pub fn render_help_view(f: &mut Frame<'_>, area: Rect) {
         Line::from(""),
         Line::from(vec![
             Span::raw("  "),
-            Span::styled("c", Style::default().fg(Color::Yellow)),
-            Span::raw("  - Connect to selected server"),
+            Span::styled("c/Enter", Style::default().fg(Color::Yellow)),
+            Span::raw(" - Connect to selected server"),
+        ]),
+        Line::from(vec![
+            Span::raw("  "),
+            Span::styled("x", Style::default().fg(Color::Yellow)),
+            Span::raw("  - Random connect"),
         ]),
         Line::from(vec![
             Span::raw("  "),
@@ -37,7 +42,7 @@ pub fn render_help_view(f: &mut Frame<'_>, area: Rect) {
         Line::from(vec![
             Span::raw("  "),
             Span::styled("s", Style::default().fg(Color::Yellow)),
-            Span::raw("  - Toggle direction (↑/↓)"),
+            Span::raw("  - Toggle direction (asc/desc)"),
         ]),
         Line::from(vec![
             Span::raw("  "),
@@ -46,13 +51,38 @@ pub fn render_help_view(f: &mut Frame<'_>, area: Rect) {
         ]),
         Line::from(vec![
             Span::raw("  "),
-            Span::styled("j/k", Style::default().fg(Color::Yellow)),
-            Span::raw("  - Navigate server list"),
+            Span::styled("j/k/↑/↓", Style::default().fg(Color::Yellow)),
+            Span::raw(" - Navigate server list"),
+        ]),
+        Line::from(vec![
+            Span::raw("  "),
+            Span::styled("g", Style::default().fg(Color::Yellow)),
+            Span::raw("  - Go to top (press twice: gg)"),
+        ]),
+        Line::from(vec![
+            Span::raw("  "),
+            Span::styled("G", Style::default().fg(Color::Yellow)),
+            Span::raw("  - Go to bottom"),
+        ]),
+        Line::from(vec![
+            Span::raw("  "),
+            Span::styled("Ctrl+d", Style::default().fg(Color::Yellow)),
+            Span::raw(" - Page down"),
+        ]),
+        Line::from(vec![
+            Span::raw("  "),
+            Span::styled("Ctrl+u", Style::default().fg(Color::Yellow)),
+            Span::raw(" - Page up"),
         ]),
         Line::from(vec![
             Span::raw("  "),
             Span::styled("Tab", Style::default().fg(Color::Yellow)),
             Span::raw("  - Switch view"),
+        ]),
+        Line::from(vec![
+            Span::raw("  "),
+            Span::styled("?", Style::default().fg(Color::Yellow)),
+            Span::raw("  - Show this help"),
         ]),
         Line::from(vec![
             Span::raw("  "),

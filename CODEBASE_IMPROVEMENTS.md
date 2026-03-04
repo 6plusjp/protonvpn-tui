@@ -18,7 +18,7 @@
 | ✅     | マジック Numbers の定数化       | 完了   | 小     |
 | ✅     | テストの追加                    | 完了   | 中     |
 | **低** | VpnState API の対称性修正       | 完了   | 小     |
-| **低** | generate_fuzzy_variants 最適化  | 未着手 | 小     |
+| ✅     | generate_fuzzy_variants 最適化  | 完了   | 小     |
 | **低** | help_view のキー更新           | 完了   | 小     |
 | **低** | AppState の分割 (God Object)    | 未着手 | 大     |
 
@@ -32,10 +32,6 @@
 
 `tests/` ディレクトリなし。
 
-#### #2: generate_fuzzy_variants の HashMap
-
-毎回 `HashMap::from([...])` を作成している。`lazy_static` を使用。
-
-#### #3: AppState の巨大化 (God Object)
+#### #2: AppState の巨大化 (God Object)
 
 単一責任原則の違反。DomainState / UiState / OperationState に分割。

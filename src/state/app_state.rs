@@ -1,6 +1,8 @@
 //! Application state management
 
 use crate::config::{ProtonSettings, Settings};
+use crate::constants::state::MAX_NOTIFICATION_LOG;
+use crate::constants::state::PAGE_SIZE;
 use crate::state::async_tasks::{create_channel, AsyncResult, AsyncTaskManager};
 use crate::state::ConnectionState;
 use crate::state::ServerFilter;
@@ -8,8 +10,9 @@ use crate::state::ServerSort;
 use crate::state::SortDirection;
 use crate::vpn::Server;
 use crate::vpn::VpnState;
+use std::cell::{Cell, RefCell};
+use std::sync::mpsc;
 use std::sync::OnceLock;
-use tokio::sync::mpsc;
 
 pub type ConnectResult = (String, Option<String>);
 pub type ConnectReceiver = mpsc::Receiver<AsyncResult<ConnectResult>>;
@@ -24,8 +27,6 @@ pub trait Navigatable {
     fn move_page_down(&mut self, bounds: usize);
     fn move_page_up(&mut self, bounds: usize);
 }
-
-const PAGE_SIZE: usize = 10;
 
 impl Navigatable for Option<usize> {
     fn move_next(&mut self, bounds: usize) {
@@ -120,6 +121,8 @@ pub struct AppState {
     pending_connect: Option<ConnectReceiver>,
     pending_disconnect: Option<DisconnectReceiver>,
     proton_settings_cache: OnceLock<Option<ProtonSettings>>,
+    filtered_servers_cache: RefCell<Option<(Vec<Server>, u64)>>,
+    filtered_servers_version: Cell<u64>,
 }
 
 impl Default for AppState {
@@ -150,6 +153,8 @@ impl AppState {
             pending_connect: None,
             pending_disconnect: None,
             proton_settings_cache: OnceLock::new(),
+            filtered_servers_cache: RefCell::new(None),
+            filtered_servers_version: Cell::new(0),
         }
     }
 
@@ -174,8 +179,6 @@ impl AppState {
         self.current_view = self.current_view.next();
     }
 
-    const MAX_NOTIFICATION_LOG: usize = 100;
-
     pub fn show_notification(&mut self, message: String, notification_type: NotificationType) {
         self.notification = Some(Notification {
             message: message.clone(),
@@ -185,7 +188,7 @@ impl AppState {
             message,
             notification_type,
         });
-        if self.notification_log.len() > Self::MAX_NOTIFICATION_LOG {
+        if self.notification_log.len() > MAX_NOTIFICATION_LOG {
             self.notification_log.remove(0);
         }
     }
@@ -303,11 +306,12 @@ impl AppState {
         let cached = self.vpn_state.get_servers();
         if !cached.is_empty() {
             self.servers = cached;
+            self.invalidate_filtered_cache();
         }
 
         self.show_notification("Refreshing servers...".to_string(), NotificationType::Info);
 
-        let (tx, rx) = create_channel(1);
+        let (tx, rx) = create_channel();
         self.pending_refresh = Some(rx);
         self.async_manager
             .spawn_refresh_servers(self.vpn_state.clone(), tx);
@@ -339,7 +343,7 @@ impl AppState {
         self.connection = ConnectionState::Connecting;
         self.show_notification("Connecting...".to_string(), NotificationType::Info);
 
-        let (tx, rx) = create_channel(1);
+        let (tx, rx) = create_channel();
         self.pending_connect = Some(rx);
         self.async_manager
             .spawn_connect(self.vpn_state.clone(), server_id, tx);
@@ -353,7 +357,7 @@ impl AppState {
             NotificationType::Info,
         );
 
-        let (tx, rx) = create_channel(1);
+        let (tx, rx) = create_channel();
         self.pending_connect = Some(rx);
         self.async_manager
             .spawn_connect_random(self.vpn_state.clone(), tx);
@@ -368,13 +372,28 @@ impl AppState {
         self.connection = ConnectionState::Disconnecting;
         self.show_notification("Disconnecting...".to_string(), NotificationType::Info);
 
-        let (tx, rx) = create_channel(1);
+        let (tx, rx) = create_channel();
         self.pending_disconnect = Some(rx);
         self.async_manager
             .spawn_disconnect(self.vpn_state.clone(), tx);
     }
 
     pub fn filtered_servers(&self) -> Vec<Server> {
+        let version = self.filtered_servers_version.get();
+        let cached = self.filtered_servers_cache.borrow();
+        if let Some((ref cached_result, cached_version)) = *cached {
+            if cached_version == version {
+                return cached_result.clone();
+            }
+        }
+        drop(cached);
+
+        let result = self.compute_filtered_servers();
+        *self.filtered_servers_cache.borrow_mut() = Some((result.clone(), version));
+        result
+    }
+
+    fn compute_filtered_servers(&self) -> Vec<Server> {
         let query = self.search_query.to_lowercase();
 
         let connected_server_id = match &self.connection {
@@ -469,20 +488,33 @@ impl AppState {
         variants
     }
 
+    fn invalidate_filtered_cache(&self) {
+        self.filtered_servers_version
+            .set(self.filtered_servers_version.get().wrapping_add(1));
+    }
+
+    pub fn filtered_servers_count(&self) -> usize {
+        self.filtered_servers().len()
+    }
+
     pub fn cycle_filter(&mut self) {
         self.filter = self.filter.next();
+        self.invalidate_filtered_cache();
     }
 
     pub fn cycle_sort(&mut self) {
         self.sort_direction = self.sort_direction.toggle();
+        self.invalidate_filtered_cache();
     }
 
     pub fn cycle_sort_field(&mut self) {
         self.sort = self.sort.next();
+        self.invalidate_filtered_cache();
     }
 
     pub fn set_filter(&mut self, filter: ServerFilter) {
         self.filter = filter;
+        self.invalidate_filtered_cache();
     }
 
     pub fn select_next(&mut self) {

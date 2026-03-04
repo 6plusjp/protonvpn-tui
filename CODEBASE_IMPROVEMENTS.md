@@ -28,10 +28,6 @@
 
 ### 低優先度
 
-#### #1: テストの不在
-
-`tests/` ディレクトリなし。
-
-#### #2: AppState の巨大化 (God Object)
+#### #1: AppState の巨大化 (God Object)
 
 単一責任原則の違反。DomainState / UiState / OperationState に分割。

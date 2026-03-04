@@ -16,6 +16,12 @@ use ratatui::{
 use std::io;
 use std::panic;
 
+const NOTIFICATION_TIMER_DEFAULT: u8 = 30;
+const NOTIFICATION_TIMER_SHORT: u8 = 15;
+const NOTIFICATION_MSG_MAX_LEN: usize = 35;
+const POPUP_WIDTH_MIN: usize = 30;
+const POPUP_WIDTH_MAX: usize = 54;
+
 pub struct TuiApp {
     state: AppState,
     notification_timer: u8,
@@ -43,8 +49,6 @@ impl TuiApp {
     }
 
     pub fn run(&mut self) -> io::Result<()> {
-        execute!(io::stdout(), EnterAlternateScreen)?;
-
         execute!(io::stdout(), EnterAlternateScreen)?;
         enable_raw_mode()?;
 
@@ -92,7 +96,7 @@ impl TuiApp {
             KeyCode::Tab => Some(AppAction::SwitchView),
             KeyCode::Char('c') | KeyCode::Enter => {
                 self.state.connect();
-                self.notification_timer = 30;
+                self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
                 None
             }
             // Ctrl+d = page down (must be before 'd' for disconnect)
@@ -100,9 +104,7 @@ impl TuiApp {
                 match self.state.current_view {
                     AppView::Connect => self.state.select_page_down(),
                     AppView::Settings => {
-                        let count = crate::config::Settings::load_proton_settings()
-                            .map(|ps| ps.settings_count())
-                            .unwrap_or(0);
+                        let count = self.state.get_settings_count();
                         self.state.settings_select_page_down(count);
                     }
                     _ => {}
@@ -112,31 +114,29 @@ impl TuiApp {
             }
             KeyCode::Char('d') => {
                 self.state.disconnect();
-                self.notification_timer = 30;
+                self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
                 None
             }
             KeyCode::Char('r') => {
                 self.state.refresh_servers();
-                self.notification_timer = 30;
+                self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
                 None
             }
             KeyCode::Char('s') => {
                 self.state.cycle_sort();
-                self.notification_timer = 15;
+                self.notification_timer = NOTIFICATION_TIMER_SHORT;
                 None
             }
             KeyCode::Char('f') => {
                 self.state.cycle_sort_field();
-                self.notification_timer = 15;
+                self.notification_timer = NOTIFICATION_TIMER_SHORT;
                 None
             }
             KeyCode::Char('j') | KeyCode::Down => {
                 match self.state.current_view {
                     AppView::Connect => self.state.select_next(),
                     AppView::Settings => {
-                        let count = crate::config::Settings::load_proton_settings()
-                            .map(|ps| ps.settings_count())
-                            .unwrap_or(0);
+                        let count = self.state.get_settings_count();
                         self.state.settings_select_next(count);
                     }
                     _ => {}
@@ -150,9 +150,7 @@ impl TuiApp {
                         self.pending_g = false;
                     }
                     AppView::Settings => {
-                        let count = crate::config::Settings::load_proton_settings()
-                            .map(|ps| ps.settings_count())
-                            .unwrap_or(0);
+                        let count = self.state.get_settings_count();
                         self.state.settings_select_prev(count);
                         self.pending_g = false;
                     }
@@ -166,9 +164,7 @@ impl TuiApp {
                     match self.state.current_view {
                         AppView::Connect => self.state.select_first(),
                         AppView::Settings => {
-                            let count = crate::config::Settings::load_proton_settings()
-                                .map(|ps| ps.settings_count())
-                                .unwrap_or(0);
+                            let count = self.state.get_settings_count();
                             self.state.settings_select_first(count);
                         }
                         _ => {}
@@ -184,9 +180,7 @@ impl TuiApp {
                 match self.state.current_view {
                     AppView::Connect => self.state.select_last(),
                     AppView::Settings => {
-                        let count = crate::config::Settings::load_proton_settings()
-                            .map(|ps| ps.settings_count())
-                            .unwrap_or(0);
+                        let count = self.state.get_settings_count();
                         self.state.settings_select_last(count);
                     }
                     _ => {}
@@ -199,9 +193,7 @@ impl TuiApp {
                 match self.state.current_view {
                     AppView::Connect => self.state.select_page_up(),
                     AppView::Settings => {
-                        let count = crate::config::Settings::load_proton_settings()
-                            .map(|ps| ps.settings_count())
-                            .unwrap_or(0);
+                        let count = self.state.get_settings_count();
                         self.state.settings_select_page_up(count);
                     }
                     _ => {}
@@ -215,7 +207,7 @@ impl TuiApp {
             }
             KeyCode::Char('x') => {
                 self.state.connect_random();
-                self.notification_timer = 30;
+                self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
                 None
             }
             _ => None,
@@ -267,7 +259,7 @@ impl TuiApp {
         // Format message - replace newlines with space, truncate with ...
         let raw_msg = &notification.message;
         let msg_single_line = raw_msg.replace('\n', " ");
-        let max_len = 35;
+        let max_len = NOTIFICATION_MSG_MAX_LEN;
         let message = if msg_single_line.len() > max_len {
             msg_single_line[..max_len - 3].to_string()
         } else {
@@ -275,7 +267,7 @@ impl TuiApp {
         };
 
         // Calculate popup size
-        let popup_width = (message.len() + 4).clamp(30, 54) as u16;
+        let popup_width = (message.len() + 4).clamp(POPUP_WIDTH_MIN, POPUP_WIDTH_MAX) as u16;
         let popup_height = if title.is_some() { 4 } else { 3 };
 
         // Position in top-right corner

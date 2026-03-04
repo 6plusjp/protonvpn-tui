@@ -1,6 +1,6 @@
 //! Application state management
 
-use crate::config::Settings;
+use crate::config::{ProtonSettings, Settings};
 use crate::state::async_tasks::{create_channel, AsyncResult, AsyncTaskManager};
 use crate::state::ConnectionState;
 use crate::state::ServerFilter;
@@ -9,6 +9,7 @@ use crate::state::SortDirection;
 use crate::vpn::Server;
 use crate::vpn::VpnState;
 use std::collections::HashMap;
+use std::sync::OnceLock;
 use tokio::sync::mpsc;
 
 pub type ConnectResult = (String, Option<String>);
@@ -24,6 +25,8 @@ pub trait Navigatable {
     fn move_page_down(&mut self, bounds: usize);
     fn move_page_up(&mut self, bounds: usize);
 }
+
+const PAGE_SIZE: usize = 10;
 
 impl Navigatable for Option<usize> {
     fn move_next(&mut self, bounds: usize) {
@@ -62,7 +65,7 @@ impl Navigatable for Option<usize> {
         if bounds == 0 {
             return;
         }
-        let page_size = 10;
+        let page_size = PAGE_SIZE;
         *self = Some(match *self {
             Some(i) => (i + page_size).min(bounds - 1),
             None => 0,
@@ -73,7 +76,7 @@ impl Navigatable for Option<usize> {
         if bounds == 0 {
             return;
         }
-        let page_size = 10;
+        let page_size = PAGE_SIZE;
         *self = Some(match *self {
             Some(i) => i.saturating_sub(page_size),
             None => 0,
@@ -117,6 +120,7 @@ pub struct AppState {
     previous_connection: Option<ConnectionState>,
     pending_connect: Option<ConnectReceiver>,
     pending_disconnect: Option<DisconnectReceiver>,
+    proton_settings_cache: OnceLock<Option<ProtonSettings>>,
 }
 
 impl Default for AppState {
@@ -146,6 +150,7 @@ impl AppState {
             previous_connection: None,
             pending_connect: None,
             pending_disconnect: None,
+            proton_settings_cache: OnceLock::new(),
         }
     }
 
@@ -154,9 +159,23 @@ impl AppState {
         self
     }
 
+    pub fn get_proton_settings(&self) -> Option<&ProtonSettings> {
+        self.proton_settings_cache
+            .get_or_init(Settings::load_proton_settings)
+            .as_ref()
+    }
+
+    pub fn get_settings_count(&self) -> usize {
+        self.get_proton_settings()
+            .map(|ps| ps.settings_count())
+            .unwrap_or(0)
+    }
+
     pub fn switch_view(&mut self) {
         self.current_view = self.current_view.next();
     }
+
+    const MAX_NOTIFICATION_LOG: usize = 100;
 
     pub fn show_notification(&mut self, message: String, notification_type: NotificationType) {
         self.notification = Some(Notification {
@@ -167,6 +186,9 @@ impl AppState {
             message,
             notification_type,
         });
+        if self.notification_log.len() > Self::MAX_NOTIFICATION_LOG {
+            self.notification_log.remove(0);
+        }
     }
 
     pub fn clear_notification(&mut self) {

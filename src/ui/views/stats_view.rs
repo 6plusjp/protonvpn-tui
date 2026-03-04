@@ -1,4 +1,3 @@
-use crate::config::Settings;
 use ratatui::{
     layout::Rect,
     style::{Color, Style},
@@ -11,16 +10,16 @@ use crate::state::ConnectionState;
 pub fn render_stats_view(state: &crate::AppState, f: &mut Frame<'_>, area: Rect) {
     let block = Block::default().title(" Statistics ").borders(Borders::ALL);
 
-    let proton_settings = Settings::load_proton_settings();
+    let proton_settings = state.get_proton_settings();
 
     let mut stats = Vec::new();
 
     if let Some(ps) = proton_settings {
-        if let Some(protocol) = ps.protocol {
+        if let Some(protocol) = &ps.protocol {
             stats.push(format!("Protocol: {}", protocol));
         }
-        if let Some(features) = ps.features {
-            if let Some(st) = features.split_tunneling {
+        if let Some(features) = &ps.features {
+            if let Some(st) = &features.split_tunneling {
                 let mode = st.mode.as_deref().unwrap_or("unknown");
                 let status = if st.enabled { "on" } else { "off" };
                 stats.push(format!("Split Tunneling: {} ({})", status, mode));

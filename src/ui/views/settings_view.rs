@@ -1,4 +1,3 @@
-use crate::config::Settings;
 use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Style},
@@ -12,7 +11,7 @@ use crate::AppState;
 pub fn render_settings_view(state: &mut AppState, f: &mut Frame<'_>, area: Rect) {
     let block = Block::default().title(" Settings ").borders(Borders::ALL);
 
-    let proton_settings = Settings::load_proton_settings();
+    let proton_settings = state.get_proton_settings();
 
     let settings = match proton_settings {
         Some(ps) => {

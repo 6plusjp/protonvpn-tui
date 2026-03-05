@@ -430,18 +430,12 @@ impl AppState {
         } else {
             self.servers
                 .iter()
-                .filter(|server| match self.filter {
-                    ServerFilter::Id => server.id.to_lowercase().contains(&query),
-                    ServerFilter::Country => {
-                        server.country.to_lowercase().contains(&query)
-                            || server.id.to_lowercase() == query
-                            || self.fuzzy_match(servers, &server.country, &query)
-                            || self.fuzzy_match(servers, &server.id, &query)
-                    }
-                    ServerFilter::City => {
-                        server.city.to_lowercase().contains(&query)
-                            || self.fuzzy_match(servers, &server.city, &query)
-                    }
+                .filter(|server| {
+                    server.id.to_lowercase().contains(&query)
+                        || server.country.to_lowercase().contains(&query)
+                        || server.city.to_lowercase().contains(&query)
+                        || self.fuzzy_match(servers, &server.country, &query)
+                        || self.fuzzy_match(servers, &server.city, &query)
                 })
                 .cloned()
                 .collect()

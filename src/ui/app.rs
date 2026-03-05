@@ -25,6 +25,8 @@ pub struct TuiApp {
     notification_timer: u8,
     list_state: ListState,
     pending_g: bool, // for gg command
+    filter_mode: bool,
+    filter_input: String,
 }
 
 impl TuiApp {
@@ -43,6 +45,8 @@ impl TuiApp {
             notification_timer: 30,
             list_state: ListState::default(),
             pending_g: false,
+            filter_mode: false,
+            filter_input: String::new(),
         })
     }
 
@@ -95,6 +99,10 @@ impl TuiApp {
     }
 
     fn handle_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
+        if self.filter_mode {
+            return self.handle_filter_input(key_event);
+        }
+
         match key_event.code {
             KeyCode::Char('q') => Some(AppAction::Quit),
             KeyCode::Tab => Some(AppAction::SwitchView),
@@ -229,27 +237,100 @@ impl TuiApp {
                 self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
                 None
             }
+            KeyCode::Char('/') => {
+                self.filter_mode = true;
+                self.filter_input = self.state.search_query.clone();
+                None
+            }
+            _ => None,
+        }
+    }
+
+    fn handle_filter_input(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
+        match key_event.code {
+            KeyCode::Esc => {
+                self.filter_mode = false;
+                self.filter_input.clear();
+                self.state.set_search_query(String::new());
+                None
+            }
+            KeyCode::Enter => {
+                self.state.set_search_query(self.filter_input.clone());
+                self.filter_mode = false;
+                self.notification_timer = NOTIFICATION_TIMER_SHORT;
+                None
+            }
+            KeyCode::Backspace => {
+                self.filter_input.pop();
+                self.state.set_search_query(self.filter_input.clone());
+                None
+            }
+            KeyCode::Char(c) => {
+                self.filter_input.push(c);
+                self.state.set_search_query(self.filter_input.clone());
+                None
+            }
             _ => None,
         }
     }
 
     fn render(&mut self, f: &mut Frame<'_>) {
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(3),
-                Constraint::Min(0),
-                Constraint::Length(1),
-            ])
-            .split(f.size());
+        if self.filter_mode {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(3),
+                    Constraint::Min(0),
+                    Constraint::Length(3),
+                ])
+                .split(f.size());
 
-        self.render_header(f, chunks[0]);
-        self.render_main(f, chunks[1]);
-        self.render_footer(f, chunks[2]);
+            self.render_header(f, chunks[0]);
+            self.render_main(f, chunks[1]);
+            self.render_filter_input(f, chunks[2]);
+        } else {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(3),
+                    Constraint::Min(0),
+                    Constraint::Length(1),
+                ])
+                .split(f.size());
+
+            self.render_header(f, chunks[0]);
+            self.render_main(f, chunks[1]);
+            self.render_footer(f, chunks[2]);
+        }
 
         // Render notification as popup last (on top)
         if self.state.notification.is_some() {
             self.render_notification_popup(f);
+        }
+    }
+
+    fn render_filter_input(&self, f: &mut Frame<'_>, area: Rect) {
+        let prompt = "/ filter: ";
+        let input_display = format!("{}{}", prompt, self.filter_input);
+        let cursor = if self.filter_input.is_empty() {
+            prompt.len()
+        } else {
+            prompt.len() + self.filter_input.len()
+        };
+
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .style(Style::default().fg(Color::Yellow));
+
+        let text = Line::from(input_display.as_str());
+        let paragraph = Paragraph::new(text)
+            .block(block)
+            .style(Style::default().fg(Color::White));
+
+        f.render_widget(paragraph, area);
+
+        if area.width > cursor as u16 + 2 {
+            f.set_cursor(area.x + cursor as u16 + 1, area.y + 1);
         }
     }
     fn render_notification_popup(&self, f: &mut Frame<'_>) {
@@ -420,7 +501,10 @@ impl TuiApp {
                 Span::styled("s", Style::default().fg(Color::Yellow)),
                 Span::raw("] sort ("),
                 Span::raw(&sort_display),
-                Span::raw(")"),
+                Span::raw(") | "),
+                Span::raw("["),
+                Span::styled("/", Style::default().fg(Color::Yellow)),
+                Span::raw("] filter"),
             ],
             AppView::Stats => vec![Span::raw("statistics")],
             AppView::Settings => vec![Span::raw("settings")],

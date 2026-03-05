@@ -23,8 +23,8 @@ AppState {
 
   // === Server Data (3) ===
   servers: Vec<Server>                  // 全サーバーリスト
-  filtered_servers_cache: RefCell<...>  // フィルタ済みキャッシュ
-  filtered_servers_version: Cell<u64>   // キャッシュバージョン
+  filtered_servers_cache: Mutex<...>    // フィルタ済みキャッシュ (2026-03-05: RefCell→Mutex)
+  filtered_servers_version: u64          // キャッシュバージョン (2026-03-05: Cell→u64)
 
   // === UI Selection State (2) ===
   selected_server: Option<usize>         // 選択中サーバー
@@ -110,8 +110,8 @@ pub struct DomainState {
 
     // Server データ
     servers: Vec<Server>,
-    filtered_servers_cache: RefCell<Option<(Vec<Server>, u64)>>,
-    filtered_servers_version: Cell<u64>,
+    filtered_servers_cache: Mutex<Option<(Vec<Server>, u64)>>,  // 2026-03-05: RefCell→Mutex
+    filtered_servers_version: u64,
 
     // 非同期操作
     async_manager: AsyncTaskManager,
@@ -182,8 +182,8 @@ AppState {
 
     // === Server Data ===
     servers: Vec<Server>
-    filtered_servers_cache: RefCell<...>
-    filtered_servers_version: Cell<u64>
+    filtered_servers_cache: Mutex<...>  // 2026-03-05: RefCell→Mutex
+    filtered_servers_version: u64       // 2026-03-05: Cell→u64
 
     // === UI State ( views から直接アクセス ) ===
     current_view: AppView
@@ -260,13 +260,22 @@ filtered_servers_version: u64,  // Cell なし
 
 ---
 
-### 🟡 問題3: 不要な clone()
+## 🔴 問題2: Interior Mutability (RefCell + Cell) ✅ 解決済み
 
-**場所:** `src/state/app_state.rs:384`
+**場所:** `src/state/app_state.rs:123-124`
 
 ```rust
-return cached_result.clone();  // 每次缓存命中都 clone
+// 変更後 (2026-03-05)
+filtered_servers_cache: Mutex<Option<(Vec<Server>, u64)>>,
+filtered_servers_version: u64,
 ```
+
+**修正内容:**
+
+- `RefCell` → `Mutex` (標準的なスレッドセーフな同期)
+- `Cell<u64>` → `u64` (通常フィールド)
+
+**ステータス:** ✅ 完了
 
 **問題:**
 

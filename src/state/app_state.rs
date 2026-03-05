@@ -150,7 +150,7 @@ impl AppState {
     pub fn new() -> Self {
         Self {
             connection: ConnectionState::Disconnected,
-            current_view: crate::state::AppView::Connect,
+            current_view: crate::state::AppView::Servers,
             search_query: String::new(),
             filter: ServerFilter::default(),
             sort: ServerSort::default(),

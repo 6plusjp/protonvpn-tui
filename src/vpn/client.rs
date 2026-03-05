@@ -2,9 +2,10 @@
 //!
 //! Uses the new `protonvpn` CLI commands:
 //! - protonvpn countries     -> list countries
-//! - protonvpn cities <CC>  -> list cities for a country
+//! - protonvpn cities --country <CC>  -> list cities for a country
 //! - protonvpn connect       -> connect to fastest server
-//! - protonvpn connect <CC>  -> connect to a country
+//! - protonvpn connect --country <CC>  -> connect to a country
+//! - protonvpn connect --city <city>  -> connect to a city
 //! - protonvpn disconnect    -> disconnect
 
 use std::collections::HashMap;
@@ -305,7 +306,7 @@ impl VpnClient {
         }
 
         let output = Command::new(&self.cli_path)
-            .args(["cities", country_code])
+            .args(["cities", "--country", country_code])
             .output()
             .map_err(|e| {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))

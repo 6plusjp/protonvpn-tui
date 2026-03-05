@@ -386,7 +386,7 @@ impl AppState {
         result
     }
 
-    fn compute_filtered_servers(&self) -> Vec<Server> {
+    pub(crate) fn compute_filtered_servers(&self) -> Vec<Server> {
         let query = self.search_query.to_lowercase();
 
         let connected_server_id = match &self.connection {
@@ -559,5 +559,205 @@ impl AppState {
 
     pub fn settings_select_page_up(&mut self, count: usize) {
         self.settings_selected.move_page_up(count);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::vpn::ServerFeatures;
+
+    fn make_servers() -> Vec<Server> {
+        vec![
+            Server {
+                id: "JP".to_string(),
+                name: "Japan - JP".to_string(),
+                country: "Japan".to_string(),
+                city: "Tokyo".to_string(),
+                features: ServerFeatures::default(),
+            },
+            Server {
+                id: "US".to_string(),
+                name: "United States - US".to_string(),
+                country: "United States".to_string(),
+                city: "New York".to_string(),
+                features: ServerFeatures::default(),
+            },
+            Server {
+                id: "DE".to_string(),
+                name: "Germany - DE".to_string(),
+                country: "Germany".to_string(),
+                city: "Berlin".to_string(),
+                features: ServerFeatures::default(),
+            },
+            Server {
+                id: "GB".to_string(),
+                name: "United Kingdom - GB".to_string(),
+                country: "United Kingdom".to_string(),
+                city: "London".to_string(),
+                features: ServerFeatures::default(),
+            },
+            Server {
+                id: "FR".to_string(),
+                name: "France - FR".to_string(),
+                country: "France".to_string(),
+                city: "Paris".to_string(),
+                features: ServerFeatures::default(),
+            },
+        ]
+    }
+
+    #[test]
+    fn test_filtered_servers_empty_query() {
+        let mut state = AppState::new();
+        state.servers = make_servers();
+        state.search_query = String::new();
+
+        let result = state.filtered_servers();
+
+        assert_eq!(result.len(), 5);
+    }
+
+    #[test]
+    fn test_filtered_servers_by_id() {
+        let mut state = AppState::new();
+        state.servers = make_servers();
+        state.search_query = "jp".to_string();
+        state.filter = ServerFilter::Id;
+
+        let result = state.filtered_servers();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].id, "JP");
+    }
+
+    #[test]
+    fn test_filtered_servers_by_country() {
+        let mut state = AppState::new();
+        state.servers = make_servers();
+        state.search_query = "japan".to_string();
+        state.filter = ServerFilter::Country;
+
+        let result = state.filtered_servers();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].country, "Japan");
+    }
+
+    #[test]
+    fn test_filtered_servers_by_country_exact_match() {
+        let mut state = AppState::new();
+        state.servers = make_servers();
+        state.search_query = "JP".to_string();
+        state.filter = ServerFilter::Country;
+
+        let result = state.filtered_servers();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].id, "JP");
+    }
+
+    #[test]
+    fn test_filtered_servers_by_city() {
+        let mut state = AppState::new();
+        state.servers = make_servers();
+        state.search_query = "tokyo".to_string();
+        state.filter = ServerFilter::City;
+
+        let result = state.filtered_servers();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].city, "Tokyo");
+    }
+
+    #[test]
+    fn test_filtered_servers_case_insensitive() {
+        let mut state = AppState::new();
+        state.servers = make_servers();
+        state.search_query = "JAPAN".to_string();
+        state.filter = ServerFilter::Country;
+
+        let result = state.filtered_servers();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].country, "Japan");
+    }
+
+    #[test]
+    fn test_filtered_servers_sort_asc_by_id() {
+        let mut state = AppState::new();
+        state.servers = make_servers();
+        state.search_query = String::new();
+        state.sort = ServerSort::Id;
+        state.sort_direction = SortDirection::Asc;
+
+        let result = state.filtered_servers();
+
+        assert_eq!(result[0].id, "DE");
+        assert_eq!(result[4].id, "US");
+    }
+
+    #[test]
+    fn test_filtered_servers_sort_desc_by_id() {
+        let mut state = AppState::new();
+        state.servers = make_servers();
+        state.search_query = String::new();
+        state.sort = ServerSort::Id;
+        state.sort_direction = SortDirection::Desc;
+
+        let result = state.filtered_servers();
+
+        assert_eq!(result[0].id, "US");
+        assert_eq!(result[4].id, "DE");
+    }
+
+    #[test]
+    fn test_filtered_servers_sort_asc_by_country() {
+        let mut state = AppState::new();
+        state.servers = make_servers();
+        state.search_query = String::new();
+        state.sort = ServerSort::Country;
+        state.sort_direction = SortDirection::Asc;
+
+        let result = state.filtered_servers();
+
+        assert_eq!(result[0].country, "France");
+        assert_eq!(result[4].country, "United States");
+    }
+
+    #[test]
+    fn test_filtered_servers_sort_desc_by_country() {
+        let mut state = AppState::new();
+        state.servers = make_servers();
+        state.search_query = String::new();
+        state.sort = ServerSort::Country;
+        state.sort_direction = SortDirection::Desc;
+
+        let result = state.filtered_servers();
+
+        assert_eq!(result[0].country, "United States");
+        assert_eq!(result[4].country, "France");
+    }
+
+    #[test]
+    fn test_filtered_servers_multiple_matches() {
+        let mut state = AppState::new();
+        state.servers = make_servers();
+        state.search_query = "u".to_string();
+        state.filter = ServerFilter::Country;
+
+        let result = state.filtered_servers();
+
+        assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn test_fuzzy_match_starts_with() {
+        let mut state = AppState::new();
+        state.servers = make_servers();
+        state.vpn_state = VpnState::new();
+
+        let result = state.compute_filtered_servers();
+        assert!(!result.is_empty());
     }
 }

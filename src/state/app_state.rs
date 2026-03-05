@@ -1,6 +1,6 @@
 //! Application state management
 
-use crate::config::{ProtonSettings, Settings};
+use crate::config::ProtonSettings;
 use crate::constants::state::MAX_NOTIFICATION_LOG;
 use crate::constants::state::PAGE_SIZE;
 use crate::state::async_tasks::{create_channel, AsyncResult, AsyncTaskManager};
@@ -107,7 +107,6 @@ pub struct AppState {
     pub filter: ServerFilter,
     pub sort: ServerSort,
     pub sort_direction: SortDirection,
-    pub config: Settings,
     pub servers: Vec<Server>,
     pub selected_server: Option<usize>,
     pub settings_selected: Option<usize>,
@@ -140,7 +139,6 @@ impl AppState {
             filter: ServerFilter::default(),
             sort: ServerSort::default(),
             sort_direction: SortDirection::default(),
-            config: Settings::default(),
             servers: Vec::new(),
             selected_server: None,
             settings_selected: None,
@@ -158,14 +156,9 @@ impl AppState {
         }
     }
 
-    pub fn with_config(mut self, config: Settings) -> Self {
-        self.config = config;
-        self
-    }
-
     pub fn get_proton_settings(&self) -> Option<&ProtonSettings> {
         self.proton_settings_cache
-            .get_or_init(Settings::load_proton_settings)
+            .get_or_init(ProtonSettings::load)
             .as_ref()
     }
 
@@ -404,19 +397,18 @@ impl AppState {
         let mut result: Vec<Server> = if query.is_empty() {
             self.servers.clone()
         } else {
-            let query_lower = query.to_lowercase();
             self.servers
                 .iter()
                 .filter(|server| match self.filter {
-                    ServerFilter::Id => server.id.to_lowercase().contains(&query_lower),
+                    ServerFilter::Id => server.id.to_lowercase().contains(&query),
                     ServerFilter::Country => {
-                        server.country.to_lowercase().contains(&query_lower)
-                            || server.id.to_lowercase() == query_lower
+                        server.country.to_lowercase().contains(&query)
+                            || server.id.to_lowercase() == query
                             || self.fuzzy_match(&server.country, &query)
                             || self.fuzzy_match(&server.id, &query)
                     }
                     ServerFilter::City => {
-                        server.city.to_lowercase().contains(&query_lower)
+                        server.city.to_lowercase().contains(&query)
                             || self.fuzzy_match(&server.city, &query)
                     }
                 })
@@ -454,13 +446,12 @@ impl AppState {
 
     fn fuzzy_match(&self, text: &str, query: &str) -> bool {
         let text_lower = text.to_lowercase();
-        let query_lower = query.to_lowercase();
 
-        if text_lower.starts_with(&query_lower) {
+        if text_lower.starts_with(query) {
             return true;
         }
 
-        let variants = self.generate_fuzzy_variants(&query_lower);
+        let variants = self.generate_fuzzy_variants(query);
         variants.iter().any(|v| text_lower.contains(v))
     }
 
@@ -476,10 +467,9 @@ impl AppState {
         }
 
         let servers = self.vpn_state.get_servers();
-        let query_lower = query.to_lowercase();
 
         for server in &servers {
-            if server.id.to_lowercase() == query_lower {
+            if server.id.to_lowercase() == query {
                 variants.push(server.country.to_lowercase());
                 break;
             }

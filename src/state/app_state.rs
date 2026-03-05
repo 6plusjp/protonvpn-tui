@@ -100,28 +100,44 @@ pub struct Notification {
 }
 
 /// Main application state
+///
+/// Fields are organized into logical groups for better maintainability:
+/// - Connection & Async: VPN connection state and background task management
+/// - Server Data: Server list and filtering cache
+/// - UI State: View selection, filters, and sorting
+/// - Notification: User notifications and history
+/// - Config: Application settings cache
 pub struct AppState {
+    // === Connection & Async (深い結合) ===
     pub connection: ConnectionState,
-    pub current_view: crate::state::AppView,
-    pub search_query: String,
-    pub filter: ServerFilter,
-    pub sort: ServerSort,
-    pub sort_direction: SortDirection,
-    pub servers: Vec<Server>,
-    pub selected_server: Option<usize>,
-    pub settings_selected: Option<usize>,
     pub vpn_state: VpnState,
-    pub notification: Option<Notification>,
-    pub notification_log: Vec<Notification>,
+    previous_connection: Option<ConnectionState>,
     async_manager: AsyncTaskManager,
     #[allow(clippy::type_complexity)]
     pending_refresh: Option<ServerReceiver>,
-    previous_connection: Option<ConnectionState>,
     pending_connect: Option<ConnectReceiver>,
     pending_disconnect: Option<DisconnectReceiver>,
-    proton_settings_cache: OnceLock<Option<ProtonSettings>>,
+
+    // === Server Data ===
+    pub(crate) servers: Vec<Server>,
     filtered_servers_cache: Mutex<Option<(Vec<Server>, u64)>>,
     filtered_servers_version: u64,
+
+    // === UI State ( views から直接アクセス ) ===
+    pub current_view: crate::state::AppView,
+    pub selected_server: Option<usize>,
+    pub settings_selected: Option<usize>,
+    pub(crate) search_query: String,
+    pub filter: ServerFilter,
+    pub sort: ServerSort,
+    pub sort_direction: SortDirection,
+
+    // === Notification ===
+    pub notification: Option<Notification>,
+    pub notification_log: Vec<Notification>,
+
+    // === Config (独立してロード可能) ===
+    proton_settings_cache: OnceLock<Option<ProtonSettings>>,
 }
 
 impl Default for AppState {
@@ -154,6 +170,16 @@ impl AppState {
             filtered_servers_cache: Mutex::new(None),
             filtered_servers_version: 0,
         }
+    }
+
+    pub fn set_search_query(&mut self, query: String) {
+        self.search_query = query;
+        self.invalidate_filtered_cache();
+    }
+
+    pub fn set_servers(&mut self, servers: Vec<Server>) {
+        self.servers = servers;
+        self.invalidate_filtered_cache();
     }
 
     pub fn get_proton_settings(&self) -> Option<&ProtonSettings> {
@@ -201,7 +227,7 @@ impl AppState {
             if let Ok(result) = rx.try_recv() {
                 match result {
                     Ok(servers) => {
-                        self.servers = servers;
+                        self.set_servers(servers);
                         self.show_notification(
                             format!("Refreshed {} servers", self.servers.len()),
                             NotificationType::Success,
@@ -303,8 +329,7 @@ impl AppState {
     pub fn refresh_servers(&mut self) {
         let cached = self.vpn_state.get_servers();
         if !cached.is_empty() {
-            self.servers = cached;
-            self.invalidate_filtered_cache();
+            self.set_servers(cached);
         }
 
         self.show_notification("Refreshing servers...".to_string(), NotificationType::Info);

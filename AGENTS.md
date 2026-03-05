@@ -37,9 +37,6 @@ protonvpn-tui/
 │   ├── specifications/   # Feature specifications
 │   ├── issue/            # Issue tracking (issue001.md, issue002.md, ...)
 │   ├── reference/       # Reference docs (user-managed)
-│   │   ├── CODEBASE_IMPROVEMENTS.md
-│   │   ├── ROADMAP.md
-│   │   └── RUST_DESIGN_RULES.md
 │   └── policy/          # Project policies
 │       ├── policy.md
 │       ├── commit-message-rule.md
@@ -99,14 +96,7 @@ RUST_BACKTRACE=1 cargo run  # Enable backtrace on panic
 
 ## Code style guidelines
 
-Follow `docs/reference/RUST_DESIGN_RULES.md` for all coding standards.
-
-### Key conventions
-
-- **Error handling**: Use `thiserror` for custom errors, `anyhow` for application errors
-- **Logging**: Use `tracing` for structured logging
-- **Serialization**: Use `serde` with derive macros
-- **UI**: Use `ratatui` for TUI components
+Follow `docs/policy/coding-standards.md` for all coding standards.
 
 ---
 
@@ -149,7 +139,6 @@ cargo test test_name
 ### Do
 
 - ✅ Run `cargo check` after every change
-- ✅ Follow `docs/reference/RUST_DESIGN_RULES.md` strictly
 - ✅ Add tracing/logging for debugging
 - ✅ Test with `cargo test` before marking complete
 - ✅ Keep changes focused and minimal

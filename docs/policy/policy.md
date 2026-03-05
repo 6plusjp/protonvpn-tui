@@ -24,3 +24,4 @@
 - [@docs/policy/commit-message-rule.md](docs/policy/commit-message-rule.md) — Commit message format
 - [@docs/policy/naming-conventions.md](docs/policy/naming-conventions.md) — Naming conventions for files, code, and branches
 - [@docs/policy/reference-convention.md](docs/policy/reference-convention.md) — Document linking convention
+- [@docs/policy/coding-standards.md](docs/policy/coding-standards.md) — Rust coding standards

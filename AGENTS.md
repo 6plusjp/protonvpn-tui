@@ -33,10 +33,32 @@ protonvpn-tui/
 │   │   └── async_tasks.rs
 │   └── config/           # Configuration
 │       └── settings.rs
-├── RUST_DESIGN_RULES.md  # Coding standards
-├── ROADMAP.md            # Project phases
+├── docs/                 # Documentation (source of truth)
+│   ├── specifications/   # Feature specifications
+│   ├── issue/            # Issue tracking (issue001.md, issue002.md, ...)
+│   ├── reference/       # Reference docs (user-managed)
+│   │   ├── CODEBASE_IMPROVEMENTS.md
+│   │   ├── ROADMAP.md
+│   │   └── RUST_DESIGN_RULES.md
+│   └── policy/          # Project policies
+│       ├── policy.md
+│       ├── commit-message-rule.md
+│       ├── naming-conventions.md
+│       └── reference-convention.md
+├── AGENTS.md             # AI agent context
 └── Cargo.toml
 ```
+
+---
+
+## Required Context
+
+Load these policy documents before working on this project:
+
+- [@docs/policy/policy.md](docs/policy/policy.md) — Project policy overview
+- [@docs/policy/commit-message-rule.md](docs/policy/commit-message-rule.md) — Commit message format
+- [@docs/policy/naming-conventions.md](docs/policy/naming-conventions.md) — Naming conventions
+- [@docs/policy/reference-convention.md](docs/policy/reference-convention.md) — Document reference syntax
 
 ---
 
@@ -77,7 +99,7 @@ RUST_BACKTRACE=1 cargo run  # Enable backtrace on panic
 
 ## Code style guidelines
 
-Follow `RUST_DESIGN_RULES.md` for all coding standards.
+Follow `docs/reference/RUST_DESIGN_RULES.md` for all coding standards.
 
 ### Key conventions
 
@@ -127,11 +149,12 @@ cargo test test_name
 ### Do
 
 - ✅ Run `cargo check` after every change
-- ✅ Follow `RUST_DESIGN_RULES.md` strictly
+- ✅ Follow `docs/reference/RUST_DESIGN_RULES.md` strictly
 - ✅ Add tracing/logging for debugging
 - ✅ Test with `cargo test` before marking complete
 - ✅ Keep changes focused and minimal
 - ✅ Ask for clarification when requirements are ambiguous
+- ✅ Create issue document in `docs/issue/` before starting implementation
 
 ---
 

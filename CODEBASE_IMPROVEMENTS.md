@@ -35,7 +35,6 @@
 
 | # | 項目 | 作業量 | 詳細 | ステータス |
 |---|------|--------|------|------------|
-| 6 | 設定ファイルの未使用 | 小 | Settings 構造体は未使用 (config/settings.rs) | 未着手 |
 | 8 | テストの不足 | 中 | フィルタリング、パース、UI のテスト不足 | 未着手 |
 
 ### 🟢 低優先度
@@ -43,11 +42,9 @@
 | # | 項目 | 作業量 | 詳細 | ステータス |
 |---|------|--------|------|------------|
 | 9 | ServerFeatures がデフォルト | 小 | `protonvpn-cli` が機能を提供していないため取得不能。ドキュメント化即可 | 未着手 |
-| 10 | マジック Numbers | 小 | client.rs にリトライ回数 (10), 遅延 (500ms) などがハードコード | 未着手 |
 | 11 | VpnState API の非対称性 | 小 | connect=mut, disconnect=mut だが get_servers=immutable | 未着手 |
 | 12 | Error Response の統一 | 小 | AppError/String/Result が混在 | 未着手 |
 | 13 | AppState の巨大化 | 大 | 12+ フィールドを DomainState/UiState/DataState に分割 | 未着手 |
-| 14 | fuzzy_match の to_lowercase 重複 | 小 | generate_fuzzy_variants + fuzzy_match で同一文字列を2回 lower ケース変換 | 未着手 |
 | 15 | proton_settings_cache の同期 | 小 | `get_or_init` が毎フレーム呼ばれる可能性 | 未着手 |
 
 ---
@@ -110,6 +107,14 @@
 
 ---
 
+### #6: 未使用 Settings 構造体 (完了) - `GeneralSettings`, `UiSettings`, `ConnectionSettings`, `Settings` を削除
+
+### #10: マジック Numbers (完了) - client.rs で constants.rs の定数を使用
+
+### #14: fuzzy_match の to_lowercase 重複 (完了) - 冗長な to_lowercase() 呼び出しを削除
+
+---
+
 ## タスク化管理
 
 ```todo
@@ -118,7 +123,10 @@
 - [x] #3 Graceful Shutdown 実装
 - [x] #4 ConnectionStats 削除
 - [x] #5 constants.rs 作成と集約
+- [x] #6 未使用 Settings 構造体削除
 - [x] #7 エラー処理 DRY 化
+- [x] #10 マジック Numbers 定数化
+- [x] #14 fuzzy_match to_lowercase 重複除去
 ```
 
 ---

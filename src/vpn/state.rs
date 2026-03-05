@@ -78,4 +78,28 @@ impl VpnState {
     pub fn refresh_servers(&mut self) -> AppResult<Vec<Server>> {
         self.client.refresh_servers()
     }
+
+    pub fn toggle_killswitch(&self, current: Option<i32>) -> AppResult<String> {
+        self.client.toggle_killswitch(current)
+    }
+
+    pub fn toggle_ipv6(&self, current: Option<bool>) -> AppResult<String> {
+        self.client.toggle_ipv6(current)
+    }
+
+    pub fn toggle_moderate_nat(&self, current: Option<bool>) -> AppResult<String> {
+        self.client.toggle_moderate_nat(current)
+    }
+
+    pub fn toggle_vpn_accelerator(&self, current: Option<bool>) -> AppResult<String> {
+        self.client.toggle_vpn_accelerator(current)
+    }
+
+    pub fn toggle_port_forwarding(&self, current: Option<bool>) -> AppResult<String> {
+        self.client.toggle_port_forwarding(current)
+    }
+
+    pub fn set_netshield(&self, current: Option<i32>, next: i32) -> AppResult<String> {
+        self.client.set_netshield(current, next)
+    }
 }

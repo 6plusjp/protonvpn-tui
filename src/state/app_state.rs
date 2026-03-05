@@ -196,7 +196,7 @@ impl AppState {
     pub fn get_settings_count(&self) -> usize {
         self.get_proton_settings()
             .map(|ps| ps.settings_count())
-            .unwrap_or(0)
+            .unwrap_or(7) // Default to 7 settings even if not loaded
     }
 
     pub fn switch_view(&mut self) {
@@ -587,6 +587,76 @@ impl AppState {
 
     pub fn settings_select_page_up(&mut self, count: usize) {
         self.settings_selected.move_page_up(count);
+    }
+
+    pub fn toggle_settings(&mut self, index: usize) {
+        let ps = self.get_proton_settings();
+
+        let result = match index {
+            0 => {
+                let current = ps.and_then(|p| p.killswitch);
+                self.vpn_state.toggle_killswitch(current)
+            }
+            1 => {
+                let current = ps.and_then(|p| p.ipv6);
+                self.vpn_state.toggle_ipv6(current)
+            }
+            2 => {
+                self.show_notification(
+                    "Custom DNS requires configuration".to_string(),
+                    NotificationType::Info,
+                );
+                return;
+            }
+            3 => {
+                let current = ps
+                    .and_then(|p| p.features.as_ref())
+                    .and_then(|f| f.netshield);
+                let next = 0; // Not used, computed in client
+                self.vpn_state.set_netshield(current, next)
+            }
+            4 => {
+                let current = ps
+                    .and_then(|p| p.features.as_ref())
+                    .and_then(|f| f.moderate_nat);
+                self.vpn_state.toggle_moderate_nat(current)
+            }
+            5 => {
+                let current = ps
+                    .and_then(|p| p.features.as_ref())
+                    .and_then(|f| f.vpn_accelerator);
+                self.vpn_state.toggle_vpn_accelerator(current)
+            }
+            6 => {
+                let current = ps
+                    .and_then(|p| p.features.as_ref())
+                    .and_then(|f| f.port_forwarding);
+                self.vpn_state.toggle_port_forwarding(current)
+            }
+            _ => {
+                self.show_notification(
+                    "Invalid setting selection".to_string(),
+                    NotificationType::Error,
+                );
+                return;
+            }
+        };
+
+        match result {
+            Ok(msg) => {
+                self.show_notification(
+                    format!("Setting updated: {}", msg),
+                    NotificationType::Success,
+                );
+                self.proton_settings_cache = OnceLock::new();
+            }
+            Err(e) => {
+                self.show_notification(
+                    format!("Failed to update setting: {}", e),
+                    NotificationType::Error,
+                );
+            }
+        }
     }
 }
 

@@ -414,6 +414,67 @@ impl VpnClient {
             "Disconnected".to_string()
         }
     }
+
+    /// Set a configuration option via `protonvpn config set <setting> <value>`
+    pub fn config_set(&self, setting: &str, value: &str) -> AppResult<String> {
+        let output = Command::new(&self.cli_path)
+            .args(["config", "set", setting, value])
+            .output()
+            .map_err(|e| {
+                AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
+            })?;
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+
+        self.check_cli_error(&output, &stdout, &stderr)?;
+
+        Ok(format!("{} {}", stdout, stderr).trim().to_string())
+    }
+
+    /// Toggle kill switch (off <-> standard)
+    pub fn toggle_killswitch(&self, current: Option<i32>) -> AppResult<String> {
+        let new_value = if current == Some(1) {
+            "off"
+        } else {
+            "standard"
+        };
+        self.config_set("kill-switch", new_value)
+    }
+
+    /// Toggle IPv6 (off <-> on)
+    pub fn toggle_ipv6(&self, current: Option<bool>) -> AppResult<String> {
+        let new_value = if current == Some(true) { "off" } else { "on" };
+        self.config_set("ipv6", new_value)
+    }
+
+    /// Toggle moderate NAT (off <-> on)
+    pub fn toggle_moderate_nat(&self, current: Option<bool>) -> AppResult<String> {
+        let new_value = if current == Some(true) { "off" } else { "on" };
+        self.config_set("moderate-nat", new_value)
+    }
+
+    /// Toggle VPN accelerator (off <-> on)
+    pub fn toggle_vpn_accelerator(&self, current: Option<bool>) -> AppResult<String> {
+        let new_value = if current == Some(true) { "off" } else { "on" };
+        self.config_set("vpn-accelerator", new_value)
+    }
+
+    /// Toggle port forwarding (off <-> on)
+    pub fn toggle_port_forwarding(&self, current: Option<bool>) -> AppResult<String> {
+        let new_value = if current == Some(true) { "off" } else { "on" };
+        self.config_set("port-forwarding", new_value)
+    }
+
+    /// Set NetShield mode (off -> malware-only -> malware-ads-trackers -> off)
+    pub fn set_netshield(&self, current: Option<i32>, _next: i32) -> AppResult<String> {
+        let new_value = match current.unwrap_or(0) {
+            0 => "malware-only",
+            1 => "malware-ads-trackers",
+            _ => "off",
+        };
+        self.config_set("netshield", new_value)
+    }
 }
 
 #[cfg(test)]

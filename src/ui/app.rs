@@ -99,8 +99,23 @@ impl TuiApp {
             KeyCode::Char('q') => Some(AppAction::Quit),
             KeyCode::Tab => Some(AppAction::SwitchView),
             KeyCode::Char('c') | KeyCode::Enter => {
-                self.state.connect();
-                self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                match self.state.current_view {
+                    AppView::Settings => {
+                        if let Some(idx) = self.state.settings_selected {
+                            self.state.toggle_settings(idx);
+                            self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                        } else {
+                            self.state.show_notification(
+                                "No setting selected".to_string(),
+                                crate::state::NotificationType::Info,
+                            );
+                        }
+                    }
+                    _ => {
+                        self.state.connect();
+                        self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                    }
+                }
                 None
             }
             // Ctrl+d = page down (must be before 'd' for disconnect)

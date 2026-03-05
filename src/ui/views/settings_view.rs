@@ -32,8 +32,8 @@ pub fn render_settings_view(state: &mut AppState, f: &mut Frame<'_>, area: Rect)
             };
             let netshield = match ps.features.as_ref().and_then(|f| f.netshield) {
                 Some(0) => "off",
-                Some(1) => "standard",
-                Some(2) => "plus",
+                Some(1) => "malware-only",
+                Some(2) => "malware-ads-trackers",
                 _ => "unknown",
             };
             let moderate_nat = ps

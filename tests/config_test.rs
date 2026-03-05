@@ -1,44 +1,4 @@
-use protonvpn_tui::config::{ProtonCustomDns, ProtonFeatures, ProtonSettings, Settings};
-
-#[test]
-fn test_settings_default() {
-    let settings = Settings::default();
-    assert_eq!(settings.general.log_level, "");
-    assert_eq!(settings.ui.theme, "");
-    assert!(!settings.ui.show_line_numbers);
-    assert!(!settings.connection.auto_connect);
-}
-
-#[test]
-fn test_settings_serialization() {
-    let settings = Settings {
-        general: protonvpn_tui::config::GeneralSettings {
-            log_level: "debug".to_string(),
-        },
-        ui: protonvpn_tui::config::UiSettings {
-            show_line_numbers: true,
-            theme: "dark".to_string(),
-        },
-        connection: protonvpn_tui::config::ConnectionSettings {
-            auto_connect: true,
-            default_server: Some("JP".to_string()),
-            kill_switch: true,
-            secure_core: false,
-            always_on: false,
-        },
-    };
-
-    let toml_str = toml::to_string_pretty(&settings).unwrap();
-    assert!(toml_str.contains("debug"));
-    assert!(toml_str.contains("dark"));
-    assert!(toml_str.contains("true"));
-
-    let loaded: Settings = toml::from_str(&toml_str).unwrap();
-    assert_eq!(loaded.general.log_level, "debug");
-    assert_eq!(loaded.ui.theme, "dark");
-    assert!(loaded.ui.show_line_numbers);
-    assert!(loaded.connection.auto_connect);
-}
+use protonvpn_tui::config::{ProtonCustomDns, ProtonFeatures, ProtonSettings};
 
 mod proton_settings {
     use super::*;

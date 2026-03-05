@@ -3,6 +3,10 @@
 use serde::{Deserialize, Serialize};
 
 /// Server features
+///
+/// Note: `protonvpn-cli` does not provide server feature information
+/// (secure_core, p2p, tor, streaming). These fields will always be `false`
+/// unless the CLI adds support for a server info command.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ServerFeatures {
     pub secure_core: bool,

@@ -399,6 +399,7 @@ impl AppState {
             _ => None,
         };
 
+        let servers = &self.servers;
         let mut result: Vec<Server> = if query.is_empty() {
             self.servers.clone()
         } else {
@@ -409,12 +410,12 @@ impl AppState {
                     ServerFilter::Country => {
                         server.country.to_lowercase().contains(&query)
                             || server.id.to_lowercase() == query
-                            || self.fuzzy_match(&server.country, &query)
-                            || self.fuzzy_match(&server.id, &query)
+                            || self.fuzzy_match(servers, &server.country, &query)
+                            || self.fuzzy_match(servers, &server.id, &query)
                     }
                     ServerFilter::City => {
                         server.city.to_lowercase().contains(&query)
-                            || self.fuzzy_match(&server.city, &query)
+                            || self.fuzzy_match(servers, &server.city, &query)
                     }
                 })
                 .cloned()
@@ -449,18 +450,18 @@ impl AppState {
         result
     }
 
-    fn fuzzy_match(&self, text: &str, query: &str) -> bool {
+    fn fuzzy_match(&self, servers: &[Server], text: &str, query: &str) -> bool {
         let text_lower = text.to_lowercase();
 
         if text_lower.starts_with(query) {
             return true;
         }
 
-        let variants = self.generate_fuzzy_variants(query);
+        let variants = self.generate_fuzzy_variants(servers, query);
         variants.iter().any(|v| text_lower.contains(v))
     }
 
-    fn generate_fuzzy_variants(&self, query: &str) -> Vec<String> {
+    fn generate_fuzzy_variants(&self, servers: &[Server], query: &str) -> Vec<String> {
         let mut variants = vec![query.to_string()];
 
         let no_vowels: String = query
@@ -471,9 +472,7 @@ impl AppState {
             variants.push(no_vowels);
         }
 
-        let servers = self.vpn_state.get_servers();
-
-        for server in &servers {
+        for server in servers {
             if server.id.to_lowercase() == query {
                 variants.push(server.country.to_lowercase());
                 break;

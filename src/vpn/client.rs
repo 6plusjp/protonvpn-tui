@@ -15,6 +15,7 @@ use chrono::Utc;
 
 use super::cache::ServerCache;
 use super::types::{Server, ServerFeatures};
+use crate::constants::vpn::{DISCONNECT_RETRY_COUNT, DISCONNECT_RETRY_DELAY_MS};
 use crate::error::{AppError, AppResult};
 
 /// VPN client for interacting with protonvpn CLI
@@ -176,13 +177,13 @@ impl VpnClient {
     pub fn disconnect(&mut self) -> AppResult<()> {
         let _ = Command::new(&self.cli_path).args(["disconnect"]).output();
 
-        for _ in 0..10 {
+        for _ in 0..DISCONNECT_RETRY_COUNT {
             if !self.is_connected() {
                 self.cache.set_disconnected();
                 self.save_cache()?;
                 return Ok(());
             }
-            std::thread::sleep(std::time::Duration::from_millis(500));
+            std::thread::sleep(std::time::Duration::from_millis(DISCONNECT_RETRY_DELAY_MS));
         }
 
         Err(AppError::ConnectionFailed(

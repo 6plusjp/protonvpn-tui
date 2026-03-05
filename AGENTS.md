@@ -86,17 +86,6 @@ Follow `RUST_DESIGN_RULES.md` for all coding standards.
 - **Serialization**: Use `serde` with derive macros
 - **UI**: Use `ratatui` for TUI components
 
-### Dependencies (Cargo.toml)
-
-```toml
-crossterm = "0.27"
-ratatui = { version = "0.26", default-features = false, features = ["crossterm"] }
-serde = { version = "1", features = ["derive"] }
-thiserror = "1"
-anyhow = "1"
-tracing = "0.1"
-```
-
 ---
 
 ## Testing instructions
@@ -129,7 +118,6 @@ cargo test test_name
 
 ### Don't
 
-- ❌ Use `as any`, `@ts-ignore`, or suppress type errors
 - ❌ Leave code in broken state after failures
 - ❌ Commit without explicit request
 - ❌ Speculate about unread code
@@ -147,48 +135,8 @@ cargo test test_name
 
 ---
 
-## Agent Roles
-
-### Project Lead (Default)
-
-Analyze user intent and delegate to appropriate specialists.
-
-**Workflow**:
-
-1. Read ROADMAP.md → RUST_DESIGN_RULES.md → AGENTS.md
-2. Determine which specialist to invoke
-3. Break down complex tasks into smaller pieces
-4. Coordinate between specialists
-
-### Specialist Reference
-
-| Trigger                              | Specialist   |
-| ------------------------------------ | ------------ |
-| Implementing features, refactoring   | Rust Core    |
-| UI components, views, keybindings    | TUI/UI       |
-| VPN connections, server listing      | VPN Backend  |
-| Settings, configuration, persistence | Config       |
-| Runtime panics, logic errors         | Debug Helper |
-| Compiler errors, type mismatches     | Lint Hunter  |
-| Design decisions, architecture       | Architect    |
-
-### Key files to reference
-
-| File                     | Purpose         |
-| ------------------------ | --------------- |
-| `src/vpn/client.rs`      | VPN CLI wrapper |
-| `src/vpn/types.rs`       | VPN data types  |
-| `src/ui/components/`     | UI widgets      |
-| `src/ui/views/`          | Full views      |
-| `src/state/app_state.rs` | App state       |
-| `src/config/settings.rs` | Configuration   |
-
----
-
 ## References
 
 - [protonvpn](https://github.com/protonvpn/proton-vpn-cli) - Official CLI
 - [ratatui](https://ratatui.rs/) - TUI library
 - [crossterm](https://docs.rs/crossterm/latest/crossterm/) - Terminal library
-- [thiserror](https://docs.rs/thiserror/latest/thiserror/) - Error handling
-- [tracing](https://docs.rs/tracing/latest/tracing/) - Structured logging

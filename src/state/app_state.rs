@@ -10,8 +10,8 @@ use crate::state::ServerSort;
 use crate::state::SortDirection;
 use crate::vpn::Server;
 use crate::vpn::VpnState;
-use std::cell::{Cell, RefCell};
 use std::sync::mpsc;
+use std::sync::Mutex;
 use std::sync::OnceLock;
 
 pub type ConnectResult = (String, Option<String>);
@@ -120,8 +120,8 @@ pub struct AppState {
     pending_connect: Option<ConnectReceiver>,
     pending_disconnect: Option<DisconnectReceiver>,
     proton_settings_cache: OnceLock<Option<ProtonSettings>>,
-    filtered_servers_cache: RefCell<Option<(Vec<Server>, u64)>>,
-    filtered_servers_version: Cell<u64>,
+    filtered_servers_cache: Mutex<Option<(Vec<Server>, u64)>>,
+    filtered_servers_version: u64,
 }
 
 impl Default for AppState {
@@ -151,8 +151,8 @@ impl AppState {
             pending_connect: None,
             pending_disconnect: None,
             proton_settings_cache: OnceLock::new(),
-            filtered_servers_cache: RefCell::new(None),
-            filtered_servers_version: Cell::new(0),
+            filtered_servers_cache: Mutex::new(None),
+            filtered_servers_version: 0,
         }
     }
 
@@ -377,8 +377,8 @@ impl AppState {
     }
 
     pub fn filtered_servers(&self) -> Vec<Server> {
-        let version = self.filtered_servers_version.get();
-        let cached = self.filtered_servers_cache.borrow();
+        let version = self.filtered_servers_version;
+        let cached = self.filtered_servers_cache.lock().unwrap();
         if let Some((ref cached_result, cached_version)) = *cached {
             if cached_version == version {
                 return cached_result.clone();
@@ -387,7 +387,7 @@ impl AppState {
         drop(cached);
 
         let result = self.compute_filtered_servers();
-        *self.filtered_servers_cache.borrow_mut() = Some((result.clone(), version));
+        *self.filtered_servers_cache.lock().unwrap() = Some((result.clone(), version));
         result
     }
 
@@ -482,9 +482,8 @@ impl AppState {
         variants
     }
 
-    fn invalidate_filtered_cache(&self) {
-        self.filtered_servers_version
-            .set(self.filtered_servers_version.get().wrapping_add(1));
+    fn invalidate_filtered_cache(&mut self) {
+        self.filtered_servers_version = self.filtered_servers_version.wrapping_add(1);
     }
 
     pub fn filtered_servers_count(&self) -> usize {

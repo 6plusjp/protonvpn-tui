@@ -134,7 +134,7 @@ impl VpnClient {
     }
 
     /// Parse connect output to extract server ID and IP
-    fn parse_connect_output(&self, output: &str) -> (String, Option<String>) {
+    pub(crate) fn parse_connect_output(&self, output: &str) -> (String, Option<String>) {
         let mut server_id = String::new();
         let mut ip = None;
 
@@ -145,7 +145,10 @@ impl VpnClient {
             if line.contains("IP address") || line.contains("IP:") || line.contains("address is") {
                 let parts: Vec<&str> = line.split_whitespace().collect();
                 for (i, part) in parts.iter().enumerate() {
-                    if (*part == "is" || *part == ":" || *part == "IP") && i + 1 < parts.len() {
+                    let part_clean = part.trim_end_matches(':');
+                    if (part_clean == "is" || part_clean == "IP" || part_clean == "address")
+                        && i + 1 < parts.len()
+                    {
                         let potential_ip = parts[i + 1].trim_end_matches('.');
                         if potential_ip.contains('.')
                             && potential_ip.chars().filter(|&c| c == '.').count() == 3
@@ -261,7 +264,7 @@ impl VpnClient {
     }
 
     /// Parse countries output
-    fn parse_countries(&self, output: &str) -> HashMap<String, String> {
+    pub(crate) fn parse_countries(&self, output: &str) -> HashMap<String, String> {
         let mut countries = HashMap::new();
 
         for line in output.lines() {
@@ -321,7 +324,7 @@ impl VpnClient {
     }
 
     /// Parse cities output
-    fn parse_cities(&self, output: &str) -> Vec<String> {
+    pub(crate) fn parse_cities(&self, output: &str) -> Vec<String> {
         let mut cities = Vec::new();
 
         // Output format: "Tokyo\nOsaka\n..."
@@ -410,5 +413,200 @@ impl VpnClient {
         } else {
             Ok("Disconnected".to_string())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_countries_single() {
+        let client = VpnClient::new();
+        let output = "Japan               JP";
+        let countries = client.parse_countries(output);
+
+        assert_eq!(countries.get("JP"), Some(&"Japan".to_string()));
+    }
+
+    #[test]
+    fn test_parse_countries_multiple() {
+        let client = VpnClient::new();
+        let output = r#"Japan               JP
+United States       US
+Germany             DE
+United Kingdom      GB"#;
+        let countries = client.parse_countries(output);
+
+        assert_eq!(countries.get("JP"), Some(&"Japan".to_string()));
+        assert_eq!(countries.get("US"), Some(&"United States".to_string()));
+        assert_eq!(countries.get("DE"), Some(&"Germany".to_string()));
+        assert_eq!(countries.get("GB"), Some(&"United Kingdom".to_string()));
+    }
+
+    #[test]
+    fn test_parse_countries_skips_header() {
+        let client = VpnClient::new();
+        let output = r#"Country             Code
+------------------  ----
+Japan               JP"#;
+        let countries = client.parse_countries(output);
+
+        assert_eq!(countries.get("JP"), Some(&"Japan".to_string()));
+        assert!(!countries.contains_key("Country"));
+        assert!(!countries.contains_key("Code"));
+    }
+
+    #[test]
+    fn test_parse_countries_skips_dashes() {
+        let client = VpnClient::new();
+        let output = r#"------------------  ----
+Japan               JP"#;
+        let countries = client.parse_countries(output);
+
+        assert_eq!(countries.get("JP"), Some(&"Japan".to_string()));
+    }
+
+    #[test]
+    fn test_parse_countries_empty() {
+        let client = VpnClient::new();
+        let output = "";
+        let countries = client.parse_countries(output);
+
+        assert!(countries.is_empty());
+    }
+
+    #[test]
+    fn test_parse_countries_with_server_list_message() {
+        let client = VpnClient::new();
+        let output = r#"Server list is currently being updated. Please try again later.
+Japan               JP"#;
+        let countries = client.parse_countries(output);
+
+        assert_eq!(countries.get("JP"), Some(&"Japan".to_string()));
+    }
+
+    #[test]
+    fn test_parse_cities_single() {
+        let client = VpnClient::new();
+        let output = "Tokyo";
+        let cities = client.parse_cities(output);
+
+        assert_eq!(cities, vec!["Tokyo"]);
+    }
+
+    #[test]
+    fn test_parse_cities_multiple() {
+        let client = VpnClient::new();
+        let output = "Tokyo\nOsaka\nKyoto\nSapporo";
+        let cities = client.parse_cities(output);
+
+        assert_eq!(cities, vec!["Tokyo", "Osaka", "Kyoto", "Sapporo"]);
+    }
+
+    #[test]
+    fn test_parse_cities_with_whitespace() {
+        let client = VpnClient::new();
+        let output = "  Tokyo  \n  Osaka  \n  ";
+        let cities = client.parse_cities(output);
+
+        assert_eq!(cities, vec!["Tokyo", "Osaka"]);
+    }
+
+    #[test]
+    fn test_parse_cities_empty() {
+        let client = VpnClient::new();
+        let output = "";
+        let cities = client.parse_cities(output);
+
+        assert!(cities.is_empty());
+    }
+
+    #[test]
+    fn test_parse_connect_output_with_ip() {
+        let client = VpnClient::new();
+        let output = r#"Connected to JP#379 in Tokyo, Japan.
+IP address: 123.45.67.89
+Enjoy your privacy."#;
+        let (server_id, ip) = client.parse_connect_output(output);
+
+        assert_eq!(server_id, "JP#379");
+        assert_eq!(ip, Some("123.45.67.89".to_string()));
+    }
+
+    #[test]
+    fn test_parse_connect_output_ip_with_colon() {
+        let client = VpnClient::new();
+        let output = r#"Connected to US#100 in New York, United States.
+IP: 98.76.54.321
+Stay secure."#;
+        let (server_id, ip) = client.parse_connect_output(output);
+
+        assert_eq!(server_id, "US#100");
+        assert_eq!(ip, Some("98.76.54.321".to_string()));
+    }
+
+    #[test]
+    fn test_parse_connect_output_no_ip() {
+        let client = VpnClient::new();
+        let output = r#"Connected to DE#200 in Berlin, Germany.
+No IP address found."#;
+        let (server_id, ip) = client.parse_connect_output(output);
+
+        assert_eq!(server_id, "DE#200");
+        assert_eq!(ip, None);
+    }
+
+    #[test]
+    fn test_parse_connect_output_private_ip_ignored() {
+        let client = VpnClient::new();
+        let output = r#"Connected to JP#379 in Tokyo, Japan.
+IP address: 10.0.0.1"#;
+        let (server_id, ip) = client.parse_connect_output(output);
+
+        assert_eq!(server_id, "JP#379");
+        assert_eq!(ip, None);
+    }
+
+    #[test]
+    fn test_parse_connect_output_172_16_ip_ignored() {
+        let client = VpnClient::new();
+        let output = r#"Connected to JP#379 in Tokyo, Japan.
+IP address: 172.16.0.1"#;
+        let (server_id, ip) = client.parse_connect_output(output);
+
+        assert_eq!(server_id, "JP#379");
+        assert_eq!(ip, None);
+    }
+
+    #[test]
+    fn test_parse_connect_output_192_168_ip_ignored() {
+        let client = VpnClient::new();
+        let output = r#"Connected to JP#379 in Tokyo, Japan.
+IP address: 192.168.1.1"#;
+        let (server_id, ip) = client.parse_connect_output(output);
+
+        assert_eq!(server_id, "JP#379");
+        assert_eq!(ip, None);
+    }
+
+    #[test]
+    fn test_parse_connect_output_no_server() {
+        let client = VpnClient::new();
+        let output = "Connection failed. Please try again.";
+        let (server_id, ip) = client.parse_connect_output(output);
+
+        assert!(server_id.is_empty());
+        assert_eq!(ip, None);
+    }
+
+    #[test]
+    fn test_parse_connect_output_ip_address_format() {
+        let client = VpnClient::new();
+        let output = r#"The IP address is 123.45.67.89."#;
+        let (server_id, ip) = client.parse_connect_output(output);
+
+        assert!(server_id.is_empty());
+        assert_eq!(ip, Some("123.45.67.89".to_string()));
     }
 }

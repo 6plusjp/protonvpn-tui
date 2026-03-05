@@ -28,6 +28,14 @@ pub fn render_connect_view(
         _ => None,
     };
 
+    let max_country_len = servers
+        .iter()
+        .map(|s| s.country.len())
+        .max()
+        .unwrap_or(0)
+        .max(8);
+    let country_width = max_country_len + 2;
+
     let items: Vec<ListItem> = servers
         .iter()
         .enumerate()
@@ -38,11 +46,23 @@ pub fn render_connect_view(
                 .map(|cid| cid.starts_with(&server.id) || server.id.starts_with(cid))
                 .unwrap_or(false);
 
+            let cities_str = if server.cities.is_empty() {
+                "-".to_string()
+            } else {
+                server.cities.join(", ")
+            };
+            let row = format!(
+                "{:<4} {:<width$} {}",
+                server.id,
+                server.country,
+                cities_str,
+                width = country_width
+            );
             let line = if is_selected {
                 Line::from(vec![
                     Span::raw("> "),
                     Span::styled(
-                        server.name.as_str(),
+                        row.to_string(),
                         Style::default()
                             .fg(Color::Cyan)
                             .add_modifier(Modifier::BOLD),
@@ -52,14 +72,14 @@ pub fn render_connect_view(
                 Line::from(vec![
                     Span::raw("* "),
                     Span::styled(
-                        server.name.as_str(),
+                        row.to_string(),
                         Style::default()
                             .fg(Color::Green)
                             .add_modifier(Modifier::BOLD),
                     ),
                 ])
             } else {
-                Line::from(vec![Span::raw("  "), Span::raw(server.name.as_str())])
+                Line::from(vec![Span::raw("  "), Span::raw(row)])
             };
 
             ListItem::new(line)

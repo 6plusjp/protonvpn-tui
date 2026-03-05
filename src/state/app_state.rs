@@ -433,9 +433,11 @@ impl AppState {
                 .filter(|server| {
                     server.id.to_lowercase().contains(&query)
                         || server.country.to_lowercase().contains(&query)
-                        || server.city.to_lowercase().contains(&query)
+                        || server
+                            .cities
+                            .iter()
+                            .any(|c| c.to_lowercase().contains(&query))
                         || self.fuzzy_match(servers, &server.country, &query)
-                        || self.fuzzy_match(servers, &server.city, &query)
                 })
                 .cloned()
                 .collect()
@@ -657,44 +659,33 @@ impl AppState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vpn::ServerFeatures;
 
     fn make_servers() -> Vec<Server> {
         vec![
             Server {
                 id: "JP".to_string(),
-                name: "Japan - JP".to_string(),
                 country: "Japan".to_string(),
-                city: "Tokyo".to_string(),
-                features: ServerFeatures::default(),
+                cities: vec!["Tokyo".to_string(), "Osaka".to_string()],
             },
             Server {
                 id: "US".to_string(),
-                name: "United States - US".to_string(),
                 country: "United States".to_string(),
-                city: "New York".to_string(),
-                features: ServerFeatures::default(),
+                cities: vec!["New York".to_string()],
             },
             Server {
                 id: "DE".to_string(),
-                name: "Germany - DE".to_string(),
                 country: "Germany".to_string(),
-                city: "Berlin".to_string(),
-                features: ServerFeatures::default(),
+                cities: vec!["Berlin".to_string()],
             },
             Server {
                 id: "GB".to_string(),
-                name: "United Kingdom - GB".to_string(),
                 country: "United Kingdom".to_string(),
-                city: "London".to_string(),
-                features: ServerFeatures::default(),
+                cities: vec!["London".to_string()],
             },
             Server {
                 id: "FR".to_string(),
-                name: "France - FR".to_string(),
                 country: "France".to_string(),
-                city: "Paris".to_string(),
-                features: ServerFeatures::default(),
+                cities: vec!["Paris".to_string()],
             },
         ]
     }
@@ -759,7 +750,7 @@ mod tests {
         let result = state.filtered_servers();
 
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].city, "Tokyo");
+        assert!(result[0].cities.contains(&"Tokyo".to_string()));
     }
 
     #[test]

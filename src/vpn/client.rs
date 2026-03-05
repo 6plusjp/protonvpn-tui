@@ -14,7 +14,7 @@ use std::process::Command;
 use chrono::Utc;
 
 use super::cache::ServerCache;
-use super::types::{Server, ServerFeatures};
+use super::types::Server;
 use crate::constants::vpn::{DISCONNECT_RETRY_COUNT, DISCONNECT_RETRY_DELAY_MS};
 use crate::error::{AppError, AppResult};
 
@@ -365,10 +365,8 @@ impl VpnClient {
             .iter()
             .map(|(code, name)| Server {
                 id: code.clone(),
-                name: format!("{} - {}", name, code),
                 country: name.clone(),
-                city: String::new(),
-                features: ServerFeatures::default(),
+                cities: Vec::new(),
             })
             .collect();
 
@@ -384,24 +382,18 @@ impl VpnClient {
         vec![
             Server {
                 id: "JP".to_string(),
-                name: "Japan - JP".to_string(),
                 country: "Japan".to_string(),
-                city: String::new(),
-                features: ServerFeatures::default(),
+                cities: vec!["Tokyo".to_string(), "Osaka".to_string()],
             },
             Server {
                 id: "US".to_string(),
-                name: "United States - US".to_string(),
                 country: "United States".to_string(),
-                city: String::new(),
-                features: ServerFeatures::default(),
+                cities: vec!["New York".to_string(), "Los Angeles".to_string()],
             },
             Server {
                 id: "DE".to_string(),
-                name: "Germany - DE".to_string(),
                 country: "Germany".to_string(),
-                city: String::new(),
-                features: ServerFeatures::default(),
+                cities: vec!["Berlin".to_string()],
             },
         ]
     }

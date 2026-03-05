@@ -407,11 +407,11 @@ impl VpnClient {
     }
 
     /// Get connection status (from local cache)
-    pub fn status(&self) -> AppResult<String> {
+    pub fn status(&self) -> String {
         if let Some(server) = &self.cache.connected_server {
-            Ok(format!("Connected to: {}", server))
+            format!("Connected to: {}", server)
         } else {
-            Ok("Disconnected".to_string())
+            "Disconnected".to_string()
         }
     }
 }

@@ -129,7 +129,7 @@ impl TuiApp {
             // Ctrl+d = page down (must be before 'd' for disconnect)
             KeyCode::Char('d') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
                 match self.state.current_view {
-                    AppView::Connect => self.state.select_page_down(),
+                    AppView::Servers => self.state.select_page_down(),
                     AppView::Settings => {
                         let count = self.state.get_settings_count();
                         self.state.settings_select_page_down(count);
@@ -161,7 +161,7 @@ impl TuiApp {
             }
             KeyCode::Char('j') | KeyCode::Down => {
                 match self.state.current_view {
-                    AppView::Connect => self.state.select_next(),
+                    AppView::Servers => self.state.select_next(),
                     AppView::Settings => {
                         let count = self.state.get_settings_count();
                         self.state.settings_select_next(count);
@@ -172,7 +172,7 @@ impl TuiApp {
             }
             KeyCode::Char('k') | KeyCode::Up => {
                 match self.state.current_view {
-                    AppView::Connect => {
+                    AppView::Servers => {
                         self.state.select_prev();
                         self.pending_g = false;
                     }
@@ -189,7 +189,7 @@ impl TuiApp {
             KeyCode::Char('g') => {
                 if self.pending_g {
                     match self.state.current_view {
-                        AppView::Connect => self.state.select_first(),
+                        AppView::Servers => self.state.select_first(),
                         AppView::Settings => {
                             let count = self.state.get_settings_count();
                             self.state.settings_select_first(count);
@@ -205,7 +205,7 @@ impl TuiApp {
             // Vim: G = go to bottom
             KeyCode::Char('G') => {
                 match self.state.current_view {
-                    AppView::Connect => self.state.select_last(),
+                    AppView::Servers => self.state.select_last(),
                     AppView::Settings => {
                         let count = self.state.get_settings_count();
                         self.state.settings_select_last(count);
@@ -218,7 +218,7 @@ impl TuiApp {
             // Ctrl+u = page up
             KeyCode::Char('u') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
                 match self.state.current_view {
-                    AppView::Connect => self.state.select_page_up(),
+                    AppView::Servers => self.state.select_page_up(),
                     AppView::Settings => {
                         let count = self.state.get_settings_count();
                         self.state.settings_select_page_up(count);
@@ -464,7 +464,7 @@ impl TuiApp {
 
     fn render_main(&mut self, f: &mut Frame<'_>, area: Rect) {
         match self.state.current_view {
-            AppView::Connect => views::connect_view::render_connect_view(
+            AppView::Servers => views::servers_view::render_servers_view(
                 &mut self.state,
                 &mut self.list_state,
                 f,
@@ -475,6 +475,12 @@ impl TuiApp {
                 views::settings_view::render_settings_view(&mut self.state, f, area)
             }
             AppView::Help => views::help_view::render_help_view(f, area),
+            AppView::Cities => views::cities_view::render_cities_view(
+                &mut self.state,
+                &mut self.list_state,
+                f,
+                area,
+            ),
         }
     }
 
@@ -484,10 +490,13 @@ impl TuiApp {
         let sort_display = format!("{} {}", sort_label, direction_label);
 
         let action_spans: Vec<Span<'_>> = match self.state.current_view {
-            AppView::Connect => vec![
+            AppView::Servers => vec![
                 Span::raw("["),
                 Span::styled("j/k", Style::default().fg(Color::Yellow)),
                 Span::raw("] move | "),
+                Span::raw("["),
+                Span::styled("Enter", Style::default().fg(Color::Yellow)),
+                Span::raw("] cities | "),
                 Span::raw("["),
                 Span::styled("c", Style::default().fg(Color::Yellow)),
                 Span::raw("] connect | "),
@@ -505,6 +514,17 @@ impl TuiApp {
                 Span::raw("["),
                 Span::styled("/", Style::default().fg(Color::Yellow)),
                 Span::raw("] filter"),
+            ],
+            AppView::Cities => vec![
+                Span::raw("["),
+                Span::styled("j/k", Style::default().fg(Color::Yellow)),
+                Span::raw("] move | "),
+                Span::raw("["),
+                Span::styled("c/Enter", Style::default().fg(Color::Yellow)),
+                Span::raw("] connect | "),
+                Span::raw("["),
+                Span::styled("Esc", Style::default().fg(Color::Yellow)),
+                Span::raw("] back"),
             ],
             AppView::Stats => vec![Span::raw("statistics")],
             AppView::Settings => vec![Span::raw("settings")],

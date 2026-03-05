@@ -186,11 +186,9 @@ impl AppState {
         if let Some(cached) = self.proton_settings_cache.get() {
             return cached.as_ref();
         }
-        Some(
-            self.proton_settings_cache
-                .get_or_init(ProtonSettings::load)
-                .as_ref()?,
-        )
+        self.proton_settings_cache
+            .get_or_init(ProtonSettings::load)
+            .as_ref()
     }
 
     pub fn get_settings_count(&self) -> usize {

@@ -7,8 +7,14 @@ use ratatui::{
     Frame,
 };
 
-pub fn render_help_view(f: &mut Frame<'_>, area: Rect) {
-    let theme = Theme::default();
+use crate::AppState;
+
+pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
+    let theme = if state.is_dark_theme {
+        Theme::dark()
+    } else {
+        Theme::light()
+    };
     let block = centered_block("Help", &theme);
 
     let help_text = vec![

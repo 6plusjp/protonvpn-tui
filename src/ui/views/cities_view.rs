@@ -16,7 +16,11 @@ pub fn render_cities_view(
     f: &mut Frame<'_>,
     area: Rect,
 ) {
-    let theme = Theme::default();
+    let theme = if state.is_dark_theme {
+        Theme::dark()
+    } else {
+        Theme::light()
+    };
     let title = match &state.current_country_code {
         Some(code) => format!("{} - Cities", code),
         None => "Cities".to_string(),

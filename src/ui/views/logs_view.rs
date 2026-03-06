@@ -15,7 +15,11 @@ pub fn render_logs_view(
     f: &mut Frame<'_>,
     area: Rect,
 ) {
-    let theme = Theme::default();
+    let theme = if state.is_dark_theme {
+        Theme::dark()
+    } else {
+        Theme::light()
+    };
     let block = centered_block("Logs", &theme);
 
     let items: Vec<ListItem> = state

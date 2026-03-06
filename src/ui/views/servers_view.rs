@@ -16,7 +16,11 @@ pub fn render_servers_view(
     f: &mut Frame<'_>,
     area: Rect,
 ) {
-    let theme = Theme::default();
+    let theme = if state.is_dark_theme {
+        Theme::dark()
+    } else {
+        Theme::light()
+    };
     let block = centered_block("Servers", &theme);
 
     let servers = state.filtered_servers();

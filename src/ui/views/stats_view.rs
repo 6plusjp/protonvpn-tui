@@ -10,7 +10,11 @@ use ratatui::{
 use crate::state::ConnectionState;
 
 pub fn render_stats_view(state: &crate::AppState, f: &mut Frame<'_>, area: Rect) {
-    let theme = Theme::default();
+    let theme = if state.is_dark_theme {
+        Theme::dark()
+    } else {
+        Theme::light()
+    };
     let block = centered_block("Statistics", &theme);
 
     let proton_settings = state.get_proton_settings();

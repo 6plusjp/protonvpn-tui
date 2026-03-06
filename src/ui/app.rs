@@ -285,19 +285,6 @@ impl TuiApp {
                 self.pending_g = false;
                 None
             }
-            // Ctrl+u = page up
-            KeyCode::Char('u') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                match self.state.current_view {
-                    AppView::Servers => self.state.select_page_up(),
-                    AppView::Settings => {
-                        let count = self.state.get_settings_count();
-                        self.state.settings_select_page_up(count);
-                    }
-                    _ => {}
-                }
-                self.pending_g = false;
-                None
-            }
             KeyCode::Char('?') => {
                 self.state.current_view = AppView::Help;
                 None

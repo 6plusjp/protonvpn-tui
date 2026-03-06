@@ -8,8 +8,6 @@ pub enum AppView {
     /// Server list / country selection view
     #[default]
     Servers,
-    /// Statistics view (btop-like)
-    Stats,
     /// Settings view
     Settings,
     /// Logs view (notification history)
@@ -24,8 +22,7 @@ impl AppView {
     /// Get next view in cycle (excludes Help)
     pub fn next(&self) -> Self {
         match self {
-            Self::Servers => Self::Stats,
-            Self::Stats => Self::Settings,
+            Self::Servers => Self::Settings,
             Self::Settings => Self::Logs,
             Self::Logs => Self::Servers,
             Self::Help => Self::Servers,
@@ -37,8 +34,7 @@ impl AppView {
     pub fn prev(&self) -> Self {
         match self {
             Self::Servers => Self::Logs,
-            Self::Stats => Self::Servers,
-            Self::Settings => Self::Stats,
+            Self::Settings => Self::Servers,
             Self::Logs => Self::Settings,
             Self::Help => Self::Servers,
             Self::Cities => Self::Servers,

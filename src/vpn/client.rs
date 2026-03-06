@@ -89,7 +89,7 @@ impl VpnClient {
         self.check_cli_error(&output, &stdout, &stderr)?;
 
         let combined = format!("{} {}", stdout, stderr);
-        let (server_id, ip) = self.parse_connect_output(&combined);
+        let (server_id, ip, _city, _country) = self.parse_connect_output(&combined);
 
         let final_server = if !server_id.is_empty() {
             server_id
@@ -115,7 +115,7 @@ impl VpnClient {
         self.check_cli_error(&output, &stdout, &stderr)?;
 
         let combined = format!("{} {}", stdout, stderr);
-        let (server_id, ip) = self.parse_connect_output(&combined);
+        let (server_id, ip, _city, _country) = self.parse_connect_output(&combined);
 
         let final_server = if !server_id.is_empty() {
             server_id
@@ -141,7 +141,7 @@ impl VpnClient {
         self.check_cli_error(&output, &stdout, &stderr)?;
 
         let combined = format!("{} {}", stdout, stderr);
-        let (server_id, ip) = self.parse_connect_output(&combined);
+        let (server_id, ip, _city, _country) = self.parse_connect_output(&combined);
 
         let final_server = if !server_id.is_empty() {
             server_id
@@ -169,10 +169,15 @@ impl VpnClient {
         Ok(())
     }
 
-    /// Parse connect output to extract server ID and IP
-    pub(crate) fn parse_connect_output(&self, output: &str) -> (String, Option<String>) {
+    /// Parse connect output to extract server ID, IP, city and country
+    pub(crate) fn parse_connect_output(
+        &self,
+        output: &str,
+    ) -> (String, Option<String>, Option<String>, Option<String>) {
         let mut server_id = String::new();
         let mut ip = None;
+        let mut city = None;
+        let mut country = None;
 
         for line in output.lines() {
             let line = line.trim();
@@ -200,16 +205,26 @@ impl VpnClient {
             }
 
             if line.starts_with("Connected to ") {
-                // Parse: "Connected to JP#379 in Tokyo, Japan."
                 if let Some(rest) = line.strip_prefix("Connected to ") {
                     if let Some(end_idx) = rest.find(" in ") {
                         server_id = rest[..end_idx].to_string();
+                        let after_server = &rest[end_idx + 4..];
+                        if let Some(period_idx) = after_server.find('.') {
+                            let location_part = &after_server[..period_idx];
+                            if let Some(last_comma_idx) = location_part.rfind(", ") {
+                                city = Some(location_part[..last_comma_idx].to_string());
+                                country = Some(location_part[last_comma_idx + 2..].to_string());
+                            }
+                        } else if let Some(last_comma_idx) = after_server.rfind(", ") {
+                            city = Some(after_server[..last_comma_idx].to_string());
+                            country = Some(after_server[last_comma_idx + 2..].to_string());
+                        }
                     }
                 }
             }
         }
 
-        (server_id, ip)
+        (server_id, ip, city, country)
     }
 
     pub fn disconnect(&self) -> AppResult<()> {
@@ -659,10 +674,12 @@ Japan               JP"#;
         let output = r#"Connected to JP#379 in Tokyo, Japan.
 IP address: 123.45.67.89
 Enjoy your privacy."#;
-        let (server_id, ip) = client.parse_connect_output(output);
+        let (server_id, ip, city, country) = client.parse_connect_output(output);
 
         assert_eq!(server_id, "JP#379");
         assert_eq!(ip, Some("123.45.67.89".to_string()));
+        assert_eq!(city, Some("Tokyo".to_string()));
+        assert_eq!(country, Some("Japan".to_string()));
     }
 
     #[test]
@@ -671,10 +688,12 @@ Enjoy your privacy."#;
         let output = r#"Connected to US#100 in New York, United States.
 IP: 98.76.54.321
 Stay secure."#;
-        let (server_id, ip) = client.parse_connect_output(output);
+        let (server_id, ip, city, country) = client.parse_connect_output(output);
 
         assert_eq!(server_id, "US#100");
         assert_eq!(ip, Some("98.76.54.321".to_string()));
+        assert_eq!(city, Some("New York".to_string()));
+        assert_eq!(country, Some("United States".to_string()));
     }
 
     #[test]
@@ -682,10 +701,12 @@ Stay secure."#;
         let client = VpnClient::new();
         let output = r#"Connected to DE#200 in Berlin, Germany.
 No IP address found."#;
-        let (server_id, ip) = client.parse_connect_output(output);
+        let (server_id, ip, city, country) = client.parse_connect_output(output);
 
         assert_eq!(server_id, "DE#200");
         assert_eq!(ip, None);
+        assert_eq!(city, Some("Berlin".to_string()));
+        assert_eq!(country, Some("Germany".to_string()));
     }
 
     #[test]
@@ -693,10 +714,12 @@ No IP address found."#;
         let client = VpnClient::new();
         let output = r#"Connected to JP#379 in Tokyo, Japan.
 IP address: 10.0.0.1"#;
-        let (server_id, ip) = client.parse_connect_output(output);
+        let (server_id, ip, city, country) = client.parse_connect_output(output);
 
         assert_eq!(server_id, "JP#379");
         assert_eq!(ip, None);
+        assert_eq!(city, Some("Tokyo".to_string()));
+        assert_eq!(country, Some("Japan".to_string()));
     }
 
     #[test]
@@ -704,10 +727,12 @@ IP address: 10.0.0.1"#;
         let client = VpnClient::new();
         let output = r#"Connected to JP#379 in Tokyo, Japan.
 IP address: 172.16.0.1"#;
-        let (server_id, ip) = client.parse_connect_output(output);
+        let (server_id, ip, city, country) = client.parse_connect_output(output);
 
         assert_eq!(server_id, "JP#379");
         assert_eq!(ip, None);
+        assert_eq!(city, Some("Tokyo".to_string()));
+        assert_eq!(country, Some("Japan".to_string()));
     }
 
     #[test]
@@ -715,29 +740,67 @@ IP address: 172.16.0.1"#;
         let client = VpnClient::new();
         let output = r#"Connected to JP#379 in Tokyo, Japan.
 IP address: 192.168.1.1"#;
-        let (server_id, ip) = client.parse_connect_output(output);
+        let (server_id, ip, city, country) = client.parse_connect_output(output);
 
         assert_eq!(server_id, "JP#379");
         assert_eq!(ip, None);
+        assert_eq!(city, Some("Tokyo".to_string()));
+        assert_eq!(country, Some("Japan".to_string()));
     }
 
     #[test]
     fn test_parse_connect_output_no_server() {
         let client = VpnClient::new();
         let output = "Connection failed. Please try again.";
-        let (server_id, ip) = client.parse_connect_output(output);
+        let (server_id, ip, city, country) = client.parse_connect_output(output);
 
         assert!(server_id.is_empty());
         assert_eq!(ip, None);
+        assert_eq!(city, None);
+        assert_eq!(country, None);
     }
 
     #[test]
     fn test_parse_connect_output_ip_address_format() {
         let client = VpnClient::new();
         let output = r#"The IP address is 123.45.67.89."#;
-        let (server_id, ip) = client.parse_connect_output(output);
+        let (server_id, ip, city, country) = client.parse_connect_output(output);
 
         assert!(server_id.is_empty());
         assert_eq!(ip, Some("123.45.67.89".to_string()));
+        assert_eq!(city, None);
+        assert_eq!(country, None);
+    }
+
+    #[test]
+    fn test_parse_connect_output_same_line_ip() {
+        let client = VpnClient::new();
+        let output =
+            r#"Connected to JP#374 in Tokyo, Japan. Your new IP address is 159.26.119.144."#;
+        let (server_id, ip, city, country) = client.parse_connect_output(output);
+
+        assert_eq!(server_id, "JP#374");
+        assert_eq!(ip, Some("159.26.119.144".to_string()));
+        assert_eq!(city, Some("Tokyo".to_string()));
+        assert_eq!(country, Some("Japan".to_string()));
+    }
+
+    #[test]
+    fn test_parse_connect_output_with_error_traceback() {
+        let client = VpnClient::new();
+        let output = r#"2026-03-06T06:48:22.914403+00:00 | concurrent.futures:336 | ERROR | exception calling callback
+Traceback (most recent call last):
+  File "/usr/lib/python3.14/site-packages/proton/vpn/backend/networkmanager/core/local_agent/listener.py", line 51, in connect
+    certificate)
+    ^^^^^^^^^^^^
+local_agent.LocalAgentError: Tokio(Custom { kind: InvalidData, error: InvalidCertificate(NotValidForName) })
+
+Connected to JP#374 in Tokyo, Japan. Your new IP address is 159.26.119.144."#;
+        let (server_id, ip, city, country) = client.parse_connect_output(output);
+
+        assert_eq!(server_id, "JP#374");
+        assert_eq!(ip, Some("159.26.119.144".to_string()));
+        assert_eq!(city, Some("Tokyo".to_string()));
+        assert_eq!(country, Some("Japan".to_string()));
     }
 }

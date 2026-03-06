@@ -382,19 +382,24 @@ impl VpnClient {
                 continue;
             }
 
+            // Skip header lines:
+            // - "Cities in United Arab Emirates:" (title line)
+            // - "City     Features" (column header - features is just "Features")
+            if line.starts_with("Cities") || line.starts_with("City") {
+                continue;
+            }
+
+            // Skip update messages
+            if line.starts_with("Server list") {
+                continue;
+            }
+
             // Split name (before first whitespace) from features (after)
             let name_end = line.find(|c: char| c.is_whitespace());
             let (name, features_str) = match name_end {
                 Some(pos) => (line[..pos].to_string(), line[pos..].trim()),
                 None => (line.to_string(), ""),
             };
-
-            // Skip header lines:
-            // - "Cities in United Arab Emirates:" (title line)
-            // - "City     Features" (column header - features is just "Features")
-            if name == "Cities" || features_str == "Features" {
-                continue;
-            }
 
             // Features are comma-separated: "P2P, Secure Core" → ["P2P", "Secure Core"]
             let features: Vec<String> = features_str

@@ -15,7 +15,7 @@ use std::process::Command;
 use chrono::Utc;
 
 use super::cache::ServerCache;
-use super::types::Server;
+use super::types::{City, Server};
 use crate::constants::vpn::{DISCONNECT_RETRY_COUNT, DISCONNECT_RETRY_DELAY_MS};
 use crate::error::{AppError, AppResult};
 
@@ -112,6 +112,33 @@ impl VpnClient {
             server_id
         } else {
             "Random Server".to_string()
+        };
+        self.cache.set_connected(final_server.clone(), ip.clone());
+        self.save_cache()?;
+
+        Ok((final_server, ip))
+    }
+
+    /// Connect to a specific city
+    pub fn connect_city(&mut self, city: &str) -> AppResult<(String, Option<String>)> {
+        let output = Command::new(&self.cli_path)
+            .args(["connect", "--city", city])
+            .output()
+            .map_err(|e| {
+                AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
+            })?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+
+        self.check_cli_error(&output, &stdout, &stderr)?;
+
+        let combined = format!("{} {}", stdout, stderr);
+        let (server_id, ip) = self.parse_connect_output(&combined);
+
+        let final_server = if !server_id.is_empty() {
+            server_id
+        } else {
+            city.to_string()
         };
         self.cache.set_connected(final_server.clone(), ip.clone());
         self.save_cache()?;
@@ -298,9 +325,14 @@ impl VpnClient {
         countries
     }
 
-    /// List cities in a country
+    /// List cities in a country (returns city names only)
     pub fn list_cities(&mut self, country_code: &str) -> AppResult<Vec<String>> {
-        // Return cached if valid
+        let cities = self.list_cities_with_features(country_code)?;
+        Ok(cities.into_iter().map(|c| c.name).collect())
+    }
+
+    /// List cities in a country with features
+    pub fn list_cities_with_features(&mut self, country_code: &str) -> AppResult<Vec<City>> {
         if let Some(cities) = self.cache.cities.get(country_code) {
             return Ok(cities.clone());
         }
@@ -313,9 +345,8 @@ impl VpnClient {
             })?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
-        let cities = self.parse_cities(&stdout);
+        let cities = self.parse_cities_with_features(&stdout);
 
-        // Update cache
         self.cache
             .cities
             .insert(country_code.to_string(), cities.clone());
@@ -324,16 +355,25 @@ impl VpnClient {
         Ok(cities)
     }
 
-    /// Parse cities output
-    pub(crate) fn parse_cities(&self, output: &str) -> Vec<String> {
+    /// Parse cities output with features
+    pub(crate) fn parse_cities_with_features(&self, output: &str) -> Vec<City> {
         let mut cities = Vec::new();
 
-        // Output format: "Tokyo\nOsaka\n..."
         for line in output.lines() {
-            let city = line.trim().to_string();
-            if !city.is_empty() {
-                cities.push(city);
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
             }
+
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.is_empty() {
+                continue;
+            }
+
+            let name = parts[0].to_string();
+            let features: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
+
+            cities.push(City::with_features(name, features));
         }
 
         cities
@@ -384,17 +424,32 @@ impl VpnClient {
             Server {
                 id: "JP".to_string(),
                 country: "Japan".to_string(),
-                cities: vec!["Tokyo".to_string(), "Osaka".to_string()],
+                cities: vec![
+                    City::with_features(
+                        "Tokyo".to_string(),
+                        vec!["P2P".to_string(), "Secure".to_string()],
+                    ),
+                    City::with_features("Osaka".to_string(), vec!["P2P".to_string()]),
+                ],
             },
             Server {
                 id: "US".to_string(),
                 country: "United States".to_string(),
-                cities: vec!["New York".to_string(), "Los Angeles".to_string()],
+                cities: vec![
+                    City::with_features(
+                        "New York".to_string(),
+                        vec!["P2P".to_string(), "Streaming".to_string()],
+                    ),
+                    City::with_features("Los Angeles".to_string(), vec!["P2P".to_string()]),
+                ],
             },
             Server {
                 id: "DE".to_string(),
                 country: "Germany".to_string(),
-                cities: vec!["Berlin".to_string()],
+                cities: vec![City::with_features(
+                    "Berlin".to_string(),
+                    vec!["Secure".to_string()],
+                )],
             },
         ]
     }
@@ -544,34 +599,41 @@ Japan               JP"#;
     fn test_parse_cities_single() {
         let client = VpnClient::new();
         let output = "Tokyo";
-        let cities = client.parse_cities(output);
+        let cities = client.parse_cities_with_features(output);
 
-        assert_eq!(cities, vec!["Tokyo"]);
+        assert_eq!(cities.len(), 1);
+        assert_eq!(cities[0].name, "Tokyo");
     }
 
     #[test]
     fn test_parse_cities_multiple() {
         let client = VpnClient::new();
         let output = "Tokyo\nOsaka\nKyoto\nSapporo";
-        let cities = client.parse_cities(output);
+        let cities = client.parse_cities_with_features(output);
 
-        assert_eq!(cities, vec!["Tokyo", "Osaka", "Kyoto", "Sapporo"]);
+        assert_eq!(cities.len(), 4);
+        assert_eq!(cities[0].name, "Tokyo");
+        assert_eq!(cities[1].name, "Osaka");
+        assert_eq!(cities[2].name, "Kyoto");
+        assert_eq!(cities[3].name, "Sapporo");
     }
 
     #[test]
     fn test_parse_cities_with_whitespace() {
         let client = VpnClient::new();
         let output = "  Tokyo  \n  Osaka  \n  ";
-        let cities = client.parse_cities(output);
+        let cities = client.parse_cities_with_features(output);
 
-        assert_eq!(cities, vec!["Tokyo", "Osaka"]);
+        assert_eq!(cities.len(), 2);
+        assert_eq!(cities[0].name, "Tokyo");
+        assert_eq!(cities[1].name, "Osaka");
     }
 
     #[test]
     fn test_parse_cities_empty() {
         let client = VpnClient::new();
         let output = "";
-        let cities = client.parse_cities(output);
+        let cities = client.parse_cities_with_features(output);
 
         assert!(cities.is_empty());
     }

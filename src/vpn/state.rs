@@ -1,5 +1,5 @@
 use super::client::VpnClient;
-use super::types::Server;
+use super::types::{City, Server};
 use crate::error::AppResult;
 
 /// VPN state manager
@@ -49,6 +49,15 @@ impl VpnState {
     pub fn connect_random(&mut self) -> AppResult<(String, Option<String>)> {
         let (server_id, ip) = self.client.connect_random()?;
         Ok((server_id, ip))
+    }
+
+    pub fn connect_city(&mut self, city: &str) -> AppResult<(String, Option<String>)> {
+        let (server_id, ip) = self.client.connect_city(city)?;
+        Ok((server_id, ip))
+    }
+
+    pub fn list_cities_with_features(&mut self, country_code: &str) -> AppResult<Vec<City>> {
+        self.client.list_cities_with_features(country_code)
     }
 
     pub fn disconnect(&mut self) -> AppResult<()> {

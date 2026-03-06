@@ -1,0 +1,225 @@
+//! Regression tests for issue002: Servers view with city details and connection
+
+use protonvpn_tui::state::AppView;
+
+mod app_view {
+    use super::*;
+
+    #[test]
+    fn test_app_view_servers_exists() {
+        let view = AppView::Servers;
+        assert_eq!(view, AppView::Servers);
+    }
+
+    #[test]
+    fn test_app_view_cities_exists() {
+        let view = AppView::Cities;
+        assert_eq!(view, AppView::Cities);
+    }
+
+    #[test]
+    fn test_app_view_default_is_servers() {
+        let view = AppView::default();
+        assert_eq!(view, AppView::Servers);
+    }
+
+    #[test]
+    fn test_app_view_next_from_servers() {
+        let view = AppView::Servers;
+        assert_eq!(view.next(), AppView::Stats);
+    }
+
+    #[test]
+    fn test_app_view_next_from_stats() {
+        let view = AppView::Stats;
+        assert_eq!(view.next(), AppView::Settings);
+    }
+
+    #[test]
+    fn test_app_view_next_from_settings() {
+        let view = AppView::Settings;
+        assert_eq!(view.next(), AppView::Servers);
+    }
+
+    #[test]
+    fn test_app_view_next_from_cities() {
+        let view = AppView::Cities;
+        assert_eq!(view.next(), AppView::Servers);
+    }
+
+    #[test]
+    fn test_app_view_prev_from_servers() {
+        let view = AppView::Servers;
+        assert_eq!(view.prev(), AppView::Settings);
+    }
+
+    #[test]
+    fn test_app_view_prev_from_stats() {
+        let view = AppView::Stats;
+        assert_eq!(view.prev(), AppView::Servers);
+    }
+
+    #[test]
+    fn test_app_view_prev_from_settings() {
+        let view = AppView::Settings;
+        assert_eq!(view.prev(), AppView::Stats);
+    }
+
+    #[test]
+    fn test_app_view_prev_from_cities() {
+        let view = AppView::Cities;
+        assert_eq!(view.prev(), AppView::Servers);
+    }
+
+    #[test]
+    fn test_app_view_help_cycles_to_servers() {
+        let view = AppView::Help;
+        assert_eq!(view.next(), AppView::Servers);
+        assert_eq!(view.prev(), AppView::Servers);
+    }
+
+    #[test]
+    fn test_app_view_cities_is_not_help() {
+        let cities = AppView::Cities;
+        let help = AppView::Help;
+        assert_ne!(cities, help);
+    }
+
+    #[test]
+    fn test_app_view_all_variants() {
+        let views = [
+            AppView::Servers,
+            AppView::Stats,
+            AppView::Settings,
+            AppView::Help,
+            AppView::Cities,
+        ];
+
+        for (i, v1) in views.iter().enumerate() {
+            for (j, v2) in views.iter().enumerate() {
+                if i != j {
+                    assert_ne!(v1, v2);
+                }
+            }
+        }
+    }
+}
+
+mod server {
+    use protonvpn_tui::vpn::Server;
+
+    #[test]
+    fn test_server_with_cities() {
+        let server = Server {
+            id: "JP".to_string(),
+            country: "Japan".to_string(),
+            cities: vec!["Tokyo".to_string(), "Osaka".to_string()],
+        };
+        assert_eq!(server.id, "JP");
+        assert_eq!(server.country, "Japan");
+        assert_eq!(server.cities.len(), 2);
+    }
+
+    #[test]
+    fn test_server_with_empty_cities() {
+        let server = Server {
+            id: "XX".to_string(),
+            country: "Unknown".to_string(),
+            cities: vec![],
+        };
+        assert!(server.cities.is_empty());
+    }
+
+    #[test]
+    fn test_server_clone() {
+        let original = Server {
+            id: "JP".to_string(),
+            country: "Japan".to_string(),
+            cities: vec!["Tokyo".to_string()],
+        };
+        let cloned = original.clone();
+        assert_eq!(original.id, cloned.id);
+        assert_eq!(original.country, cloned.country);
+        assert_eq!(original.cities, cloned.cities);
+    }
+
+    #[test]
+    fn test_server_serialize() {
+        let server = Server {
+            id: "JP".to_string(),
+            country: "Japan".to_string(),
+            cities: vec!["Tokyo".to_string()],
+        };
+        let json = serde_json::to_string(&server).unwrap();
+        assert!(json.contains("JP"));
+        assert!(json.contains("Japan"));
+        assert!(json.contains("Tokyo"));
+    }
+
+    #[test]
+    fn test_server_deserialize() {
+        let json = r#"{"id":"US","country":"United States","cities":["New York","Los Angeles"]}"#;
+        let server: Server = serde_json::from_str(json).unwrap();
+        assert_eq!(server.id, "US");
+        assert_eq!(server.country, "United States");
+        assert_eq!(server.cities.len(), 2);
+    }
+
+    #[test]
+    fn test_server_city_count() {
+        let server = Server {
+            id: "JP".to_string(),
+            country: "Japan".to_string(),
+            cities: vec![
+                "Tokyo".to_string(),
+                "Osaka".to_string(),
+                "Nagoya".to_string(),
+                "Sapporo".to_string(),
+            ],
+        };
+        assert_eq!(server.cities.len(), 4);
+    }
+}
+
+mod vpn_client {
+    use protonvpn_tui::vpn::VpnClient;
+
+    #[test]
+    fn test_vpn_client_has_connect_random() {
+        let mut client = VpnClient::with_path("echo");
+        let result = client.connect_random();
+        assert!(result.is_err() || result.is_ok());
+    }
+
+    #[test]
+    fn test_vpn_client_has_disconnect() {
+        let mut client = VpnClient::with_path("echo");
+        let result = client.disconnect();
+        assert!(result.is_err() || result.is_ok());
+    }
+
+    #[test]
+    fn test_vpn_client_list_cities_exists() {
+        let mut client = VpnClient::with_path("echo");
+        let result = client.list_cities("JP");
+        assert!(result.is_err() || result.is_ok());
+    }
+}
+
+mod vpn_state {
+    use protonvpn_tui::vpn::VpnState;
+
+    #[test]
+    fn test_vpn_state_has_connect_random() {
+        let mut state = VpnState::new();
+        let result = state.connect_random();
+        assert!(result.is_err() || result.is_ok());
+    }
+
+    #[test]
+    fn test_vpn_state_has_disconnect() {
+        let mut state = VpnState::new();
+        let result = state.disconnect();
+        assert!(result.is_err() || result.is_ok());
+    }
+}

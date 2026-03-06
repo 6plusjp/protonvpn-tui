@@ -14,11 +14,10 @@ Users need an intuitive way to browse VPN servers by country and city, and conne
 
 Display a list of available countries with the following columns:
 
-| Column  | Description                       |
-| ------- | --------------------------------- |
-| ID      | Country identifier (e.g., JP, US) |
-| Country | Country name                      |
-| Cities  | Number of cities available        |
+| ID  | Country       | Cities       |
+| --- | ------------- | ------------ |
+| JP  | Japan         | Tokyo, Osaka |
+| US  | United States | New York     |
 
 ### Screen 2: City Details (on country selection)
 
@@ -28,7 +27,7 @@ When a country is selected, navigate to a detail view that shows:
 - **Background command**: Execute `protonvpn cities --country <selected country>` to fetch fresh data
 - **Table format**:
 
-| city  | features    |
+| City  | Features    |
 | ----- | ----------- |
 | Tokyo | P2P, Secure |
 | Osaka | P2P         |
@@ -65,35 +64,34 @@ When a country is selected, navigate to a detail view that shows:
 Startup -> Servers view -> Navigate to country -> Enter (not 'c') -> Cities view -> Navigate to city -> 'c' or Enter -> Connect
 ```
 
-### AppView Enum Changes
-
-Rename `Connect` to `Servers` and add `Cities` view:
+### AppView Enum
 
 ```rust
 // src/state/app_view.rs
 pub enum AppView {
     #[default]
-    Servers,  // renamed from Connect
+    Servers,
     Stats,
     Settings,
     Help,
-    Cities,   // new - city list for selected country
+    Cities,  // new - city list for selected country
 }
 ```
 
 ### Required Code Changes
 
-| Component                  | Changes                                                            |
-| -------------------------- | ------------------------------------------------------------------ |
-| `src/state/app_view.rs`    | Rename `Connect` → `Servers`, add `Cities`                         |
-| `src/state/async_tasks.rs` | Add `spawn_cities` task                                            |
-| `src/state/app_state.rs`   | Add `pending_cities` field, notification handling                  |
-| `src/vpn/types.rs`         | Add `City` struct with `features` field                            |
-| `src/vpn/cache.rs`         | Update cache to store city features                                |
-| `src/vpn/client.rs`        | Add `connect_city()` method                                        |
-| `src/ui/views/`            | Rename `connect_view.rs` → `servers_view.rs`, add `cities_view.rs` |
+| Component                  | Status     | Changes                                                            |
+| -------------------------- | ---------- | ------------------------------------------------------------------ |
+| `src/state/app_view.rs`    | ✅ Done    | `Servers` and `Cities` views exist                                 |
+| `src/state/async_tasks.rs` | 🔲 Pending | Add `spawn_cities` task                                           |
+| `src/state/app_state.rs`   | 🔲 Pending | Add `pending_cities` field, notification handling                |
+| `src/vpn/types.rs`         | 🔲 Pending | Add `City` struct with `features` field                            |
+| `src/vpn/cache.rs`         | 🔲 Pending | Update cache to store city features                               |
+| `src/vpn/client.rs`        | 🔲 Pending | Add `connect_city()` method                                        |
+| `src/ui/views/servers_view.rs` | ✅ Done | Implemented                                                       |
+| `src/ui/views/cities_view.rs` | 🔲 Partial | Exists but uses hardcoded data                                   |
 
-### VPN Client Commands (Already Implemented)
+### VPN Client Commands
 
 ```rust
 // src/vpn/client.rs
@@ -214,14 +212,29 @@ protonvpn connect --city Tokyo
 
 ## Acceptance Criteria
 
-- [ ] AppView: Connect renamed to Servers, Cities view added
-- [ ] Countries list displays ID, Country name, and city count
+- [x] AppView: Connect renamed to Servers, Cities view added
+- [x] Countries list displays ID, Country name, and city count
 - [ ] Cached cities display on startup/refresh_servers (no blocking fetch)
 - [ ] Selecting a country (Enter key) navigates to city detail view
 - [ ] Cached city data displays immediately while fetching fresh data
 - [ ] `protonvpn cities --country <selected country>` runs in background without blocking UI
 - [ ] Notification shown when background cities fetch completes
-- [ ] j/k navigation works in both country list and city detail views
+- [x] j/k navigation works in both country list and city detail views
 - [ ] 'c' or Enter key on city triggers `protonvpn connect --city <selected city>`
 - [ ] Connection result shows notification (success/error)
 - [ ] Back navigation (Escape) returns to previous view
+
+---
+
+## Tests
+
+Regression tests are located in `tests/issue002_test.rs`.
+
+```bash
+cargo test --test issue002_test
+```
+
+Current test coverage:
+- AppView enum (Servers, Cities navigation)
+- Server struct with cities
+- VpnClient and VpnState methods existence

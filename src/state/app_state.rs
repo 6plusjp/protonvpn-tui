@@ -193,7 +193,7 @@ impl AppState {
             pending_disconnect: None,
             pending_cities: None,
             pending_connect_city: None,
-            proton_settings_cache: None,
+            proton_settings_cache: ProtonSettings::load(),
             filtered_servers_cache: Mutex::new(None),
             filtered_servers_version: 0,
         }
@@ -209,11 +209,14 @@ impl AppState {
         self.invalidate_filtered_cache();
     }
 
-    pub fn get_proton_settings(&mut self) -> Option<&ProtonSettings> {
-        if self.proton_settings_cache.is_none() {
-            self.proton_settings_cache = ProtonSettings::load();
-        }
+    pub fn get_proton_settings(&self) -> Option<&ProtonSettings> {
         self.proton_settings_cache.as_ref()
+    }
+
+    pub fn get_proton_protocol(&self) -> Option<String> {
+        self.proton_settings_cache
+            .as_ref()
+            .and_then(|ps| ps.protocol.clone())
     }
 
     pub fn switch_view(&mut self) {

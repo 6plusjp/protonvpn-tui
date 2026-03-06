@@ -13,7 +13,18 @@ use crate::vpn::VpnState;
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::sync::OnceLock;
+
+/// Input mode for text input
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum InputMode {
+    /// Normal navigation mode
+    #[default]
+    Normal,
+    /// Filter input mode (/)
+    Filter,
+    /// DNS input mode (for custom DNS)
+    DnsInput,
+}
 
 pub type ConnectResult = (String, Option<String>);
 pub type ConnectReceiver = mpsc::Receiver<AsyncResult<ConnectResult>>;
@@ -138,13 +149,15 @@ pub struct AppState {
     pub sort: ServerSort,
     pub sort_direction: SortDirection,
     pub is_dark_theme: bool,
+    pub input_mode: InputMode,
+    pub dns_input: String,
 
     // === Notification ===
     pub notification: Option<Notification>,
     pub notification_log: Vec<Notification>,
 
     // === Config (独立してロード可能) ===
-    proton_settings_cache: OnceLock<Option<ProtonSettings>>,
+    proton_settings_cache: Option<ProtonSettings>,
 }
 
 impl Default for AppState {
@@ -168,6 +181,8 @@ impl AppState {
             current_country_code: None,
             selected_server: None,
             settings_selected: None,
+            input_mode: InputMode::Normal,
+            dns_input: String::new(),
             vpn_state: Arc::new(VpnState::new()),
             notification: None,
             notification_log: Vec::new(),
@@ -178,7 +193,7 @@ impl AppState {
             pending_disconnect: None,
             pending_cities: None,
             pending_connect_city: None,
-            proton_settings_cache: OnceLock::new(),
+            proton_settings_cache: None,
             filtered_servers_cache: Mutex::new(None),
             filtered_servers_version: 0,
         }
@@ -194,13 +209,11 @@ impl AppState {
         self.invalidate_filtered_cache();
     }
 
-    pub fn get_proton_settings(&self) -> Option<&ProtonSettings> {
-        if let Some(cached) = self.proton_settings_cache.get() {
-            return cached.as_ref();
+    pub fn get_proton_settings(&mut self) -> Option<&ProtonSettings> {
+        if self.proton_settings_cache.is_none() {
+            self.proton_settings_cache = ProtonSettings::load();
         }
-        self.proton_settings_cache
-            .get_or_init(ProtonSettings::load)
-            .as_ref()
+        self.proton_settings_cache.as_ref()
     }
 
     pub fn get_settings_count(&self) -> usize {
@@ -705,6 +718,17 @@ impl AppState {
     pub fn toggle_settings(&mut self, index: usize) {
         let ps = self.get_proton_settings();
 
+        // For DNS (index 2), Enter always shows input prompt
+        if index == 2 {
+            self.input_mode = InputMode::DnsInput;
+            self.dns_input = String::new();
+            self.show_notification(
+                "Enter DNS IPs (e.g., 1.1.1.1,9.9.9.9)".to_string(),
+                NotificationType::Info,
+            );
+            return;
+        }
+
         let result = match index {
             0 => {
                 let current = ps.and_then(|p| p.killswitch);
@@ -715,11 +739,7 @@ impl AppState {
                 self.vpn_state.toggle_ipv6(current)
             }
             2 => {
-                self.show_notification(
-                    "Custom DNS requires configuration".to_string(),
-                    NotificationType::Info,
-                );
-                return;
+                unreachable!("DNS handled before match")
             }
             3 => {
                 let current = ps
@@ -772,11 +792,71 @@ impl AppState {
                     format!("Setting updated: {}", msg),
                     NotificationType::Success,
                 );
-                self.proton_settings_cache = OnceLock::new();
+                self.proton_settings_cache = None;
             }
             Err(e) => {
                 self.show_notification(
                     format!("Failed to update setting: {}", e),
+                    NotificationType::Error,
+                );
+            }
+        }
+    }
+
+    pub fn toggle_settings_off(&mut self, index: usize) {
+        let ps = self.get_proton_settings();
+
+        // For DNS (index 2), Space turns off directly
+        if index == 2 {
+            let dns_enabled = ps.map(|p| p.custom_dns.enabled).unwrap_or(false);
+            if dns_enabled {
+                match self.vpn_state.disable_custom_dns() {
+                    Ok(msg) => {
+                        self.show_notification(
+                            format!("DNS disabled: {}", msg),
+                            NotificationType::Success,
+                        );
+                        self.proton_settings_cache = None;
+                    }
+                    Err(e) => {
+                        self.show_notification(
+                            format!("Failed to disable DNS: {}", e),
+                            NotificationType::Error,
+                        );
+                    }
+                }
+            } else {
+                self.show_notification("DNS is already off".to_string(), NotificationType::Info);
+            }
+            return;
+        }
+
+        // For other settings, use regular toggle
+        self.toggle_settings(index);
+    }
+
+    pub fn apply_dns_setting(&mut self, dns_ips: &str) {
+        let ips: Vec<&str> = dns_ips
+            .split(',')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if ips.is_empty() {
+            self.show_notification("No DNS IPs provided".to_string(), NotificationType::Error);
+            return;
+        }
+
+        let dns_list = ips.join(",");
+        let result = self.vpn_state.set_custom_dns(&dns_list);
+
+        match result {
+            Ok(msg) => {
+                self.show_notification(format!("DNS updated: {}", msg), NotificationType::Success);
+                self.proton_settings_cache = None;
+            }
+            Err(e) => {
+                self.show_notification(
+                    format!("Failed to update DNS: {}", e),
                     NotificationType::Error,
                 );
             }

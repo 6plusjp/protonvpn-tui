@@ -32,7 +32,8 @@ pub fn render_settings_view(state: &mut AppState, f: &mut Frame<'_>, area: Rect)
                 "disabled"
             };
             let dns = if ps.custom_dns.enabled {
-                format!("custom ({})", ps.custom_dns.ip_list.join(", "))
+                let ips: Vec<String> = ps.custom_dns.ip_list.iter().map(|d| d.ip.clone()).collect();
+                format!("custom ({})", ips.join(", "))
             } else {
                 "default".to_string()
             };
@@ -62,21 +63,23 @@ pub fn render_settings_view(state: &mut AppState, f: &mut Frame<'_>, area: Rect)
                 .unwrap_or("off");
 
             vec![
-                format!("Kill Switch: {}", killswitch),
-                format!("IPv6: {}", ipv6),
-                format!("DNS: {}", dns),
-                format!("NetShield: {}", netshield),
-                format!("Moderate NAT: {}", moderate_nat),
-                format!("VPN Accelerator: {}", vpn_accelerator),
-                format!("Port Forwarding: {}", port_forwarding),
+                format!("Kill Switch:      {}", killswitch),
+                format!("IPv6:             {}", ipv6),
+                format!("DNS:              {}", dns),
+                format!("NetShield:        {}", netshield),
+                format!("Moderate NAT:     {}", moderate_nat),
+                format!("VPN Accelerator:  {}", vpn_accelerator),
+                format!("Port Forwarding:  {}", port_forwarding),
             ]
         }
-        None => vec![],
+        None => {
+            vec!["Loading settings...".to_string()]
+        }
     };
 
     let mut all_settings = settings;
     all_settings.push(format!(
-        "Theme: {}",
+        "Theme:            {}",
         if state.is_dark_theme { "Dark" } else { "Light" }
     ));
 

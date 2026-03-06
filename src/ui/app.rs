@@ -106,7 +106,7 @@ impl TuiApp {
         match key_event.code {
             KeyCode::Char('q') => Some(AppAction::Quit),
             KeyCode::Tab => Some(AppAction::SwitchView),
-            KeyCode::Char('c') | KeyCode::Enter => {
+            KeyCode::Char('c') => {
                 match self.state.current_view {
                     AppView::Settings => {
                         if let Some(idx) = self.state.settings_selected {
@@ -119,6 +119,16 @@ impl TuiApp {
                             );
                         }
                     }
+                    AppView::Cities => {
+                        if let Some(idx) = self.state.selected_server {
+                            let city_name =
+                                self.state.current_cities.get(idx).map(|c| c.name.clone());
+                            if let Some(name) = city_name {
+                                self.state.connect_city(&name);
+                                self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                            }
+                        }
+                    }
                     _ => {
                         self.state.connect();
                         self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
@@ -126,10 +136,49 @@ impl TuiApp {
                 }
                 None
             }
+            KeyCode::Enter => {
+                match self.state.current_view {
+                    AppView::Settings => {
+                        if let Some(idx) = self.state.settings_selected {
+                            self.state.toggle_settings(idx);
+                            self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                        } else {
+                            self.state.show_notification(
+                                "No setting selected".to_string(),
+                                crate::state::NotificationType::Info,
+                            );
+                        }
+                    }
+                    AppView::Servers => {
+                        if let Some(idx) = self.state.selected_server {
+                            let servers = self.state.filtered_servers();
+                            if let Some(server) = servers.get(idx) {
+                                self.state.fetch_cities(&server.id);
+                                self.state.current_country_code = Some(server.id.clone());
+                                self.state.current_view = AppView::Cities;
+                                self.state.selected_server = Some(0);
+                            }
+                        }
+                    }
+                    AppView::Cities => {
+                        if let Some(idx) = self.state.selected_server {
+                            let city_name =
+                                self.state.current_cities.get(idx).map(|c| c.name.clone());
+                            if let Some(name) = city_name {
+                                self.state.connect_city(&name);
+                                self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+                None
+            }
             // Ctrl+d = page down (must be before 'd' for disconnect)
             KeyCode::Char('d') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
                 match self.state.current_view {
                     AppView::Servers => self.state.select_page_down(),
+                    AppView::Cities => self.state.select_page_down(),
                     AppView::Settings => {
                         let count = self.state.get_settings_count();
                         self.state.settings_select_page_down(count);
@@ -162,6 +211,7 @@ impl TuiApp {
             KeyCode::Char('j') | KeyCode::Down => {
                 match self.state.current_view {
                     AppView::Servers => self.state.select_next(),
+                    AppView::Cities => self.state.select_next(),
                     AppView::Settings => {
                         let count = self.state.get_settings_count();
                         self.state.settings_select_next(count);
@@ -173,6 +223,10 @@ impl TuiApp {
             KeyCode::Char('k') | KeyCode::Up => {
                 match self.state.current_view {
                     AppView::Servers => {
+                        self.state.select_prev();
+                        self.pending_g = false;
+                    }
+                    AppView::Cities => {
                         self.state.select_prev();
                         self.pending_g = false;
                     }
@@ -190,6 +244,7 @@ impl TuiApp {
                 if self.pending_g {
                     match self.state.current_view {
                         AppView::Servers => self.state.select_first(),
+                        AppView::Cities => self.state.select_first(),
                         AppView::Settings => {
                             let count = self.state.get_settings_count();
                             self.state.settings_select_first(count);
@@ -206,9 +261,24 @@ impl TuiApp {
             KeyCode::Char('G') => {
                 match self.state.current_view {
                     AppView::Servers => self.state.select_last(),
+                    AppView::Cities => self.state.select_last(),
                     AppView::Settings => {
                         let count = self.state.get_settings_count();
                         self.state.settings_select_last(count);
+                    }
+                    _ => {}
+                }
+                self.pending_g = false;
+                None
+            }
+            // Ctrl+u = page up
+            KeyCode::Char('u') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                match self.state.current_view {
+                    AppView::Servers => self.state.select_page_up(),
+                    AppView::Cities => self.state.select_page_up(),
+                    AppView::Settings => {
+                        let count = self.state.get_settings_count();
+                        self.state.settings_select_page_up(count);
                     }
                     _ => {}
                 }
@@ -240,6 +310,14 @@ impl TuiApp {
             KeyCode::Char('/') => {
                 self.filter_mode = true;
                 self.filter_input = self.state.search_query.clone();
+                None
+            }
+            KeyCode::Esc => {
+                if self.state.current_view == AppView::Cities {
+                    self.state.current_view = AppView::Servers;
+                    self.state.current_cities.clear();
+                    self.state.current_country_code = None;
+                }
                 None
             }
             _ => None,

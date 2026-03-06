@@ -127,19 +127,16 @@ impl TuiApp {
                 None
             }
             KeyCode::Char(' ') => {
-                match self.state.current_view {
-                    AppView::Settings => {
-                        if let Some(idx) = self.state.settings_selected {
-                            self.state.toggle_settings_off(idx);
-                            self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
-                        } else {
-                            self.state.show_notification(
-                                "No setting selected".to_string(),
-                                crate::state::NotificationType::Info,
-                            );
-                        }
+                if self.state.current_view == AppView::Settings {
+                    if let Some(idx) = self.state.settings_selected {
+                        self.state.toggle_settings_off(idx);
+                        self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                    } else {
+                        self.state.show_notification(
+                            "No setting selected".to_string(),
+                            crate::state::NotificationType::Info,
+                        );
                     }
-                    _ => {}
                 }
                 None
             }
@@ -187,8 +184,7 @@ impl TuiApp {
                     AppView::Servers => self.state.select_page_down(),
                     AppView::Cities => self.state.select_page_down(),
                     AppView::Settings => {
-                        let count = self.state.get_settings_count();
-                        self.state.settings_select_page_down(count);
+                        self.state.settings_select_page_down();
                     }
                     _ => {}
                 }
@@ -220,8 +216,7 @@ impl TuiApp {
                     AppView::Servers => self.state.select_next(),
                     AppView::Cities => self.state.select_next(),
                     AppView::Settings => {
-                        let count = self.state.get_settings_count();
-                        self.state.settings_select_next(count);
+                        self.state.settings_select_next();
                     }
                     _ => {}
                 }
@@ -238,8 +233,7 @@ impl TuiApp {
                         self.pending_g = false;
                     }
                     AppView::Settings => {
-                        let count = self.state.get_settings_count();
-                        self.state.settings_select_prev(count);
+                        self.state.settings_select_prev();
                         self.pending_g = false;
                     }
                     _ => {}
@@ -253,8 +247,7 @@ impl TuiApp {
                         AppView::Servers => self.state.select_first(),
                         AppView::Cities => self.state.select_first(),
                         AppView::Settings => {
-                            let count = self.state.get_settings_count();
-                            self.state.settings_select_first(count);
+                            self.state.settings_select_first();
                         }
                         _ => {}
                     }
@@ -270,8 +263,7 @@ impl TuiApp {
                     AppView::Servers => self.state.select_last(),
                     AppView::Cities => self.state.select_last(),
                     AppView::Settings => {
-                        let count = self.state.get_settings_count();
-                        self.state.settings_select_last(count);
+                        self.state.settings_select_last();
                     }
                     _ => {}
                 }
@@ -284,8 +276,7 @@ impl TuiApp {
                     AppView::Servers => self.state.select_page_up(),
                     AppView::Cities => self.state.select_page_up(),
                     AppView::Settings => {
-                        let count = self.state.get_settings_count();
-                        self.state.settings_select_page_up(count);
+                        self.state.settings_select_page_up();
                     }
                     _ => {}
                 }

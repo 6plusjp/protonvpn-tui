@@ -337,8 +337,15 @@ impl VpnClient {
     }
 
     pub fn list_cities_with_features(&self, country_code: &str) -> AppResult<Vec<City>> {
-        if let Ok(Some(cities)) = self.with_cache(|c| c.cities.get(country_code).cloned()) {
-            return Ok(cities);
+        let is_stale = self.with_cache(|c| c.is_stale())?;
+        let has_cached = self
+            .with_cache(|c| c.cities.contains_key(country_code))
+            .unwrap_or(false);
+
+        if !is_stale && has_cached {
+            if let Ok(Some(cities)) = self.with_cache(|c| c.cities.get(country_code).cloned()) {
+                return Ok(cities);
+            }
         }
 
         let output = Command::new(&self.cli_path)
@@ -353,6 +360,7 @@ impl VpnClient {
 
         self.with_cache(|c| {
             c.cities.insert(country_code.to_string(), cities.clone());
+            c.last_updated = Some(Utc::now());
         })?;
         self.save_cache()?;
 

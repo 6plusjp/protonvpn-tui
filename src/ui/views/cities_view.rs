@@ -1,8 +1,10 @@
+use crate::ui::components::{block_with_title, styled_list_item};
+use crate::ui::styles::Theme;
 use ratatui::{
     layout::Rect,
-    style::{Color, Modifier, Style},
-    text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, ListState},
+    style::Style,
+    text::Line,
+    widgets::{List, ListItem, ListState},
     Frame,
 };
 
@@ -14,12 +16,13 @@ pub fn render_cities_view(
     f: &mut Frame<'_>,
     area: Rect,
 ) {
+    let theme = Theme::default();
     let title = match &state.current_country_code {
-        Some(code) => format!(" {} - Cities ", code),
-        None => " Cities ".to_string(),
+        Some(code) => format!("{} - Cities", code),
+        None => "Cities".to_string(),
     };
 
-    let block = Block::default().title(title).borders(Borders::ALL);
+    let block = block_with_title(&title, &theme);
 
     let cities: Vec<(String, String)> = state
         .current_cities
@@ -38,7 +41,7 @@ pub fn render_cities_view(
         let items = vec![ListItem::new(Line::from("No cities available"))];
         let list = List::new(items)
             .block(block)
-            .style(Style::default().fg(Color::Gray));
+            .style(Style::default().fg(theme.secondary));
         f.render_stateful_widget(list, area, list_state);
         return;
     }
@@ -57,27 +60,14 @@ pub fn render_cities_view(
             } else {
                 format!("{:<15} {}", city_name, features)
             };
-            let line = if is_selected {
-                Line::from(vec![
-                    Span::raw("> "),
-                    Span::styled(
-                        row.to_string(),
-                        Style::default()
-                            .fg(Color::Cyan)
-                            .add_modifier(Modifier::BOLD),
-                    ),
-                ])
-            } else {
-                Line::from(vec![Span::raw("  "), Span::raw(row)])
-            };
 
-            ListItem::new(line)
+            styled_list_item(&row, is_selected, &theme)
         })
         .collect();
 
     let list = List::new(items)
         .block(block)
-        .style(Style::default().fg(Color::White));
+        .style(Style::default().fg(theme.foreground));
 
     f.render_stateful_widget(list, area, list_state);
 }

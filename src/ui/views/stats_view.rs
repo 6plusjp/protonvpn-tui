@@ -1,14 +1,17 @@
+use crate::ui::components::centered_block;
+use crate::ui::styles::Theme;
 use ratatui::{
     layout::Rect,
-    style::{Color, Style},
-    widgets::{Block, Borders, List, ListItem},
+    style::Style,
+    widgets::{List, ListItem},
     Frame,
 };
 
 use crate::state::ConnectionState;
 
 pub fn render_stats_view(state: &crate::AppState, f: &mut Frame<'_>, area: Rect) {
-    let block = Block::default().title(" Statistics ").borders(Borders::ALL);
+    let theme = Theme::default();
+    let block = centered_block("Statistics", &theme);
 
     let proton_settings = state.get_proton_settings();
 
@@ -46,7 +49,7 @@ pub fn render_stats_view(state: &crate::AppState, f: &mut Frame<'_>, area: Rect)
 
     let list = List::new(items)
         .block(block)
-        .style(Style::default().fg(Color::White));
+        .style(Style::default().fg(theme.foreground));
 
     f.render_widget(list, area);
 }

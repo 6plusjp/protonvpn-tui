@@ -1,9 +1,10 @@
 use crate::state::ConnectionState;
+use crate::ui::components::{centered_block, connected_list_item, styled_list_item};
+use crate::ui::styles::Theme;
 use ratatui::{
     layout::Rect,
-    style::{Color, Modifier, Style},
-    text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, ListState},
+    style::Style,
+    widgets::{List, ListItem, ListState},
     Frame,
 };
 
@@ -15,7 +16,8 @@ pub fn render_servers_view(
     f: &mut Frame<'_>,
     area: Rect,
 ) {
-    let block = Block::default().title(" Servers ").borders(Borders::ALL);
+    let theme = Theme::default();
+    let block = centered_block("Servers", &theme);
 
     let servers = state.filtered_servers();
 
@@ -63,37 +65,18 @@ pub fn render_servers_view(
                 cities_str,
                 width = country_width
             );
-            let line = if is_selected {
-                Line::from(vec![
-                    Span::raw("> "),
-                    Span::styled(
-                        row.to_string(),
-                        Style::default()
-                            .fg(Color::Cyan)
-                            .add_modifier(Modifier::BOLD),
-                    ),
-                ])
-            } else if is_connected {
-                Line::from(vec![
-                    Span::raw("* "),
-                    Span::styled(
-                        row.to_string(),
-                        Style::default()
-                            .fg(Color::Green)
-                            .add_modifier(Modifier::BOLD),
-                    ),
-                ])
-            } else {
-                Line::from(vec![Span::raw("  "), Span::raw(row)])
-            };
 
-            ListItem::new(line)
+            if is_connected {
+                connected_list_item(&row, &theme)
+            } else {
+                styled_list_item(&row, is_selected, &theme)
+            }
         })
         .collect();
 
     let list = List::new(items)
         .block(block)
-        .style(Style::default().fg(Color::White));
+        .style(Style::default().fg(theme.foreground));
 
     f.render_stateful_widget(list, area, list_state);
 }

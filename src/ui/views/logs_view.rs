@@ -1,12 +1,13 @@
+use crate::state::{AppState, NotificationType};
+use crate::ui::components::centered_block;
+use crate::ui::styles::Theme;
 use ratatui::{
     layout::Rect,
-    style::{Color, Style},
+    style::Style,
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, ListState},
+    widgets::{List, ListItem, ListState},
     Frame,
 };
-
-use crate::state::{AppState, NotificationType};
 
 pub fn render_logs_view(
     state: &AppState,
@@ -14,16 +15,17 @@ pub fn render_logs_view(
     f: &mut Frame<'_>,
     area: Rect,
 ) {
-    let block = Block::default().title(" Logs ").borders(Borders::ALL);
+    let theme = Theme::default();
+    let block = centered_block("Logs", &theme);
 
     let items: Vec<ListItem> = state
         .notification_log
         .iter()
         .map(|n| {
             let (prefix, color) = match n.notification_type {
-                NotificationType::Info => ("[INFO] ", Color::Cyan),
-                NotificationType::Success => ("[OK]   ", Color::Green),
-                NotificationType::Error => ("[ERR]  ", Color::Red),
+                NotificationType::Info => ("[INFO] ", theme.primary),
+                NotificationType::Success => ("[OK]   ", theme.success),
+                NotificationType::Error => ("[ERR]  ", theme.error),
             };
             let line = Line::from(vec![
                 Span::styled(prefix, Style::default().fg(color)),
@@ -36,7 +38,7 @@ pub fn render_logs_view(
     if items.is_empty() {
         let empty_list = List::new(vec![ListItem::new("No logs yet")])
             .block(block)
-            .style(Style::default().fg(Color::DarkGray));
+            .style(Style::default().fg(theme.secondary));
         f.render_widget(empty_list, area);
         return;
     }

@@ -1,19 +1,25 @@
+use crate::ui::components::{centered_block, styled_list_item};
+use crate::ui::styles::Theme;
 use ratatui::{
     layout::Rect,
-    style::{Color, Modifier, Style},
-    text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem},
+    style::Style,
+    widgets::{List, ListItem},
     Frame,
 };
 
 use crate::AppState;
 
 pub fn render_settings_view(state: &mut AppState, f: &mut Frame<'_>, area: Rect) {
-    let block = Block::default().title(" Settings ").borders(Borders::ALL);
+    let theme = if state.is_dark_theme {
+        Theme::dark()
+    } else {
+        Theme::light()
+    };
+    let block = centered_block("Settings", &theme);
 
     let proton_settings = state.get_proton_settings();
 
-    let settings = match proton_settings {
+    let settings: Vec<String> = match proton_settings {
         Some(ps) => {
             let killswitch = match ps.killswitch {
                 Some(0) => "off",
@@ -65,34 +71,27 @@ pub fn render_settings_view(state: &mut AppState, f: &mut Frame<'_>, area: Rect)
                 format!("Port Forwarding: {}", port_forwarding),
             ]
         }
-        None => vec!["No Proton settings found".to_string()],
+        None => vec![],
     };
 
-    let items: Vec<ListItem> = settings
+    let mut all_settings = settings;
+    all_settings.push(format!(
+        "Theme: {}",
+        if state.is_dark_theme { "Dark" } else { "Light" }
+    ));
+
+    let items: Vec<ListItem> = all_settings
         .iter()
         .enumerate()
         .map(|(idx, s)| {
             let is_selected = state.settings_selected == Some(idx);
-            let line = if is_selected {
-                Line::from(vec![
-                    Span::raw("> "),
-                    Span::styled(
-                        s.as_str(),
-                        Style::default()
-                            .fg(Color::Cyan)
-                            .add_modifier(Modifier::BOLD),
-                    ),
-                ])
-            } else {
-                Line::from(vec![Span::raw("  "), Span::raw(s.as_str())])
-            };
-            ListItem::new(line)
+            styled_list_item(s, is_selected, &theme)
         })
         .collect();
 
     let list = List::new(items)
         .block(block)
-        .style(Style::default().fg(Color::White));
+        .style(Style::default().fg(theme.foreground));
 
     f.render_widget(list, area);
 }

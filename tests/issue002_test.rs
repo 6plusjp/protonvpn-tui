@@ -106,6 +106,7 @@ mod app_view {
 }
 
 mod server {
+    use protonvpn_tui::vpn::City as VpnCity;
     use protonvpn_tui::vpn::Server;
 
     #[test]
@@ -113,7 +114,10 @@ mod server {
         let server = Server {
             id: "JP".to_string(),
             country: "Japan".to_string(),
-            cities: vec!["Tokyo".to_string(), "Osaka".to_string()],
+            cities: vec![
+                VpnCity::new("Tokyo".to_string()),
+                VpnCity::new("Osaka".to_string()),
+            ],
         };
         assert_eq!(server.id, "JP");
         assert_eq!(server.country, "Japan");
@@ -135,7 +139,7 @@ mod server {
         let original = Server {
             id: "JP".to_string(),
             country: "Japan".to_string(),
-            cities: vec!["Tokyo".to_string()],
+            cities: vec![VpnCity::new("Tokyo".to_string())],
         };
         let cloned = original.clone();
         assert_eq!(original.id, cloned.id);
@@ -148,7 +152,7 @@ mod server {
         let server = Server {
             id: "JP".to_string(),
             country: "Japan".to_string(),
-            cities: vec!["Tokyo".to_string()],
+            cities: vec![VpnCity::new("Tokyo".to_string())],
         };
         let json = serde_json::to_string(&server).unwrap();
         assert!(json.contains("JP"));
@@ -158,7 +162,7 @@ mod server {
 
     #[test]
     fn test_server_deserialize() {
-        let json = r#"{"id":"US","country":"United States","cities":["New York","Los Angeles"]}"#;
+        let json = r#"{"id":"US","country":"United States","cities":[{"name":"New York","features":[]},{"name":"Los Angeles","features":[]}]}"#;
         let server: Server = serde_json::from_str(json).unwrap();
         assert_eq!(server.id, "US");
         assert_eq!(server.country, "United States");
@@ -171,10 +175,10 @@ mod server {
             id: "JP".to_string(),
             country: "Japan".to_string(),
             cities: vec![
-                "Tokyo".to_string(),
-                "Osaka".to_string(),
-                "Nagoya".to_string(),
-                "Sapporo".to_string(),
+                VpnCity::new("Tokyo".to_string()),
+                VpnCity::new("Osaka".to_string()),
+                VpnCity::new("Nagoya".to_string()),
+                VpnCity::new("Sapporo".to_string()),
             ],
         };
         assert_eq!(server.cities.len(), 4);

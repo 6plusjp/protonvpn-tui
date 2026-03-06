@@ -1,6 +1,6 @@
 //! TUI styles and themes
 
-use crossterm::style::Color;
+use ratatui::style::Color;
 
 /// Application color scheme
 #[derive(Debug, Clone)]
@@ -13,6 +13,11 @@ pub struct Theme {
     pub error: Color,
     pub success: Color,
     pub warning: Color,
+    // New fields for unified styling
+    pub block_border: Color,
+    pub selection: Color,
+    pub connected: Color,
+    pub key_hint: Color,
 }
 
 impl Default for Theme {
@@ -32,6 +37,10 @@ impl Theme {
             error: Color::Red,
             success: Color::Green,
             warning: Color::Yellow,
+            block_border: Color::Cyan,
+            selection: Color::Cyan,
+            connected: Color::Green,
+            key_hint: Color::Yellow,
         }
     }
 
@@ -45,6 +54,10 @@ impl Theme {
             error: Color::Red,
             success: Color::Green,
             warning: Color::Yellow,
+            block_border: Color::Blue,
+            selection: Color::Blue,
+            connected: Color::Green,
+            key_hint: Color::Yellow,
         }
     }
 }

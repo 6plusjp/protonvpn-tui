@@ -49,7 +49,12 @@ pub fn render_servers_view(
             let cities_str = if server.cities.is_empty() {
                 "-".to_string()
             } else {
-                server.cities.join(", ")
+                server
+                    .cities
+                    .iter()
+                    .map(|c| c.name.clone())
+                    .collect::<Vec<_>>()
+                    .join(", ")
             };
             let row = format!(
                 "{:<4} {:<width$} {}",

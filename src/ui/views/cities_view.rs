@@ -14,34 +14,49 @@ pub fn render_cities_view(
     f: &mut Frame<'_>,
     area: Rect,
 ) {
-    let selected_country = state.selected_server.and_then(|idx| {
-        let servers = state.filtered_servers();
-        servers.get(idx).map(|s| (s.id.clone(), s.country.clone()))
-    });
-
-    let title = match &selected_country {
-        Some((_id, country)) => format!(" {} - Cities ", country),
+    let title = match &state.current_country_code {
+        Some(code) => format!(" {} - Cities ", code),
         None => " Cities ".to_string(),
     };
 
     let block = Block::default().title(title).borders(Borders::ALL);
 
-    let cities: Vec<(String, String)> = vec![
-        ("Tokyo".to_string(), "P2P, Secure".to_string()),
-        ("Osaka".to_string(), "P2P".to_string()),
-    ];
+    let cities: Vec<(String, String)> = state
+        .current_cities
+        .iter()
+        .map(|city| {
+            let features = if city.features.is_empty() {
+                String::new()
+            } else {
+                city.features.join(", ")
+            };
+            (city.name.clone(), features)
+        })
+        .collect();
 
-    if let Some(idx) = state.selected_server {
-        list_state.select(Some(idx));
+    if cities.is_empty() {
+        let items = vec![ListItem::new(Line::from("No cities available"))];
+        let list = List::new(items)
+            .block(block)
+            .style(Style::default().fg(Color::Gray));
+        f.render_stateful_widget(list, area, list_state);
+        return;
     }
+
+    let selected_idx = state.selected_server.unwrap_or(0);
+    list_state.select(Some(selected_idx.min(cities.len() - 1)));
 
     let items: Vec<ListItem> = cities
         .iter()
         .enumerate()
-        .map(|(idx, (city, features))| {
+        .map(|(idx, (city_name, features))| {
             let is_selected = state.selected_server == Some(idx);
 
-            let row = format!("{:<15} {}", city, features);
+            let row = if features.is_empty() {
+                city_name.clone()
+            } else {
+                format!("{:<15} {}", city_name, features)
+            };
             let line = if is_selected {
                 Line::from(vec![
                     Span::raw("> "),

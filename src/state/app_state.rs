@@ -216,10 +216,6 @@ impl AppState {
         self.proton_settings_cache.as_ref()
     }
 
-    pub fn get_settings_count(&self) -> usize {
-        8
-    }
-
     pub fn switch_view(&mut self) {
         self.current_view = self.current_view.next();
     }
@@ -691,27 +687,63 @@ impl AppState {
         }
     }
 
-    pub fn settings_select_next(&mut self, count: usize) {
+    pub fn settings_select_next(&mut self) {
+        let count = self
+            .get_proton_settings()
+            .map(|ps| ps.settings_count())
+            .unwrap_or(0)
+            .max(7)
+            + 1;
         self.settings_selected.move_next(count);
     }
 
-    pub fn settings_select_prev(&mut self, count: usize) {
+    pub fn settings_select_prev(&mut self) {
+        let count = self
+            .get_proton_settings()
+            .map(|ps| ps.settings_count())
+            .unwrap_or(0)
+            .max(7)
+            + 1;
         self.settings_selected.move_prev(count);
     }
 
-    pub fn settings_select_first(&mut self, count: usize) {
+    pub fn settings_select_first(&mut self) {
+        let count = self
+            .get_proton_settings()
+            .map(|ps| ps.settings_count())
+            .unwrap_or(0)
+            .max(7)
+            + 1;
         self.settings_selected.move_first(count);
     }
 
-    pub fn settings_select_last(&mut self, count: usize) {
+    pub fn settings_select_last(&mut self) {
+        let count = self
+            .get_proton_settings()
+            .map(|ps| ps.settings_count())
+            .unwrap_or(0)
+            .max(7)
+            + 1;
         self.settings_selected.move_last(count);
     }
 
-    pub fn settings_select_page_down(&mut self, count: usize) {
+    pub fn settings_select_page_down(&mut self) {
+        let count = self
+            .get_proton_settings()
+            .map(|ps| ps.settings_count())
+            .unwrap_or(0)
+            .max(7)
+            + 1;
         self.settings_selected.move_page_down(count);
     }
 
-    pub fn settings_select_page_up(&mut self, count: usize) {
+    pub fn settings_select_page_up(&mut self) {
+        let count = self
+            .get_proton_settings()
+            .map(|ps| ps.settings_count())
+            .unwrap_or(0)
+            .max(7)
+            + 1;
         self.settings_selected.move_page_up(count);
     }
 

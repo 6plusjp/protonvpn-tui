@@ -15,12 +15,32 @@ pub struct ServerFeatures {
     pub streaming: bool,
 }
 
+/// City information with features
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct City {
+    pub name: String,
+    pub features: Vec<String>, // e.g., ["P2P", "Secure"]
+}
+
+impl City {
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            features: Vec::new(),
+        }
+    }
+
+    pub fn with_features(name: String, features: Vec<String>) -> Self {
+        Self { name, features }
+    }
+}
+
 /// VPN server information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Server {
-    pub id: String,          // Country code (e.g., "JP", "US")
-    pub country: String,     // Full country name
-    pub cities: Vec<String>, // City names (e.g., ["Tokyo", "Osaka"])
+    pub id: String,        // Country code (e.g., "JP", "US")
+    pub country: String,   // Full country name
+    pub cities: Vec<City>, // City information with features
 }
 
 /// Connection statistics

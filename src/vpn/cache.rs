@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use super::types::City;
+
 /// Cached server data
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ServerCache {
@@ -15,8 +17,8 @@ pub struct ServerCache {
     pub last_updated: Option<DateTime<Utc>>,
     /// Country code -> Country name
     pub countries: HashMap<String, String>,
-    /// Country code -> Cities
-    pub cities: HashMap<String, Vec<String>>,
+    /// Country code -> Cities with features
+    pub cities: HashMap<String, Vec<City>>,
     /// Connection status (tracked locally since no `protonvpn status` exists)
     pub connected_server: Option<String>,
     pub connected_ip: Option<String>,

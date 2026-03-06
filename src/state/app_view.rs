@@ -12,6 +12,8 @@ pub enum AppView {
     Stats,
     /// Settings view
     Settings,
+    /// Logs view (notification history)
+    Logs,
     /// Help view (only accessible via ?)
     Help,
     /// City list for selected country
@@ -24,7 +26,8 @@ impl AppView {
         match self {
             Self::Servers => Self::Stats,
             Self::Stats => Self::Settings,
-            Self::Settings => Self::Servers,
+            Self::Settings => Self::Logs,
+            Self::Logs => Self::Servers,
             Self::Help => Self::Servers,
             Self::Cities => Self::Servers,
         }
@@ -33,9 +36,10 @@ impl AppView {
     /// Get previous view in cycle (excludes Help)
     pub fn prev(&self) -> Self {
         match self {
-            Self::Servers => Self::Settings,
+            Self::Servers => Self::Logs,
             Self::Stats => Self::Servers,
             Self::Settings => Self::Stats,
+            Self::Logs => Self::Settings,
             Self::Help => Self::Servers,
             Self::Cities => Self::Servers,
         }

@@ -539,6 +539,9 @@ impl TuiApp {
             AppView::Settings => {
                 views::settings_view::render_settings_view(&mut self.state, f, area)
             }
+            AppView::Logs => {
+                views::logs_view::render_logs_view(&self.state, &mut self.list_state, f, area)
+            }
             AppView::Help => views::help_view::render_help_view(f, area),
             AppView::Cities => views::cities_view::render_cities_view(
                 &mut self.state,
@@ -593,6 +596,11 @@ impl TuiApp {
             ],
             AppView::Stats => vec![Span::raw("statistics")],
             AppView::Settings => vec![Span::raw("settings")],
+            AppView::Logs => vec![
+                Span::raw("["),
+                Span::styled("j/k", Style::default().fg(Color::Yellow)),
+                Span::raw("] scroll"),
+            ],
             AppView::Help => vec![Span::raw("Press Tab or q to return")],
         };
 

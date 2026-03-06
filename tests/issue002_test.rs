@@ -38,7 +38,7 @@ mod app_view {
     #[test]
     fn test_app_view_next_from_settings() {
         let view = AppView::Settings;
-        assert_eq!(view.next(), AppView::Servers);
+        assert_eq!(view.next(), AppView::Logs);
     }
 
     #[test]
@@ -50,6 +50,18 @@ mod app_view {
     #[test]
     fn test_app_view_prev_from_servers() {
         let view = AppView::Servers;
+        assert_eq!(view.prev(), AppView::Logs);
+    }
+
+    #[test]
+    fn test_app_view_next_from_logs() {
+        let view = AppView::Logs;
+        assert_eq!(view.next(), AppView::Servers);
+    }
+
+    #[test]
+    fn test_app_view_prev_from_logs() {
+        let view = AppView::Logs;
         assert_eq!(view.prev(), AppView::Settings);
     }
 

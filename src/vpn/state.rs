@@ -3,7 +3,7 @@ use super::types::{City, Server};
 use crate::error::AppResult;
 
 /// VPN state manager
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct VpnState {
     client: VpnClient,
 }
@@ -41,41 +41,39 @@ impl VpnState {
         self.client.matches_ip(ip)
     }
 
-    pub fn connect(&mut self, server: &str) -> AppResult<(String, Option<String>)> {
+    pub fn connect(&self, server: &str) -> AppResult<(String, Option<String>)> {
         let (server_id, ip) = self.client.connect(server)?;
         Ok((server_id, ip))
     }
 
-    pub fn connect_random(&mut self) -> AppResult<(String, Option<String>)> {
+    pub fn connect_random(&self) -> AppResult<(String, Option<String>)> {
         let (server_id, ip) = self.client.connect_random()?;
         Ok((server_id, ip))
     }
 
-    pub fn connect_city(&mut self, city: &str) -> AppResult<(String, Option<String>)> {
+    pub fn connect_city(&self, city: &str) -> AppResult<(String, Option<String>)> {
         let (server_id, ip) = self.client.connect_city(city)?;
         Ok((server_id, ip))
     }
 
-    pub fn list_cities_with_features(&mut self, country_code: &str) -> AppResult<Vec<City>> {
+    pub fn list_cities_with_features(&self, country_code: &str) -> AppResult<Vec<City>> {
         self.client.list_cities_with_features(country_code)
     }
 
-    pub fn disconnect(&mut self) -> AppResult<()> {
+    pub fn disconnect(&self) -> AppResult<()> {
         self.client.disconnect()?;
         Ok(())
     }
 
-    pub fn list_servers(&mut self) -> AppResult<Vec<Server>> {
+    pub fn list_servers(&self) -> AppResult<Vec<Server>> {
         self.client.list_servers()
     }
 
-    /// Get cached servers only (fast, no CLI call)
     pub fn get_servers(&self) -> Vec<Server> {
         self.client.get_servers()
     }
 
-    /// Get cached servers, refresh from CLI if empty
-    pub fn get_servers_or_refresh(&mut self) -> AppResult<Vec<Server>> {
+    pub fn get_servers_or_refresh(&self) -> AppResult<Vec<Server>> {
         let cached = self.client.get_servers();
         if cached.is_empty() {
             return self.refresh_servers();
@@ -83,8 +81,7 @@ impl VpnState {
         Ok(cached)
     }
 
-    /// Refresh servers from CLI
-    pub fn refresh_servers(&mut self) -> AppResult<Vec<Server>> {
+    pub fn refresh_servers(&self) -> AppResult<Vec<Server>> {
         self.client.refresh_servers()
     }
 

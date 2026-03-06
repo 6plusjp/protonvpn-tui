@@ -11,6 +11,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::Mutex;
 
 use chrono::Utc;
 
@@ -20,13 +21,11 @@ use crate::constants::vpn::{DISCONNECT_RETRY_COUNT, DISCONNECT_RETRY_DELAY_MS};
 use crate::error::{AppError, AppResult};
 
 /// VPN client for interacting with protonvpn CLI
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct VpnClient {
     /// Path to protonvpn CLI (default: protonvpn)
     cli_path: String,
-    /// Server data cache
-    cache: ServerCache,
-    /// Cache file path
+    cache: Mutex<ServerCache>,
     cache_path: PathBuf,
 }
 
@@ -47,7 +46,7 @@ impl VpnClient {
 
         Self {
             cli_path: "protonvpn".to_string(),
-            cache,
+            cache: Mutex::new(cache),
             cache_path,
         }
     }
@@ -58,15 +57,26 @@ impl VpnClient {
         client
     }
 
-    /// Save cache to disk
-    fn save_cache(&self) -> AppResult<()> {
-        self.cache.save(self.cache_path.clone())?;
-        Ok(())
+    fn with_cache<F, T>(&self, f: F) -> AppResult<T>
+    where
+        F: FnOnce(&mut ServerCache) -> T,
+    {
+        let mut cache = self
+            .cache
+            .lock()
+            .map_err(|e| AppError::ConfigError(format!("Failed to lock cache: {}", e)))?;
+        Ok(f(&mut cache))
     }
 
-    /// Connect to a server by country code
-    pub fn connect(&mut self, target: &str) -> AppResult<(String, Option<String>)> {
-        // Use new CLI syntax: protonvpn connect --country <country_code>
+    fn save_cache(&self) -> AppResult<()> {
+        let cache = self
+            .cache
+            .lock()
+            .map_err(|e| AppError::ConfigError(format!("Failed to lock cache: {}", e)))?;
+        cache.save(self.cache_path.clone())
+    }
+
+    pub fn connect(&self, target: &str) -> AppResult<(String, Option<String>)> {
         let output = Command::new(&self.cli_path)
             .args(["connect", "--country", target])
             .output()
@@ -81,19 +91,18 @@ impl VpnClient {
         let combined = format!("{} {}", stdout, stderr);
         let (server_id, ip) = self.parse_connect_output(&combined);
 
-        // Update local connection status with actual server info
         let final_server = if !server_id.is_empty() {
             server_id
         } else {
             target.to_string()
         };
-        self.cache.set_connected(final_server.clone(), ip.clone());
+        self.with_cache(|c| c.set_connected(final_server.clone(), ip.clone()))?;
         self.save_cache()?;
 
         Ok((final_server, ip))
     }
 
-    pub fn connect_random(&mut self) -> AppResult<(String, Option<String>)> {
+    pub fn connect_random(&self) -> AppResult<(String, Option<String>)> {
         let output = Command::new(&self.cli_path)
             .args(["connect", "--random"])
             .output()
@@ -113,14 +122,13 @@ impl VpnClient {
         } else {
             "Random Server".to_string()
         };
-        self.cache.set_connected(final_server.clone(), ip.clone());
+        self.with_cache(|c| c.set_connected(final_server.clone(), ip.clone()))?;
         self.save_cache()?;
 
         Ok((final_server, ip))
     }
 
-    /// Connect to a specific city
-    pub fn connect_city(&mut self, city: &str) -> AppResult<(String, Option<String>)> {
+    pub fn connect_city(&self, city: &str) -> AppResult<(String, Option<String>)> {
         let output = Command::new(&self.cli_path)
             .args(["connect", "--city", city])
             .output()
@@ -140,7 +148,7 @@ impl VpnClient {
         } else {
             city.to_string()
         };
-        self.cache.set_connected(final_server.clone(), ip.clone());
+        self.with_cache(|c| c.set_connected(final_server.clone(), ip.clone()))?;
         self.save_cache()?;
 
         Ok((final_server, ip))
@@ -204,13 +212,12 @@ impl VpnClient {
         (server_id, ip)
     }
 
-    /// Disconnect from VPN
-    pub fn disconnect(&mut self) -> AppResult<()> {
+    pub fn disconnect(&self) -> AppResult<()> {
         let _ = Command::new(&self.cli_path).args(["disconnect"]).output();
 
         for _ in 0..DISCONNECT_RETRY_COUNT {
             if !self.is_connected() {
-                self.cache.set_disconnected();
+                self.with_cache(|c| c.set_disconnected())?;
                 self.save_cache()?;
                 return Ok(());
             }
@@ -238,41 +245,39 @@ impl VpnClient {
         }
     }
 
-    /// Get connected server (from local cache)
     pub fn get_connected_server(&self) -> Option<String> {
-        self.cache.connected_server.clone()
+        self.with_cache(|c| c.connected_server.clone())
+            .ok()
+            .flatten()
     }
 
-    /// Get cached IP address from connection (not proton0)
     pub fn get_vpn_ip(&self) -> Option<String> {
-        self.cache.connected_ip.clone()
+        self.with_cache(|c| c.connected_ip.clone()).ok().flatten()
     }
 
-    /// Check if IP matches cached connection
     pub fn matches_ip(&self, ip: &str) -> bool {
-        self.cache.matches_ip(ip)
+        self.with_cache(|c| c.matches_ip(ip)).ok().unwrap_or(false)
     }
 
-    /// Get cached countries, refresh from CLI if empty
-    pub fn get_countries(&mut self) -> AppResult<HashMap<String, String>> {
-        if self.cache.countries.is_empty() {
+    pub fn get_countries(&self) -> AppResult<HashMap<String, String>> {
+        let is_empty = self.with_cache(|c| c.countries.is_empty())?;
+        if is_empty {
             return self.refresh_countries();
         }
-        Ok(self.cache.countries.clone())
+        self.with_cache(|c| c.countries.clone())
     }
 
-    /// List countries - returns cached if available, otherwise fetches from CLI
-    pub fn list_countries(&mut self) -> AppResult<HashMap<String, String>> {
-        // Return cached if valid
-        if !self.cache.is_stale() && !self.cache.countries.is_empty() {
-            return Ok(self.cache.countries.clone());
+    pub fn list_countries(&self) -> AppResult<HashMap<String, String>> {
+        let is_stale = self.with_cache(|c| c.is_stale())?;
+        let is_empty = self.with_cache(|c| c.countries.is_empty())?;
+        if !is_stale && !is_empty {
+            return self.with_cache(|c| c.countries.clone());
         }
 
         self.refresh_countries()
     }
 
-    /// Refresh countries from CLI and update cache
-    pub fn refresh_countries(&mut self) -> AppResult<HashMap<String, String>> {
+    pub fn refresh_countries(&self) -> AppResult<HashMap<String, String>> {
         let output = Command::new(&self.cli_path)
             .args(["countries"])
             .output()
@@ -283,9 +288,10 @@ impl VpnClient {
         let stdout = String::from_utf8_lossy(&output.stdout);
         let countries = self.parse_countries(&stdout);
 
-        // Update cache
-        self.cache.countries = countries.clone();
-        self.cache.last_updated = Some(Utc::now());
+        self.with_cache(|c| {
+            c.countries = countries.clone();
+            c.last_updated = Some(Utc::now());
+        })?;
         self.save_cache()?;
 
         Ok(countries)
@@ -325,16 +331,14 @@ impl VpnClient {
         countries
     }
 
-    /// List cities in a country (returns city names only)
-    pub fn list_cities(&mut self, country_code: &str) -> AppResult<Vec<String>> {
+    pub fn list_cities(&self, country_code: &str) -> AppResult<Vec<String>> {
         let cities = self.list_cities_with_features(country_code)?;
         Ok(cities.into_iter().map(|c| c.name).collect())
     }
 
-    /// List cities in a country with features
-    pub fn list_cities_with_features(&mut self, country_code: &str) -> AppResult<Vec<City>> {
-        if let Some(cities) = self.cache.cities.get(country_code) {
-            return Ok(cities.clone());
+    pub fn list_cities_with_features(&self, country_code: &str) -> AppResult<Vec<City>> {
+        if let Ok(Some(cities)) = self.with_cache(|c| c.cities.get(country_code).cloned()) {
+            return Ok(cities);
         }
 
         let output = Command::new(&self.cli_path)
@@ -347,9 +351,9 @@ impl VpnClient {
         let stdout = String::from_utf8_lossy(&output.stdout);
         let cities = self.parse_cities_with_features(&stdout);
 
-        self.cache
-            .cities
-            .insert(country_code.to_string(), cities.clone());
+        self.with_cache(|c| {
+            c.cities.insert(country_code.to_string(), cities.clone());
+        })?;
         self.save_cache()?;
 
         Ok(cities)
@@ -397,35 +401,35 @@ impl VpnClient {
         cities
     }
 
-    /// List available servers (from countries)
-    pub fn list_servers(&mut self) -> AppResult<Vec<Server>> {
-        // Return cached if valid
-        if !self.cache.is_stale() && !self.cache.countries.is_empty() {
-            return Ok(self.countries_to_servers(&self.cache.countries));
+    pub fn list_servers(&self) -> AppResult<Vec<Server>> {
+        let is_stale = self.with_cache(|c| c.is_stale())?;
+        let is_empty = self.with_cache(|c| c.countries.is_empty())?;
+        if !is_stale && !is_empty {
+            let countries = self.with_cache(|c| c.countries.clone())?;
+            return Ok(self.countries_to_servers(&countries));
         }
 
         self.refresh_servers()
     }
 
-    /// Get cached servers (fast, no CLI call)
     pub fn get_servers(&self) -> Vec<Server> {
-        self.countries_to_servers(&self.cache.countries)
+        let countries = self.with_cache(|c| c.countries.clone()).unwrap_or_default();
+        self.countries_to_servers(&countries)
     }
 
-    /// Refresh servers from CLI
-    pub fn refresh_servers(&mut self) -> AppResult<Vec<Server>> {
+    pub fn refresh_servers(&self) -> AppResult<Vec<Server>> {
         let countries = self.refresh_countries()?;
         Ok(self.countries_to_servers(&countries))
     }
 
-    /// Convert countries hashmap to server list
     fn countries_to_servers(&self, countries: &HashMap<String, String>) -> Vec<Server> {
+        let cities_map = self.with_cache(|c| c.cities.clone()).unwrap_or_default();
         let mut servers: Vec<Server> = countries
             .iter()
             .map(|(code, name)| Server {
                 id: code.clone(),
                 country: name.clone(),
-                cities: self.cache.cities.get(code).cloned().unwrap_or_default(),
+                cities: cities_map.get(code).cloned().unwrap_or_default(),
             })
             .collect();
 
@@ -472,9 +476,8 @@ impl VpnClient {
         ]
     }
 
-    /// Get connection status (from local cache)
     pub fn status(&self) -> String {
-        if let Some(server) = &self.cache.connected_server {
+        if let Ok(Some(server)) = self.with_cache(|c| c.connected_server.clone()) {
             format!("Connected to: {}", server)
         } else {
             "Disconnected".to_string()

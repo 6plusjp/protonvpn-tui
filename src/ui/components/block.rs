@@ -10,7 +10,3 @@ pub fn centered_block(title: &str, theme: &Theme) -> Block<'static> {
         .borders(Borders::ALL)
         .style(Style::default().fg(theme.block_border))
 }
-
-pub fn block_with_title(title: &str, theme: &Theme) -> Block<'static> {
-    centered_block(title, theme)
-}

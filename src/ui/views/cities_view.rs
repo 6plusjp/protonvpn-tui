@@ -1,4 +1,4 @@
-use crate::ui::components::{block_with_title, styled_list_item};
+use crate::ui::components::{centered_block, styled_list_item};
 use crate::ui::styles::Theme;
 use ratatui::{
     layout::Rect,
@@ -26,7 +26,7 @@ pub fn render_cities_view(
         None => "Cities".to_string(),
     };
 
-    let block = block_with_title(&title, &theme);
+    let block = centered_block(&title, &theme);
 
     let cities: Vec<(String, String)> = state
         .current_cities

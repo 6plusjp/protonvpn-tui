@@ -109,3 +109,15 @@ impl VpnState {
         self.client.set_netshield(current, next)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    impl VpnState {
+        pub fn with_test_servers(servers: Vec<Server>) -> Self {
+            let client = VpnClient::with_test_servers(servers);
+            Self { client }
+        }
+    }
+}

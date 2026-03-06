@@ -517,6 +517,27 @@ impl VpnClient {
         };
         self.config_set("netshield", new_value)
     }
+
+    #[cfg(test)]
+    pub fn with_test_servers(servers: Vec<Server>) -> Self {
+        use std::collections::HashMap;
+
+        let mut countries: HashMap<String, String> = HashMap::new();
+        let mut cities_map: HashMap<String, Vec<City>> = HashMap::new();
+
+        for server in &servers {
+            countries.insert(server.id.clone(), server.country.clone());
+            if !server.cities.is_empty() {
+                cities_map.insert(server.id.clone(), server.cities.clone());
+            }
+        }
+
+        let client = Self::new();
+        client.cache.lock().unwrap().countries = countries;
+        client.cache.lock().unwrap().cities = cities_map;
+
+        client
+    }
 }
 
 #[cfg(test)]

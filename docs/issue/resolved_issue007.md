@@ -14,27 +14,20 @@ Create a UI components layer to unify design and improve code reusability across
    - `components/block.rs` - `centered_block()` function
    - `components/list.rs` - `styled_list_item()`, `connected_list_item()` functions
 
-### ⚠️ BUG: Theme Switching Broken
+### ✅ FIXED: Theme Switching Bug (2025-03-06)
 
-**Root Cause**: Only `settings_view.rs` checks `state.is_dark_theme`. All other views use `Theme::default()` which always returns dark theme.
+All views now check `state.is_dark_theme` to switch between dark/light themes:
 
-| File | Current Theme Usage | Issue |
-|------|---------------------|-------|
-| `settings_view.rs` | `if state.is_dark_theme { Theme::dark() } else { Theme::light() }` | ✅ Works correctly |
-| `servers_view.rs` | `Theme::default()` | ❌ Always dark |
-| `cities_view.rs` | `Theme::default()` | ❌ Always dark |
-| `logs_view.rs` | `Theme::default()` | ❌ Always dark |
-| `stats_view.rs` | `Theme::default()` | ❌ Always dark |
-| `help_view.rs` | `Theme::default()` | ❌ Always dark |
-
-**Fix Required**: All views must use the same pattern as `settings_view.rs`:
-```rust
-let theme = if state.is_dark_theme {
-    Theme::dark()
-} else {
-    Theme::light()
-};
-```
+| File | Theme Usage | Status |
+|------|-------------|--------|
+| `settings_view.rs` | `if state.is_dark_theme` | ✅ |
+| `servers_view.rs` | `if state.is_dark_theme` | ✅ Fixed |
+| `cities_view.rs` | `if state.is_dark_theme` | ✅ Fixed |
+| `logs_view.rs` | `if state.is_dark_theme` | ✅ Fixed |
+| `stats_view.rs` | `if state.is_dark_theme` | ✅ Fixed |
+| `help_view.rs` | `if state.is_dark_theme` | ✅ Fixed |
+| `app.rs` (header/footer/filter/popup) | `if state.is_dark_theme` | ✅ Fixed |
+| `app.rs` (background) | Applies `theme.background` to entire terminal | ✅ Fixed |
 
 ## Problem Context (Original Analysis)
 
@@ -231,29 +224,21 @@ Refactor each view to use new components:
 6. `help_view.rs` - Get key/action colors from theme
 7. `app.rs` - header/footer/notification popup
 
-**IMPORTANT**: All views must check `state.is_dark_theme` to switch between themes:
-```rust
-let theme = if state.is_dark_theme {
-    Theme::dark()
-} else {
-    Theme::light()
-};
-```
-
 ## Acceptance Criteria
 
 - [x] Add new fields to `Theme` struct: `block_border`, `selection`, `connected`, `key_hint`
 - [x] Create `components/block.rs` - unified block creation function
 - [x] Create `components/list.rs` - unified list item creation function
-- [ ] Use Theme/Component in all views
+- [x] Use Theme/Component in all views
 - [x] Selection uses `> ` prefix + primary color + BOLD
 - [x] Connected uses `* ` prefix + success color + BOLD
 - [x] Footer key hints use `key_hint` color
 - [x] Each view's block title follows unified format `" <ViewName> "`
-- [ ] **FIX**: All views must check `state.is_dark_theme` for theme switching
+- [x] All views check `state.is_dark_theme` for theme switching
+- [x] Terminal background applies theme background color
 
 ## Notes
 
-- Maintain existing color scheme while unifying access through Theme struct
-- Dark theme only implementation is acceptable at this stage (light theme not required)
-- Only styles should change, existing view logic remains unchanged
+- Theme switching is now fully functional across all views
+- Light theme now properly shows white background on entire terminal
+- The `app.rs` render function applies background color first, then renders all other widgets on top

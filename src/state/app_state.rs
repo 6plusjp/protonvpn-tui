@@ -133,10 +133,11 @@ pub struct AppState {
     pub current_view: crate::state::AppView,
     pub selected_server: Option<usize>,
     pub settings_selected: Option<usize>,
-    pub(crate) search_query: String,
+    pub search_query: String,
     pub filter: ServerFilter,
     pub sort: ServerSort,
     pub sort_direction: SortDirection,
+    pub is_dark_theme: bool,
 
     // === Notification ===
     pub notification: Option<Notification>,
@@ -161,6 +162,7 @@ impl AppState {
             filter: ServerFilter::default(),
             sort: ServerSort::default(),
             sort_direction: SortDirection::default(),
+            is_dark_theme: true,
             servers: Vec::new(),
             current_cities: Vec::new(),
             current_country_code: None,
@@ -202,9 +204,7 @@ impl AppState {
     }
 
     pub fn get_settings_count(&self) -> usize {
-        self.get_proton_settings()
-            .map(|ps| ps.settings_count())
-            .unwrap_or(7) // Default to 7 settings even if not loaded
+        8
     }
 
     pub fn switch_view(&mut self) {
@@ -725,7 +725,7 @@ impl AppState {
                 let current = ps
                     .and_then(|p| p.features.as_ref())
                     .and_then(|f| f.netshield);
-                let next = 0; // Not used, computed in client
+                let next = 0;
                 self.vpn_state.set_netshield(current, next)
             }
             4 => {
@@ -745,6 +745,17 @@ impl AppState {
                     .and_then(|p| p.features.as_ref())
                     .and_then(|f| f.port_forwarding);
                 self.vpn_state.toggle_port_forwarding(current)
+            }
+            7 => {
+                self.is_dark_theme = !self.is_dark_theme;
+                self.show_notification(
+                    format!(
+                        "Theme changed to {}",
+                        if self.is_dark_theme { "Dark" } else { "Light" }
+                    ),
+                    NotificationType::Info,
+                );
+                return;
             }
             _ => {
                 self.show_notification(

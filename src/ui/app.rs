@@ -2,7 +2,7 @@ use crate::constants::ui::{
     NOTIFICATION_MSG_MAX_LEN, NOTIFICATION_TIMER_DEFAULT, NOTIFICATION_TIMER_SHORT,
     POPUP_WIDTH_MAX, POPUP_WIDTH_MIN,
 };
-use crate::state::{AppState, AppView};
+use crate::state::{AppState, AppView, InputMode};
 use crate::ui::styles::Theme;
 use crate::ui::views;
 use crossterm::{
@@ -100,7 +100,7 @@ impl TuiApp {
     }
 
     fn handle_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
-        if self.filter_mode {
+        if self.filter_mode || self.state.input_mode == InputMode::DnsInput {
             return self.handle_filter_input(key_event);
         }
 
@@ -109,17 +109,6 @@ impl TuiApp {
             KeyCode::Tab => Some(AppAction::SwitchView),
             KeyCode::Char('c') => {
                 match self.state.current_view {
-                    AppView::Settings => {
-                        if let Some(idx) = self.state.settings_selected {
-                            self.state.toggle_settings(idx);
-                            self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
-                        } else {
-                            self.state.show_notification(
-                                "No setting selected".to_string(),
-                                crate::state::NotificationType::Info,
-                            );
-                        }
-                    }
                     AppView::Cities => {
                         if let Some(idx) = self.state.selected_server {
                             let city_name =
@@ -134,6 +123,23 @@ impl TuiApp {
                         self.state.connect();
                         self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
                     }
+                }
+                None
+            }
+            KeyCode::Char(' ') => {
+                match self.state.current_view {
+                    AppView::Settings => {
+                        if let Some(idx) = self.state.settings_selected {
+                            self.state.toggle_settings_off(idx);
+                            self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                        } else {
+                            self.state.show_notification(
+                                "No setting selected".to_string(),
+                                crate::state::NotificationType::Info,
+                            );
+                        }
+                    }
+                    _ => {}
                 }
                 None
             }
@@ -313,27 +319,51 @@ impl TuiApp {
     }
 
     fn handle_filter_input(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
+        let is_dns_input = self.state.input_mode == InputMode::DnsInput;
+
         match key_event.code {
             KeyCode::Esc => {
                 self.filter_mode = false;
                 self.filter_input.clear();
                 self.state.set_search_query(String::new());
+                if is_dns_input {
+                    self.state.input_mode = InputMode::Normal;
+                    self.state.dns_input.clear();
+                }
                 None
             }
             KeyCode::Enter => {
-                self.state.set_search_query(self.filter_input.clone());
-                self.filter_mode = false;
-                self.notification_timer = NOTIFICATION_TIMER_SHORT;
+                if is_dns_input {
+                    let dns_ips = self.state.dns_input.clone();
+                    self.state.dns_input.clear();
+                    self.state.input_mode = InputMode::Normal;
+                    if !dns_ips.is_empty() {
+                        self.state.apply_dns_setting(&dns_ips);
+                        self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                    }
+                } else {
+                    self.state.set_search_query(self.filter_input.clone());
+                    self.filter_mode = false;
+                    self.notification_timer = NOTIFICATION_TIMER_SHORT;
+                }
                 None
             }
             KeyCode::Backspace => {
-                self.filter_input.pop();
-                self.state.set_search_query(self.filter_input.clone());
+                if is_dns_input {
+                    self.state.dns_input.pop();
+                } else {
+                    self.filter_input.pop();
+                    self.state.set_search_query(self.filter_input.clone());
+                }
                 None
             }
             KeyCode::Char(c) => {
-                self.filter_input.push(c);
-                self.state.set_search_query(self.filter_input.clone());
+                if is_dns_input {
+                    self.state.dns_input.push(c);
+                } else {
+                    self.filter_input.push(c);
+                    self.state.set_search_query(self.filter_input.clone());
+                }
                 None
             }
             _ => None,
@@ -366,6 +396,19 @@ impl TuiApp {
             self.render_header(f, chunks[0]);
             self.render_main(f, chunks[1]);
             self.render_filter_input(f, chunks[2]);
+        } else if self.state.input_mode == InputMode::DnsInput {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(3),
+                    Constraint::Min(0),
+                    Constraint::Length(3),
+                ])
+                .split(f.size());
+
+            self.render_header(f, chunks[0]);
+            self.render_main(f, chunks[1]);
+            self.render_dns_input(f, chunks[2]);
         } else {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
@@ -416,6 +459,37 @@ impl TuiApp {
             f.set_cursor(area.x + cursor as u16 + 1, area.y + 1);
         }
     }
+
+    fn render_dns_input(&self, f: &mut Frame<'_>, area: Rect) {
+        let theme = if self.state.is_dark_theme {
+            Theme::dark()
+        } else {
+            Theme::light()
+        };
+        let prompt = "DNS IPs (comma-separated): ";
+        let input_display = format!("{}{}", prompt, self.state.dns_input);
+        let cursor = if self.state.dns_input.is_empty() {
+            prompt.len()
+        } else {
+            prompt.len() + self.state.dns_input.len()
+        };
+
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .style(Style::default().fg(theme.key_hint));
+
+        let text = Line::from(input_display.as_str());
+        let paragraph = Paragraph::new(text)
+            .block(block)
+            .style(Style::default().fg(theme.foreground));
+
+        f.render_widget(paragraph, area);
+
+        if area.width > cursor as u16 + 2 {
+            f.set_cursor(area.x + cursor as u16 + 1, area.y + 1);
+        }
+    }
+
     fn render_notification_popup(&self, f: &mut Frame<'_>) {
         let Some(ref notification) = self.state.notification else {
             return;
@@ -556,7 +630,7 @@ impl TuiApp {
                 f,
                 area,
             ),
-            AppView::Stats => views::stats_view::render_stats_view(&self.state, f, area),
+            AppView::Stats => views::stats_view::render_stats_view(&mut self.state, f, area),
             AppView::Settings => {
                 views::settings_view::render_settings_view(&mut self.state, f, area)
             }
@@ -621,7 +695,17 @@ impl TuiApp {
                 Span::raw("] back"),
             ],
             AppView::Stats => vec![Span::raw("statistics")],
-            AppView::Settings => vec![Span::raw("settings")],
+            AppView::Settings => vec![
+                Span::raw("["),
+                Span::styled("j/k", Style::default().fg(theme.key_hint)),
+                Span::raw("] move | "),
+                Span::raw("["),
+                Span::styled("Enter", Style::default().fg(theme.key_hint)),
+                Span::raw("] toggle/input | "),
+                Span::raw("["),
+                Span::styled("Space", Style::default().fg(theme.key_hint)),
+                Span::raw("] off"),
+            ],
             AppView::Logs => vec![
                 Span::raw("["),
                 Span::styled("j/k", Style::default().fg(theme.key_hint)),

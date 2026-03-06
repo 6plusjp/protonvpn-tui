@@ -424,7 +424,7 @@ impl VpnClient {
 
     fn countries_to_servers(&self, countries: &HashMap<String, String>) -> Vec<Server> {
         let cities_map = self.with_cache(|c| c.cities.clone()).unwrap_or_default();
-        let mut servers: Vec<Server> = countries
+        let servers: Vec<Server> = countries
             .iter()
             .map(|(code, name)| Server {
                 id: code.clone(),
@@ -433,47 +433,7 @@ impl VpnClient {
             })
             .collect();
 
-        if servers.is_empty() {
-            servers = self.mock_servers();
-        }
-
         servers
-    }
-
-    /// Mock servers for testing
-    fn mock_servers(&self) -> Vec<Server> {
-        vec![
-            Server {
-                id: "JP".to_string(),
-                country: "Japan".to_string(),
-                cities: vec![
-                    City::with_features(
-                        "Tokyo".to_string(),
-                        vec!["P2P".to_string(), "Secure".to_string()],
-                    ),
-                    City::with_features("Osaka".to_string(), vec!["P2P".to_string()]),
-                ],
-            },
-            Server {
-                id: "US".to_string(),
-                country: "United States".to_string(),
-                cities: vec![
-                    City::with_features(
-                        "New York".to_string(),
-                        vec!["P2P".to_string(), "Streaming".to_string()],
-                    ),
-                    City::with_features("Los Angeles".to_string(), vec!["P2P".to_string()]),
-                ],
-            },
-            Server {
-                id: "DE".to_string(),
-                country: "Germany".to_string(),
-                cities: vec![City::with_features(
-                    "Berlin".to_string(),
-                    vec!["Secure".to_string()],
-                )],
-            },
-        ]
     }
 
     pub fn status(&self) -> String {

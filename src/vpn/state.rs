@@ -108,6 +108,14 @@ impl VpnState {
     pub fn set_netshield(&self, current: Option<i32>, next: i32) -> AppResult<String> {
         self.client.set_netshield(current, next)
     }
+
+    pub fn set_custom_dns(&self, dns_list: &str) -> AppResult<String> {
+        self.client.set_custom_dns(dns_list)
+    }
+
+    pub fn disable_custom_dns(&self) -> AppResult<String> {
+        self.client.disable_custom_dns()
+    }
 }
 
 #[cfg(test)]

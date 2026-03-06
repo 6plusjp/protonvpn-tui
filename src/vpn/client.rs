@@ -533,6 +533,40 @@ impl VpnClient {
         self.config_set("netshield", new_value)
     }
 
+    /// Set custom DNS servers
+    pub fn set_custom_dns(&self, dns_list: &str) -> AppResult<String> {
+        let output = Command::new(&self.cli_path)
+            .args(["config", "set", "custom-dns", "on", "--dns", dns_list])
+            .output()
+            .map_err(|e| {
+                AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
+            })?;
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+
+        self.check_cli_error(&output, &stdout, &stderr)?;
+
+        Ok(format!("DNS set to {}", dns_list))
+    }
+
+    /// Disable custom DNS
+    pub fn disable_custom_dns(&self) -> AppResult<String> {
+        let output = Command::new(&self.cli_path)
+            .args(["config", "set", "custom-dns", "off"])
+            .output()
+            .map_err(|e| {
+                AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
+            })?;
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+
+        self.check_cli_error(&output, &stdout, &stderr)?;
+
+        Ok("Custom DNS disabled".to_string())
+    }
+
     #[cfg(test)]
     pub fn with_test_servers(servers: Vec<Server>) -> Self {
         use std::collections::HashMap;

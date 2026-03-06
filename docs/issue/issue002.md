@@ -35,7 +35,40 @@ When a country is selected, navigate to a detail view that shows:
 ### Connection
 
 - Use `j/k` keys for navigation (up/down)
+- Press Enter on a country to navigate to city detail view
 - Press 'c' or Enter on a city to connect via `protonvpn connect --city <selected city>`
+- Press Escape to return to Servers view from Cities view
+
+### Keyboard Controls
+
+#### Servers View
+| Key       | Action                        |
+| --------- | ----------------------------- |
+| j / Down  | Move down                     |
+| k / Up    | Move up                       |
+| g         | Go to top (first press)       |
+| G         | Go to bottom (last item)      |
+| Enter     | Navigate to Cities view       |
+| c         | Connect to selected country   |
+| r         | Refresh servers               |
+| d         | Disconnect                    |
+| x         | Connect to random server      |
+| /         | Filter servers                |
+| s         | Cycle sort                    |
+| f         | Cycle sort field              |
+| ?         | Help view                     |
+| Tab       | Switch view                   |
+| q         | Quit                          |
+
+#### Cities View
+| Key           | Action                        |
+| ------------- | ----------------------------- |
+| j / Down      | Move down                     |
+| k / Up        | Move up                       |
+| g             | Go to top (first press)       |
+| G             | Go to bottom (last item)      |
+| c / Enter     | Connect to selected city      |
+| Escape        | Return to Servers view        |
 
 ---
 
@@ -80,24 +113,32 @@ pub enum AppView {
 
 ### Required Code Changes
 
-| Component                  | Status     | Changes                                                            |
-| -------------------------- | ---------- | ------------------------------------------------------------------ |
-| `src/state/app_view.rs`    | ✅ Done    | `Servers` and `Cities` views exist                                 |
-| `src/state/async_tasks.rs` | 🔲 Pending | Add `spawn_cities` task                                           |
-| `src/state/app_state.rs`   | 🔲 Pending | Add `pending_cities` field, notification handling                |
-| `src/vpn/types.rs`         | 🔲 Pending | Add `City` struct with `features` field                            |
-| `src/vpn/cache.rs`         | 🔲 Pending | Update cache to store city features                               |
-| `src/vpn/client.rs`        | 🔲 Pending | Add `connect_city()` method                                        |
-| `src/ui/views/servers_view.rs` | ✅ Done | Implemented                                                       |
-| `src/ui/views/cities_view.rs` | 🔲 Partial | Exists but uses hardcoded data                                   |
+| Component                      | Status     | Changes                                                            |
+| ------------------------------ | ---------- | ------------------------------------------------------------------ |
+| `src/state/app_view.rs`        | ✅ Done    | `Servers` and `Cities` views exist                                 |
+| `src/state/async_tasks.rs`     | ✅ Done    | Added `spawn_cities` and `spawn_connect_city` tasks               |
+| `src/state/app_state.rs`       | ✅ Done    | Added `pending_cities`, `pending_connect_city`, `current_cities`, notification handling |
+| `src/vpn/types.rs`             | ✅ Done    | Added `City` struct with `features` field                          |
+| `src/vpn/cache.rs`             | ✅ Done    | Updated cache to store `Vec<City>`                                |
+| `src/vpn/client.rs`            | ✅ Done    | Added `connect_city()`, `list_cities_with_features()` methods     |
+| `src/vpn/state.rs`             | ✅ Done    | Added `connect_city()`, `list_cities_with_features()` methods     |
+| `src/ui/views/servers_view.rs` | ✅ Done    | Implemented                                                        |
+| `src/ui/views/cities_view.rs`  | ✅ Done    | Updated to use real data                                          |
+| `src/ui/app.rs`                | ✅ Done    | Added keyboard handling for navigation, connection                 |
 
 ### VPN Client Commands
 
 ```rust
 // src/vpn/client.rs
 
-// List cities - already implemented
+// List cities - returns city names only (backward compatibility)
 pub fn list_cities(&mut self, country_code: &str) -> AppResult<Vec<String>> {
+    let cities = self.list_cities_with_features(country_code)?;
+    Ok(cities.into_iter().map(|c| c.name).collect())
+}
+
+// List cities with features
+pub fn list_cities_with_features(&mut self, country_code: &str) -> AppResult<Vec<City>> {
     if let Some(cities) = self.cache.cities.get(country_code) {
         return Ok(cities.clone());
     }
@@ -105,9 +146,10 @@ pub fn list_cities(&mut self, country_code: &str) -> AppResult<Vec<String>> {
         .args(["cities", "--country", country_code])
         .output()
         ...
+    // Parse and cache results
 }
 
-// TODO: Add connect_city method
+// Connect to a specific city
 pub fn connect_city(&mut self, city: &str) -> AppResult<(String, Option<String>)> {
     let output = Command::new(&self.cli_path)
         .args(["connect", "--city", city])
@@ -183,15 +225,25 @@ if let Some(rx) = self.pending_cities.as_mut() {
 ```rust
 // src/vpn/types.rs
 
-pub struct Server {
-    pub id: String,
-    pub country: String,
-    pub cities: Vec<City>,  // Changed from Vec<String>
-}
-
 pub struct City {
     pub name: String,
     pub features: Vec<String>,  // P2P, Secure, etc.
+}
+
+impl City {
+    pub fn new(name: String) -> Self {
+        Self { name, features: Vec::new() }
+    }
+    
+    pub fn with_features(name: String, features: Vec<String>) -> Self {
+        Self { name, features }
+    }
+}
+
+pub struct Server {
+    pub id: String,          // Country code (e.g., "JP", "US")
+    pub country: String,     // Full country name
+    pub cities: Vec<City>,   // City information with features
 }
 ```
 
@@ -214,17 +266,42 @@ protonvpn connect --city Tokyo
 
 - [x] AppView: Connect renamed to Servers, Cities view added
 - [x] Countries list displays ID, Country name, and city count
-- [ ] Cached cities display on startup/refresh_servers (no blocking fetch)
-- [ ] Selecting a country (Enter key) navigates to city detail view
-- [ ] Cached city data displays immediately while fetching fresh data
-- [ ] `protonvpn cities --country <selected country>` runs in background without blocking UI
-- [ ] Notification shown when background cities fetch completes
+- [x] Cached cities display on startup/refresh_servers (no blocking fetch)
+- [x] Selecting a country (Enter key) navigates to city detail view
+- [x] Cached city data displays immediately while fetching fresh data
+- [x] `protonvpn cities --country <selected country>` runs in background without blocking UI
+- [x] Notification shown when background cities fetch completes
 - [x] j/k navigation works in both country list and city detail views
-- [ ] 'c' or Enter key on city triggers `protonvpn connect --city <selected city>`
-- [ ] Connection result shows notification (success/error)
-- [ ] Back navigation (Escape) returns to previous view
+- [x] 'c' key on city triggers `protonvpn connect --city <selected city>`
+- [x] Enter key on city triggers `protonvpn connect --city <selected city>`
+- [x] Connection result shows notification (success/error)
+- [x] Back navigation (Escape) returns to previous view
 
 ---
+
+## Implementation Details
+
+### New Methods Added
+
+#### src/vpn/client.rs
+- `connect_city(&mut self, city: &str) -> AppResult<(String, Option<String>)>` - Connect to a specific city
+- `list_cities_with_features(&mut self, country_code: &str) -> AppResult<Vec<City>>` - List cities with features
+- `parse_cities_with_features(&self, output: &str) -> Vec<City>` - Parse CLI output
+
+#### src/vpn/state.rs
+- `connect_city(&mut self, city: &str) -> AppResult<(String, Option<String>)>`
+- `list_cities_with_features(&mut self, country_code: &str) -> AppResult<Vec<City>>`
+
+#### src/state/app_state.rs
+- `fetch_cities(&mut self, country_code: &str)` - Load cached cities and spawn async fetch
+- `set_cities(&mut self, cities: Vec<City>, country_code: String)` - Update current cities
+- `connect_city(&mut self, city: &str)` - Initiate city connection
+
+### AppState Fields Added
+- `current_cities: Vec<City>` - Currently displayed cities in Cities view
+- `current_country_code: Option<String>` - Country code for current Cities view
+- `pending_cities: Option<CitiesReceiver>` - Async receiver for cities fetch
+- `pending_connect_city: Option<ConnectReceiver>` - Async receiver for city connection
 
 ## Tests
 

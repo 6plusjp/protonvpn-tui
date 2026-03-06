@@ -3,6 +3,7 @@ use crate::constants::ui::{
     POPUP_WIDTH_MAX, POPUP_WIDTH_MIN,
 };
 use crate::state::{AppState, AppView};
+use crate::ui::styles::Theme;
 use crate::ui::views;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
@@ -12,7 +13,7 @@ use crossterm::{
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, ListState, Paragraph},
     Frame, Terminal,
@@ -375,6 +376,7 @@ impl TuiApp {
     }
 
     fn render_filter_input(&self, f: &mut Frame<'_>, area: Rect) {
+        let theme = Theme::default();
         let prompt = "/ filter: ";
         let input_display = format!("{}{}", prompt, self.filter_input);
         let cursor = if self.filter_input.is_empty() {
@@ -385,12 +387,12 @@ impl TuiApp {
 
         let block = Block::default()
             .borders(Borders::ALL)
-            .style(Style::default().fg(Color::Yellow));
+            .style(Style::default().fg(theme.key_hint));
 
         let text = Line::from(input_display.as_str());
         let paragraph = Paragraph::new(text)
             .block(block)
-            .style(Style::default().fg(Color::White));
+            .style(Style::default().fg(theme.foreground));
 
         f.render_widget(paragraph, area);
 
@@ -403,11 +405,11 @@ impl TuiApp {
             return;
         };
 
+        let theme = Theme::default();
         let (fg_color, title) = match notification.notification_type {
-            crate::state::NotificationType::Info => (Color::Cyan, None),
-            crate::state::NotificationType::Success => (Color::Green, None),
+            crate::state::NotificationType::Info => (theme.primary, None),
+            crate::state::NotificationType::Success => (theme.success, None),
             crate::state::NotificationType::Error => {
-                // Extract title from error message or use default
                 let title = if notification.message.contains("Disconnect") {
                     Some("Disconnect failed")
                 } else if notification.message.contains("Connect")
@@ -417,11 +419,10 @@ impl TuiApp {
                 } else {
                     Some("Error")
                 };
-                (Color::Red, title)
+                (theme.error, title)
             }
         };
 
-        // Format message - replace newlines with space, truncate with ...
         let raw_msg = &notification.message;
         let msg_single_line = raw_msg.replace('\n', " ");
         let max_len = NOTIFICATION_MSG_MAX_LEN;
@@ -431,39 +432,35 @@ impl TuiApp {
             msg_single_line
         };
 
-        // Calculate popup size
         let popup_width = (message.len() + 4).clamp(POPUP_WIDTH_MIN, POPUP_WIDTH_MAX) as u16;
         let popup_height = if title.is_some() { 4 } else { 3 };
 
-        // Position in top-right corner
         let terminal = f.size();
         let x = terminal.width.saturating_sub(popup_width + 1);
         let y = 1;
         let area = Rect::new(x, y, popup_width, popup_height);
 
-        // Build content lines
         let mut lines = Vec::new();
         if let Some(title) = title {
             lines.push(Line::from(title).centered());
         }
         lines.push(Line::from(message.as_str()).centered());
 
-        // Create the popup block with background
         let block = Block::bordered()
             .border_style(Style::default().fg(fg_color))
-            .style(Style::default().fg(Color::White).bg(Color::Black));
+            .style(Style::default().fg(theme.foreground).bg(theme.background));
 
         let paragraph = Paragraph::new(lines)
             .block(block)
-            .style(Style::default().fg(Color::White))
+            .style(Style::default().fg(theme.foreground))
             .alignment(ratatui::layout::Alignment::Center);
 
-        // Clear the area first, then render popup
         f.render_widget(Clear, area);
         f.render_widget(paragraph, area);
     }
 
     fn render_header(&self, f: &mut Frame<'_>, area: Rect) {
+        let theme = Theme::default();
         let title = " ProtonVPN TUI ";
 
         let (connection_status, server_info) = match &self.state.connection {
@@ -487,13 +484,13 @@ impl TuiApp {
                 Span::styled(
                     connection_status,
                     Style::default()
-                        .fg(Color::Green)
+                        .fg(theme.success)
                         .add_modifier(Modifier::BOLD),
                 ),
                 Span::raw(" | View: "),
                 Span::styled(
                     format!("{:?}", self.state.current_view),
-                    Style::default().fg(Color::Yellow),
+                    Style::default().fg(theme.key_hint),
                 ),
             ])
         } else {
@@ -502,15 +499,15 @@ impl TuiApp {
                 Span::styled(
                     connection_status,
                     Style::default()
-                        .fg(Color::Green)
+                        .fg(theme.success)
                         .add_modifier(Modifier::BOLD),
                 ),
                 Span::raw(" - "),
-                Span::styled(server_info, Style::default().fg(Color::Cyan)),
+                Span::styled(server_info, Style::default().fg(theme.primary)),
                 Span::raw(" | View: "),
                 Span::styled(
                     format!("{:?}", self.state.current_view),
-                    Style::default().fg(Color::Yellow),
+                    Style::default().fg(theme.key_hint),
                 ),
             ])
         };
@@ -518,7 +515,7 @@ impl TuiApp {
         let block = Block::default()
             .title(title)
             .borders(Borders::ALL)
-            .style(Style::default().fg(Color::Cyan));
+            .style(Style::default().fg(theme.primary));
 
         f.render_widget(block, area);
         f.render_widget(
@@ -553,6 +550,7 @@ impl TuiApp {
     }
 
     fn render_footer(&self, f: &mut Frame<'_>, area: Rect) {
+        let theme = Theme::default();
         let sort_label = self.state.sort.label();
         let direction_label = self.state.sort_direction.label();
         let sort_display = format!("{} {}", sort_label, direction_label);
@@ -560,45 +558,45 @@ impl TuiApp {
         let action_spans: Vec<Span<'_>> = match self.state.current_view {
             AppView::Servers => vec![
                 Span::raw("["),
-                Span::styled("j/k", Style::default().fg(Color::Yellow)),
+                Span::styled("j/k", Style::default().fg(theme.key_hint)),
                 Span::raw("] move | "),
                 Span::raw("["),
-                Span::styled("Enter", Style::default().fg(Color::Yellow)),
+                Span::styled("Enter", Style::default().fg(theme.key_hint)),
                 Span::raw("] cities | "),
                 Span::raw("["),
-                Span::styled("c", Style::default().fg(Color::Yellow)),
+                Span::styled("c", Style::default().fg(theme.key_hint)),
                 Span::raw("] connect | "),
                 Span::raw("["),
-                Span::styled("d", Style::default().fg(Color::Yellow)),
+                Span::styled("d", Style::default().fg(theme.key_hint)),
                 Span::raw("] disconnect | "),
                 Span::raw("["),
-                Span::styled("r", Style::default().fg(Color::Yellow)),
+                Span::styled("r", Style::default().fg(theme.key_hint)),
                 Span::raw("] refresh | "),
                 Span::raw("["),
-                Span::styled("s", Style::default().fg(Color::Yellow)),
+                Span::styled("s", Style::default().fg(theme.key_hint)),
                 Span::raw("] sort ("),
                 Span::raw(&sort_display),
                 Span::raw(") | "),
                 Span::raw("["),
-                Span::styled("/", Style::default().fg(Color::Yellow)),
+                Span::styled("/", Style::default().fg(theme.key_hint)),
                 Span::raw("] filter"),
             ],
             AppView::Cities => vec![
                 Span::raw("["),
-                Span::styled("j/k", Style::default().fg(Color::Yellow)),
+                Span::styled("j/k", Style::default().fg(theme.key_hint)),
                 Span::raw("] move | "),
                 Span::raw("["),
-                Span::styled("c/Enter", Style::default().fg(Color::Yellow)),
+                Span::styled("c/Enter", Style::default().fg(theme.key_hint)),
                 Span::raw("] connect | "),
                 Span::raw("["),
-                Span::styled("Esc", Style::default().fg(Color::Yellow)),
+                Span::styled("Esc", Style::default().fg(theme.key_hint)),
                 Span::raw("] back"),
             ],
             AppView::Stats => vec![Span::raw("statistics")],
             AppView::Settings => vec![Span::raw("settings")],
             AppView::Logs => vec![
                 Span::raw("["),
-                Span::styled("j/k", Style::default().fg(Color::Yellow)),
+                Span::styled("j/k", Style::default().fg(theme.key_hint)),
                 Span::raw("] scroll"),
             ],
             AppView::Help => vec![Span::raw("Press Tab or q to return")],
@@ -606,13 +604,13 @@ impl TuiApp {
 
         let mut text = Line::from(vec![
             Span::raw("["),
-            Span::styled("?", Style::default().fg(Color::Yellow)),
+            Span::styled("?", Style::default().fg(theme.key_hint)),
             Span::raw("] help "),
             Span::raw("["),
-            Span::styled("Tab", Style::default().fg(Color::Yellow)),
+            Span::styled("Tab", Style::default().fg(theme.key_hint)),
             Span::raw("] switch view "),
             Span::raw("["),
-            Span::styled("q", Style::default().fg(Color::Yellow)),
+            Span::styled("q", Style::default().fg(theme.key_hint)),
             Span::raw("] quit"),
             Span::raw(" | "),
         ]);

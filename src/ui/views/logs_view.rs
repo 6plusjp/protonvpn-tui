@@ -27,9 +27,9 @@ pub fn render_logs_view(
         .iter()
         .map(|n| {
             let (prefix, color) = match n.notification_type {
-                NotificationType::Info => ("[INFO] ", theme.primary),
-                NotificationType::Success => ("[OK]   ", theme.success),
-                NotificationType::Error => ("[ERR]  ", theme.error),
+                NotificationType::Info => ("  [INFO] ", theme.primary),
+                NotificationType::Success => ("  [OK]   ", theme.success),
+                NotificationType::Error => ("  [ERR]  ", theme.error),
             };
             let line = Line::from(vec![
                 Span::styled(prefix, Style::default().fg(color)),
@@ -50,7 +50,9 @@ pub fn render_logs_view(
     let selected = list_state.selected().unwrap_or(0).min(items.len() - 1);
     list_state.select(Some(selected));
 
-    let list = List::new(items).block(block);
+    let list = List::new(items)
+        .block(block)
+        .style(Style::default().fg(theme.foreground));
 
     f.render_stateful_widget(list, area, list_state);
 }

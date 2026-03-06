@@ -365,13 +365,31 @@ impl VpnClient {
                 continue;
             }
 
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.is_empty() {
+            // Skip lines that don't start with a letter (e.g., "------")
+            if !line.starts_with(|c: char| c.is_alphabetic()) {
                 continue;
             }
 
-            let name = parts[0].to_string();
-            let features: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
+            // Split name (before first whitespace) from features (after)
+            let name_end = line.find(|c: char| c.is_whitespace());
+            let (name, features_str) = match name_end {
+                Some(pos) => (line[..pos].to_string(), line[pos..].trim()),
+                None => (line.to_string(), ""),
+            };
+
+            // Skip header lines:
+            // - "Cities in United Arab Emirates:" (title line)
+            // - "City     Features" (column header - features is just "Features")
+            if name == "Cities" || features_str == "Features" {
+                continue;
+            }
+
+            // Features are comma-separated: "P2P, Secure Core" → ["P2P", "Secure Core"]
+            let features: Vec<String> = features_str
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
 
             cities.push(City::with_features(name, features));
         }
@@ -407,7 +425,7 @@ impl VpnClient {
             .map(|(code, name)| Server {
                 id: code.clone(),
                 country: name.clone(),
-                cities: Vec::new(),
+                cities: self.cache.cities.get(code).cloned().unwrap_or_default(),
             })
             .collect();
 

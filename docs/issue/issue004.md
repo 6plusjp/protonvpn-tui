@@ -399,15 +399,15 @@ Run `cargo check` and fix any compilation errors. Common issues:
 
 ## Acceptance Criteria
 
-- [ ] `refresh_servers` does not clear `connected_server`/`ip`
-- [ ] `connect` preserves countries data in cache
-- [ ] In-memory cache stays consistent with disk cache
-- [ ] Async operations don't cause data loss
-- [ ] All VpnClient methods use `&self` with internal Mutex
-- [ ] VpnState uses `&self` for all methods
-- [ ] app_state uses `Arc<VpnState>` for shared state
-- [ ] `cargo check` passes without errors
-- [ ] `cargo test` passes
+- [x] `refresh_servers` does not clear `connected_server`/`ip`
+- [x] `connect` preserves countries data in cache
+- [x] In-memory cache stays consistent with disk cache
+- [x] Async operations don't cause data loss
+- [x] All VpnClient methods use `&self` with internal Mutex
+- [x] VpnState uses `&self` for all methods
+- [x] app_state uses `Arc<VpnState>` for shared state
+- [x] `cargo check` passes without errors
+- [x] `cargo test` passes
 
 ---
 

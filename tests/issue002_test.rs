@@ -190,21 +190,21 @@ mod vpn_client {
 
     #[test]
     fn test_vpn_client_has_connect_random() {
-        let mut client = VpnClient::with_path("echo");
+        let client = VpnClient::with_path("echo");
         let result = client.connect_random();
         assert!(result.is_err() || result.is_ok());
     }
 
     #[test]
     fn test_vpn_client_has_disconnect() {
-        let mut client = VpnClient::with_path("echo");
+        let client = VpnClient::with_path("echo");
         let result = client.disconnect();
         assert!(result.is_err() || result.is_ok());
     }
 
     #[test]
     fn test_vpn_client_list_cities_exists() {
-        let mut client = VpnClient::with_path("echo");
+        let client = VpnClient::with_path("echo");
         let result = client.list_cities("JP");
         assert!(result.is_err() || result.is_ok());
     }
@@ -215,14 +215,14 @@ mod vpn_state {
 
     #[test]
     fn test_vpn_state_has_connect_random() {
-        let mut state = VpnState::new();
+        let state = VpnState::new();
         let result = state.connect_random();
         assert!(result.is_err() || result.is_ok());
     }
 
     #[test]
     fn test_vpn_state_has_disconnect() {
-        let mut state = VpnState::new();
+        let state = VpnState::new();
         let result = state.disconnect();
         assert!(result.is_err() || result.is_ok());
     }

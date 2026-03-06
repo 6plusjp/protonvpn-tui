@@ -11,6 +11,7 @@ use crate::state::SortDirection;
 use crate::vpn::Server;
 use crate::vpn::VpnState;
 use std::sync::mpsc;
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::OnceLock;
 
@@ -111,7 +112,7 @@ pub struct Notification {
 pub struct AppState {
     // === Connection & Async (深い結合) ===
     pub connection: ConnectionState,
-    pub vpn_state: VpnState,
+    pub vpn_state: Arc<VpnState>,
     previous_connection: Option<ConnectionState>,
     async_manager: AsyncTaskManager,
     #[allow(clippy::type_complexity)]
@@ -165,7 +166,7 @@ impl AppState {
             current_country_code: None,
             selected_server: None,
             settings_selected: None,
-            vpn_state: VpnState::new(),
+            vpn_state: Arc::new(VpnState::new()),
             notification: None,
             notification_log: Vec::new(),
             async_manager: AsyncTaskManager::new(),
@@ -954,7 +955,7 @@ mod tests {
     fn test_fuzzy_match_starts_with() {
         let mut state = AppState::new();
         state.servers = make_servers();
-        state.vpn_state = VpnState::new();
+        state.vpn_state = Arc::new(VpnState::new());
 
         let result = state.compute_filtered_servers();
         assert!(!result.is_empty());

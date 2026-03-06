@@ -6,6 +6,7 @@
 use crate::error::AppError;
 use crate::vpn::{City, VpnState};
 use std::sync::mpsc;
+use std::sync::Arc;
 
 pub type AsyncResult<T> = Result<T, AppError>;
 
@@ -29,71 +30,69 @@ impl AsyncTaskManager {
 impl AsyncTaskManager {
     pub fn spawn_refresh_servers(
         &self,
-        vpn_state: VpnState,
+        vpn_state: Arc<VpnState>,
         sender: mpsc::Sender<AsyncResult<Vec<crate::vpn::Server>>>,
     ) {
         std::thread::spawn(move || {
-            let mut state = vpn_state;
-            let result = state.refresh_servers();
+            let result = vpn_state.refresh_servers();
             let _ = sender.send(result);
         });
     }
 
     pub fn spawn_connect(
         &self,
-        vpn_state: VpnState,
+        vpn_state: Arc<VpnState>,
         server_id: String,
         sender: mpsc::Sender<AsyncResult<(String, Option<String>)>>,
     ) {
         std::thread::spawn(move || {
-            let mut state = vpn_state;
-            let result = state.connect(&server_id);
+            let result = vpn_state.connect(&server_id);
             let _ = sender.send(result);
         });
     }
 
-    pub fn spawn_disconnect(&self, vpn_state: VpnState, sender: mpsc::Sender<AsyncResult<()>>) {
+    pub fn spawn_disconnect(
+        &self,
+        vpn_state: Arc<VpnState>,
+        sender: mpsc::Sender<AsyncResult<()>>,
+    ) {
         std::thread::spawn(move || {
-            let mut state = vpn_state;
-            let result = state.disconnect();
+            let result = vpn_state.disconnect();
             let _ = sender.send(result);
         });
     }
 
     pub fn spawn_connect_random(
         &self,
-        vpn_state: VpnState,
+        vpn_state: Arc<VpnState>,
         sender: mpsc::Sender<AsyncResult<(String, Option<String>)>>,
     ) {
         std::thread::spawn(move || {
-            let mut state = vpn_state;
-            let result = state.connect_random();
+            let result = vpn_state.connect_random();
             let _ = sender.send(result);
         });
     }
 
     pub fn spawn_cities(
         &self,
-        vpn_state: VpnState,
+        vpn_state: Arc<VpnState>,
         country_code: String,
         sender: mpsc::Sender<AsyncResult<Vec<City>>>,
     ) {
         std::thread::spawn(move || {
-            let mut state = vpn_state;
-            let result = state.list_cities_with_features(&country_code);
+            let result = vpn_state.list_cities_with_features(&country_code);
             let _ = sender.send(result);
         });
     }
 
     pub fn spawn_connect_city(
         &self,
-        vpn_state: VpnState,
+        vpn_state: Arc<VpnState>,
         city: String,
         sender: mpsc::Sender<AsyncResult<(String, Option<String>)>>,
     ) {
         std::thread::spawn(move || {
-            let mut state = vpn_state;
-            let result = state.connect_city(&city);
+            let result = vpn_state.connect_city(&city);
             let _ = sender.send(result);
         });
     }

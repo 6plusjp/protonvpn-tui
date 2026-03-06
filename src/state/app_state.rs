@@ -640,33 +640,37 @@ impl AppState {
     }
 
     pub fn select_next(&mut self) {
-        self.selected_server
-            .move_next(self.filtered_servers().len());
+        self.selected_server.move_next(self.get_selection_bounds());
     }
 
     pub fn select_prev(&mut self) {
-        self.selected_server
-            .move_prev(self.filtered_servers().len());
+        self.selected_server.move_prev(self.get_selection_bounds());
     }
 
     pub fn select_first(&mut self) {
-        self.selected_server
-            .move_first(self.filtered_servers().len());
+        self.selected_server.move_first(self.get_selection_bounds());
     }
 
     pub fn select_last(&mut self) {
-        self.selected_server
-            .move_last(self.filtered_servers().len());
+        self.selected_server.move_last(self.get_selection_bounds());
     }
 
     pub fn select_page_down(&mut self) {
         self.selected_server
-            .move_page_down(self.filtered_servers().len());
+            .move_page_down(self.get_selection_bounds());
     }
 
     pub fn select_page_up(&mut self) {
         self.selected_server
-            .move_page_up(self.filtered_servers().len());
+            .move_page_up(self.get_selection_bounds());
+    }
+
+    /// Get the bounds for selection navigation based on current view
+    fn get_selection_bounds(&self) -> usize {
+        match self.current_view {
+            crate::state::AppView::Cities => self.current_cities.len(),
+            _ => self.filtered_servers().len(),
+        }
     }
 
     pub fn settings_select_next(&mut self, count: usize) {

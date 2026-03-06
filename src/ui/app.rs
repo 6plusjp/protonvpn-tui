@@ -544,72 +544,85 @@ impl TuiApp {
         f.render_widget(paragraph, area);
     }
 
-    fn render_header(&self, f: &mut Frame<'_>, area: Rect) {
+    fn render_header(&mut self, f: &mut Frame<'_>, area: Rect) {
         let theme = if self.state.is_dark_theme {
             Theme::dark()
         } else {
             Theme::light()
         };
-        let title = " ProtonVPN TUI ";
 
-        let (connection_status, server_info) = match &self.state.connection {
-            crate::state::ConnectionState::Disconnected => ("Disconnected", String::new()),
-            crate::state::ConnectionState::Connecting => ("Connecting...", String::new()),
+        let (status_text, status_color): (String, _) = match &self.state.connection {
+            crate::state::ConnectionState::Disconnected => {
+                ("Disconnected".to_string(), theme.foreground)
+            }
+            crate::state::ConnectionState::Connecting => {
+                ("Connecting...".to_string(), theme.warning)
+            }
             crate::state::ConnectionState::Connected { server, ip } => {
                 let info = if ip.is_empty() {
                     server.clone()
                 } else {
                     format!("{} ({})", server, ip)
                 };
-                ("Connected", info)
+                (info, theme.success)
             }
-            crate::state::ConnectionState::Disconnecting => ("Disconnecting...", String::new()),
-            crate::state::ConnectionState::Error(e) => ("Error", e.clone()),
+            crate::state::ConnectionState::Disconnecting => {
+                ("Disconnecting...".to_string(), theme.warning)
+            }
+            crate::state::ConnectionState::Error(e) => (e.clone(), theme.error),
         };
 
-        let status_text = if server_info.is_empty() {
-            Line::from(vec![
-                Span::raw("Connection: "),
-                Span::styled(
-                    connection_status,
-                    Style::default()
-                        .fg(theme.success)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::raw(" | View: "),
-                Span::styled(
-                    format!("{:?}", self.state.current_view),
-                    Style::default().fg(theme.key_hint),
-                ),
-            ])
-        } else {
-            Line::from(vec![
-                Span::raw("Connection: "),
-                Span::styled(
-                    connection_status,
-                    Style::default()
-                        .fg(theme.success)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::raw(" - "),
-                Span::styled(server_info, Style::default().fg(theme.primary)),
-                Span::raw(" | View: "),
-                Span::styled(
-                    format!("{:?}", self.state.current_view),
-                    Style::default().fg(theme.key_hint),
-                ),
-            ])
+        let protocol = self.state.get_proton_protocol();
+
+        let title = " ProtonVPN TUI ";
+
+        let status_indicator = match &self.state.connection {
+            crate::state::ConnectionState::Connected { .. } => "●",
+            crate::state::ConnectionState::Connecting
+            | crate::state::ConnectionState::Disconnecting => "◐",
+            crate::state::ConnectionState::Disconnected => "○",
+            crate::state::ConnectionState::Error(_) => "✕",
         };
+
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(1), Constraint::Length(1)])
+            .split(area);
+
+        let title_line = Line::from(vec![Span::styled(
+            title,
+            Style::default()
+                .fg(theme.primary)
+                .add_modifier(Modifier::BOLD),
+        )]);
+
+        let mut status_spans = vec![
+            Span::styled(
+                status_indicator,
+                Style::default()
+                    .fg(status_color)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" "),
+            Span::styled(status_text, Style::default().fg(status_color)),
+        ];
+
+        if let Some(proto) = protocol {
+            status_spans.push(Span::raw("  |  "));
+            status_spans.push(Span::styled(proto, Style::default().fg(theme.secondary)));
+        }
+
+        let status_line = Line::from(status_spans);
 
         let block = Block::default()
-            .title(title)
             .borders(Borders::ALL)
-            .style(Style::default().fg(theme.primary));
+            .style(Style::default().fg(theme.block_border));
 
         f.render_widget(block, area);
+        f.render_widget(Paragraph::new(title_line), chunks[0]);
         f.render_widget(
-            Paragraph::new(status_text).alignment(ratatui::layout::Alignment::Center),
-            area,
+            Paragraph::new(status_line).alignment(ratatui::layout::Alignment::Center),
+            chunks[1],
         );
     }
 
@@ -621,7 +634,6 @@ impl TuiApp {
                 f,
                 area,
             ),
-            AppView::Stats => views::stats_view::render_stats_view(&mut self.state, f, area),
             AppView::Settings => {
                 views::settings_view::render_settings_view(&mut self.state, f, area)
             }
@@ -685,7 +697,6 @@ impl TuiApp {
                 Span::styled("Esc", Style::default().fg(theme.key_hint)),
                 Span::raw("] back"),
             ],
-            AppView::Stats => vec![Span::raw("statistics")],
             AppView::Settings => vec![
                 Span::raw("["),
                 Span::styled("j/k", Style::default().fg(theme.key_hint)),

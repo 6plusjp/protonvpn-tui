@@ -18,6 +18,7 @@ pub type ConnectResult = (String, Option<String>);
 pub type ConnectReceiver = mpsc::Receiver<AsyncResult<ConnectResult>>;
 pub type ServerReceiver = mpsc::Receiver<AsyncResult<Vec<Server>>>;
 pub type DisconnectReceiver = mpsc::Receiver<AsyncResult<()>>;
+pub type CitiesReceiver = mpsc::Receiver<AsyncResult<Vec<crate::vpn::City>>>;
 
 pub trait Navigatable {
     fn move_next(&mut self, bounds: usize);
@@ -117,11 +118,15 @@ pub struct AppState {
     pending_refresh: Option<ServerReceiver>,
     pending_connect: Option<ConnectReceiver>,
     pending_disconnect: Option<DisconnectReceiver>,
+    pending_cities: Option<CitiesReceiver>,
+    pending_connect_city: Option<ConnectReceiver>,
 
     // === Server Data ===
     pub(crate) servers: Vec<Server>,
     filtered_servers_cache: Mutex<Option<(Vec<Server>, u64)>>,
     filtered_servers_version: u64,
+    pub(crate) current_cities: Vec<crate::vpn::City>,
+    pub(crate) current_country_code: Option<String>,
 
     // === UI State ( views から直接アクセス ) ===
     pub current_view: crate::state::AppView,
@@ -156,6 +161,8 @@ impl AppState {
             sort: ServerSort::default(),
             sort_direction: SortDirection::default(),
             servers: Vec::new(),
+            current_cities: Vec::new(),
+            current_country_code: None,
             selected_server: None,
             settings_selected: None,
             vpn_state: VpnState::new(),
@@ -166,6 +173,8 @@ impl AppState {
             previous_connection: None,
             pending_connect: None,
             pending_disconnect: None,
+            pending_cities: None,
+            pending_connect_city: None,
             proton_settings_cache: OnceLock::new(),
             filtered_servers_cache: Mutex::new(None),
             filtered_servers_version: 0,
@@ -309,6 +318,62 @@ impl AppState {
             }
         }
 
+        // Check for pending cities fetch result
+        if let Some(rx) = self.pending_cities.as_mut() {
+            if let Ok(result) = rx.try_recv() {
+                match result {
+                    Ok(cities) => {
+                        if self.current_country_code.is_some() {
+                            self.current_cities = cities.clone();
+                        }
+                        self.show_notification(
+                            format!("Loaded {} cities", cities.len()),
+                            NotificationType::Success,
+                        );
+                    }
+                    Err(e) => {
+                        self.show_notification(
+                            format!("Failed to load cities: {}", e),
+                            NotificationType::Error,
+                        );
+                    }
+                }
+                self.pending_cities = None;
+            }
+        }
+
+        // Check for pending connect city result
+        if let Some(rx) = self.pending_connect_city.as_mut() {
+            if let Ok(result) = rx.try_recv() {
+                match result {
+                    Ok((server, ip)) => {
+                        self.show_notification(
+                            format!("Connected to {}", &server),
+                            NotificationType::Success,
+                        );
+                        self.connection = ConnectionState::Connected {
+                            server,
+                            ip: ip.unwrap_or_default(),
+                        };
+                        self.previous_connection = None;
+                        self.pending_connect_city = None;
+                    }
+                    Err(e) => {
+                        if let Some(prev) = self.previous_connection.take() {
+                            self.connection = prev;
+                        } else {
+                            self.connection = ConnectionState::Disconnected;
+                        }
+                        self.show_notification(
+                            format!("Connection failed: {}", e),
+                            NotificationType::Error,
+                        );
+                        self.pending_connect_city = None;
+                    }
+                }
+            }
+        }
+
         // When already connected, don't keep checking system state
         // This prevents flickering between connected/disconnected
         if self.connection.is_connected() {
@@ -399,6 +464,51 @@ impl AppState {
             .spawn_disconnect(self.vpn_state.clone(), tx);
     }
 
+    pub fn fetch_cities(&mut self, country_code: &str) {
+        let country_code = country_code.to_string();
+
+        // Load cached cities first (non-blocking)
+        if let Ok(cities) = self.vpn_state.list_cities_with_features(&country_code) {
+            self.current_cities = cities.clone();
+            self.current_country_code = Some(country_code.clone());
+        }
+
+        self.show_notification(
+            format!("Loading cities for {}...", country_code),
+            NotificationType::Info,
+        );
+
+        let (tx, rx) = create_channel();
+        self.pending_cities = Some(rx);
+        self.async_manager
+            .spawn_cities(self.vpn_state.clone(), country_code, tx);
+    }
+
+    pub fn set_cities(&mut self, cities: Vec<crate::vpn::City>, country_code: String) {
+        self.current_cities = cities;
+        self.current_country_code = Some(country_code);
+    }
+
+    pub fn connect_city(&mut self, city: &str) {
+        if self.connection.is_connecting() {
+            self.show_notification(
+                "Still connecting, please wait...".to_string(),
+                NotificationType::Info,
+            );
+            return;
+        }
+
+        let city = city.to_string();
+        self.previous_connection = Some(self.connection.clone());
+        self.connection = ConnectionState::Connecting;
+        self.show_notification(format!("Connecting to {}...", city), NotificationType::Info);
+
+        let (tx, rx) = create_channel();
+        self.pending_connect_city = Some(rx);
+        self.async_manager
+            .spawn_connect_city(self.vpn_state.clone(), city, tx);
+    }
+
     pub fn filtered_servers(&self) -> Vec<Server> {
         let version = self.filtered_servers_version;
         let cached = self.filtered_servers_cache.lock().unwrap();
@@ -434,7 +544,7 @@ impl AppState {
                         || server
                             .cities
                             .iter()
-                            .any(|c| c.to_lowercase().contains(&query))
+                            .any(|c| c.name.to_lowercase().contains(&query))
                         || self.fuzzy_match(servers, &server.country, &query)
                 })
                 .cloned()
@@ -657,33 +767,37 @@ impl AppState {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vpn::City;
 
     fn make_servers() -> Vec<Server> {
         vec![
             Server {
                 id: "JP".to_string(),
                 country: "Japan".to_string(),
-                cities: vec!["Tokyo".to_string(), "Osaka".to_string()],
+                cities: vec![
+                    City::new("Tokyo".to_string()),
+                    City::new("Osaka".to_string()),
+                ],
             },
             Server {
                 id: "US".to_string(),
                 country: "United States".to_string(),
-                cities: vec!["New York".to_string()],
+                cities: vec![City::new("New York".to_string())],
             },
             Server {
                 id: "DE".to_string(),
                 country: "Germany".to_string(),
-                cities: vec!["Berlin".to_string()],
+                cities: vec![City::new("Berlin".to_string())],
             },
             Server {
                 id: "GB".to_string(),
                 country: "United Kingdom".to_string(),
-                cities: vec!["London".to_string()],
+                cities: vec![City::new("London".to_string())],
             },
             Server {
                 id: "FR".to_string(),
                 country: "France".to_string(),
-                cities: vec!["Paris".to_string()],
+                cities: vec![City::new("Paris".to_string())],
             },
         ]
     }
@@ -748,7 +862,7 @@ mod tests {
         let result = state.filtered_servers();
 
         assert_eq!(result.len(), 1);
-        assert!(result[0].cities.contains(&"Tokyo".to_string()));
+        assert!(result[0].cities.iter().any(|c| c.name == "Tokyo"));
     }
 
     #[test]

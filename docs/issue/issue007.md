@@ -4,7 +4,39 @@
 
 Create a UI components layer to unify design and improve code reusability across all views.
 
-## Problem Context (Codebase Analysis)
+## Current Implementation Status
+
+### ✅ Completed
+
+1. **Theme struct enhanced** - New fields added: `block_border`, `selection`, `connected`, `key_hint`
+2. **Theme switching implemented** - Both `dark()` and `light()` methods exist
+3. **Components created**:
+   - `components/block.rs` - `centered_block()` function
+   - `components/list.rs` - `styled_list_item()`, `connected_list_item()` functions
+
+### ⚠️ BUG: Theme Switching Broken
+
+**Root Cause**: Only `settings_view.rs` checks `state.is_dark_theme`. All other views use `Theme::default()` which always returns dark theme.
+
+| File | Current Theme Usage | Issue |
+|------|---------------------|-------|
+| `settings_view.rs` | `if state.is_dark_theme { Theme::dark() } else { Theme::light() }` | ✅ Works correctly |
+| `servers_view.rs` | `Theme::default()` | ❌ Always dark |
+| `cities_view.rs` | `Theme::default()` | ❌ Always dark |
+| `logs_view.rs` | `Theme::default()` | ❌ Always dark |
+| `stats_view.rs` | `Theme::default()` | ❌ Always dark |
+| `help_view.rs` | `Theme::default()` | ❌ Always dark |
+
+**Fix Required**: All views must use the same pattern as `settings_view.rs`:
+```rust
+let theme = if state.is_dark_theme {
+    Theme::dark()
+} else {
+    Theme::light()
+};
+```
+
+## Problem Context (Original Analysis)
 
 ### Current Issues
 
@@ -199,16 +231,26 @@ Refactor each view to use new components:
 6. `help_view.rs` - Get key/action colors from theme
 7. `app.rs` - header/footer/notification popup
 
+**IMPORTANT**: All views must check `state.is_dark_theme` to switch between themes:
+```rust
+let theme = if state.is_dark_theme {
+    Theme::dark()
+} else {
+    Theme::light()
+};
+```
+
 ## Acceptance Criteria
 
-- [ ] Add new fields to `Theme` struct: `block_border`, `selection`, `connected`, `key_hint`
-- [ ] Create `components/block.rs` - unified block creation function
-- [ ] Create `components/list.rs` - unified list item creation function
+- [x] Add new fields to `Theme` struct: `block_border`, `selection`, `connected`, `key_hint`
+- [x] Create `components/block.rs` - unified block creation function
+- [x] Create `components/list.rs` - unified list item creation function
 - [ ] Use Theme/Component in all views
-- [ ] Selection uses `> ` prefix + primary color + BOLD
-- [ ] Connected uses `* ` prefix + success color + BOLD
-- [ ] Footer key hints use `key_hint` color
-- [ ] Each view's block title follows unified format `" <ViewName> "`
+- [x] Selection uses `> ` prefix + primary color + BOLD
+- [x] Connected uses `* ` prefix + success color + BOLD
+- [x] Footer key hints use `key_hint` color
+- [x] Each view's block title follows unified format `" <ViewName> "`
+- [ ] **FIX**: All views must check `state.is_dark_theme` for theme switching
 
 ## Notes
 

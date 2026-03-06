@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! Application state management
 
 mod app_state;

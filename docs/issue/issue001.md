@@ -52,10 +52,56 @@ protonvpn config set custom-dns off
 - Show preset list on Enter key in DNS row
 - Requires selection list UI
 
+## Implementation Findings (2026-03-06)
+
+### Current State Analysis
+
+**Already implemented (verified in code):**
+- `VpnClient::toggle_*` methods in `src/vpn/client.rs` (lines 493-534)
+- `AppState::toggle_settings()` in `src/state/app_state.rs` (lines 705-784)
+- Enter key handler in `src/ui/app.rs` (lines 140-152)
+- Notification feedback on success/error
+- Cache invalidation via `OnceLock::new()`
+
+**Missing UX elements:**
+- No keyboard hints in Settings footer (only shows "settings")
+
+### Design Decisions
+
+1. **Input-box (filter) styling**: Filter input at bottom uses `theme.key_hint` for border - this is consistent with the design system
+
+2. **Settings footer**: Add keyboard hints following other views pattern:
+   - `[j/k]` - move
+   - `[Enter]` - toggle / input (for DNS)
+   - `[Space]` - turn off (for DNS)
+
+3. **Custom DNS**: Implemented Option B (Prompt input)
+   - DNS enabled + Enter → input prompt for new IPs
+   - DNS enabled + Space → disable DNS directly
+   - DNS disabled + Enter → input prompt for new IPs
+   - DNS disabled + Space → show "already off"
+
+### Implementation Details (2026-03-06)
+
+**Added:**
+- `InputMode` enum in `src/state/app_state.rs` (Normal, Filter, DnsInput)
+- `dns_input` field to store DNS IPs during input
+- `render_dns_input()` in `src/ui/app.rs`
+- `apply_dns_setting()` method in AppState
+- `set_custom_dns()` / `disable_custom_dns()` in VpnClient/VpnState
+- `toggle_settings_off()` for Space key (turns off DNS directly)
+- Fixed `ProtonCustomDns.ip_list` structure to match actual JSON format
+
+**Keyboard controls:**
+- `Enter` in Settings: Toggle (for DNS: always show input prompt)
+- `Space` in Settings: Turn off (for DNS: disable directly)
+- `c`: Connect (removed from Settings)
+
 ## Acceptance Criteria
 
 - [x] `protonvpn config set` commands implemented in VPN client (basic toggles)
 - [x] Pressing Enter in Settings view triggers the toggle action
 - [x] User receives feedback via notification (success/error)
 - [x] Settings cache invalidates after change
-- [ ] Custom DNS toggle implemented
+- [x] Custom DNS toggle implemented (Option B: Prompt input)
+- [x] Keyboard hints added to Settings footer

@@ -4,7 +4,7 @@
 //! This avoids the overhead of tokio runtime while maintaining the same functionality.
 
 use crate::error::AppError;
-use crate::vpn::VpnState;
+use crate::vpn::{City, VpnState};
 use std::sync::mpsc;
 
 pub type AsyncResult<T> = Result<T, AppError>;
@@ -14,6 +14,7 @@ pub enum AsyncOperation {
     RefreshComplete(Result<Vec<crate::vpn::Server>, AppError>),
     ConnectComplete(Result<(String, Option<String>), AppError>),
     DisconnectComplete(Result<(), AppError>),
+    CitiesComplete(Result<Vec<City>, AppError>),
 }
 
 #[derive(Clone)]
@@ -67,6 +68,32 @@ impl AsyncTaskManager {
         std::thread::spawn(move || {
             let mut state = vpn_state;
             let result = state.connect_random();
+            let _ = sender.send(result);
+        });
+    }
+
+    pub fn spawn_cities(
+        &self,
+        vpn_state: VpnState,
+        country_code: String,
+        sender: mpsc::Sender<AsyncResult<Vec<City>>>,
+    ) {
+        std::thread::spawn(move || {
+            let mut state = vpn_state;
+            let result = state.list_cities_with_features(&country_code);
+            let _ = sender.send(result);
+        });
+    }
+
+    pub fn spawn_connect_city(
+        &self,
+        vpn_state: VpnState,
+        city: String,
+        sender: mpsc::Sender<AsyncResult<(String, Option<String>)>>,
+    ) {
+        std::thread::spawn(move || {
+            let mut state = vpn_state;
+            let result = state.connect_city(&city);
             let _ = sender.send(result);
         });
     }

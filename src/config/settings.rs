@@ -17,7 +17,14 @@ pub struct ProtonSettings {
 pub struct ProtonCustomDns {
     pub enabled: bool,
     #[serde(rename = "ip_list")]
-    pub ip_list: Vec<String>,
+    pub ip_list: Vec<ProtonDnsIp>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ProtonDnsIp {
+    pub ip: String,
+    #[serde(default)]
+    pub enabled: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -47,7 +54,14 @@ impl ProtonSettings {
             .join("VPN")
             .join("settings.json");
         let content = std::fs::read_to_string(config_path).ok()?;
-        serde_json::from_str(&content).ok()
+        let settings: Self = serde_json::from_str(&content).ok()?;
+        tracing::debug!(
+            "Loaded ProtonSettings: killswitch={:?}, ipv6={:?}, dns_enabled={}",
+            settings.killswitch,
+            settings.ipv6,
+            settings.custom_dns.enabled
+        );
+        Some(settings)
     }
 
     pub fn settings_count(&self) -> usize {

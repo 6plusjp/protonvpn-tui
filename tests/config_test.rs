@@ -1,4 +1,4 @@
-use protonvpn_tui::config::{ProtonCustomDns, ProtonFeatures, ProtonSettings};
+use protonvpn_tui::config::{ProtonCustomDns, ProtonDnsIp, ProtonFeatures, ProtonSettings};
 
 mod proton_settings {
     use super::*;
@@ -39,7 +39,10 @@ mod proton_settings {
         let settings = ProtonSettings {
             custom_dns: ProtonCustomDns {
                 enabled: true,
-                ip_list: vec![],
+                ip_list: vec![ProtonDnsIp {
+                    ip: "1.1.1.1".to_string(),
+                    enabled: true,
+                }],
             },
             ..Default::default()
         };
@@ -51,7 +54,10 @@ mod proton_settings {
         let settings = ProtonSettings {
             custom_dns: ProtonCustomDns {
                 enabled: false,
-                ip_list: vec!["1.1.1.1".to_string()],
+                ip_list: vec![ProtonDnsIp {
+                    ip: "1.1.1.1".to_string(),
+                    enabled: true,
+                }],
             },
             ..Default::default()
         };

@@ -341,6 +341,18 @@ impl TuiApp {
     }
 
     fn render(&mut self, f: &mut Frame<'_>) {
+        // Apply theme background to entire terminal
+        let theme = if self.state.is_dark_theme {
+            Theme::dark()
+        } else {
+            Theme::light()
+        };
+        let area = f.size();
+        f.render_widget(
+            Paragraph::new("").style(Style::default().bg(theme.background)),
+            area,
+        );
+
         if self.filter_mode {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
@@ -376,7 +388,11 @@ impl TuiApp {
     }
 
     fn render_filter_input(&self, f: &mut Frame<'_>, area: Rect) {
-        let theme = Theme::default();
+        let theme = if self.state.is_dark_theme {
+            Theme::dark()
+        } else {
+            Theme::light()
+        };
         let prompt = "/ filter: ";
         let input_display = format!("{}{}", prompt, self.filter_input);
         let cursor = if self.filter_input.is_empty() {
@@ -405,7 +421,11 @@ impl TuiApp {
             return;
         };
 
-        let theme = Theme::default();
+        let theme = if self.state.is_dark_theme {
+            Theme::dark()
+        } else {
+            Theme::light()
+        };
         let (fg_color, title) = match notification.notification_type {
             crate::state::NotificationType::Info => (theme.primary, None),
             crate::state::NotificationType::Success => (theme.success, None),
@@ -460,7 +480,11 @@ impl TuiApp {
     }
 
     fn render_header(&self, f: &mut Frame<'_>, area: Rect) {
-        let theme = Theme::default();
+        let theme = if self.state.is_dark_theme {
+            Theme::dark()
+        } else {
+            Theme::light()
+        };
         let title = " ProtonVPN TUI ";
 
         let (connection_status, server_info) = match &self.state.connection {
@@ -539,7 +563,7 @@ impl TuiApp {
             AppView::Logs => {
                 views::logs_view::render_logs_view(&self.state, &mut self.list_state, f, area)
             }
-            AppView::Help => views::help_view::render_help_view(f, area),
+            AppView::Help => views::help_view::render_help_view(&self.state, f, area),
             AppView::Cities => views::cities_view::render_cities_view(
                 &mut self.state,
                 &mut self.list_state,
@@ -550,7 +574,11 @@ impl TuiApp {
     }
 
     fn render_footer(&self, f: &mut Frame<'_>, area: Rect) {
-        let theme = Theme::default();
+        let theme = if self.state.is_dark_theme {
+            Theme::dark()
+        } else {
+            Theme::light()
+        };
         let sort_label = self.state.sort.label();
         let direction_label = self.state.sort_direction.label();
         let sort_display = format!("{} {}", sort_label, direction_label);

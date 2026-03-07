@@ -1,7 +1,4 @@
-use crate::constants::ui::{
-    NOTIFICATION_MSG_MAX_LEN, NOTIFICATION_TIMER_DEFAULT, NOTIFICATION_TIMER_SHORT,
-    POPUP_WIDTH_MAX, POPUP_WIDTH_MIN,
-};
+use crate::constants::ui::{NOTIFICATION_MSG_MAX_LEN, POPUP_WIDTH_MAX, POPUP_WIDTH_MIN};
 use crate::state::{AppState, AppView, InputMode, Pane};
 use crate::ui::styles::Theme;
 use crate::ui::views;
@@ -23,10 +20,9 @@ use std::panic;
 
 pub struct TuiApp {
     state: AppState,
-    notification_timer: u8,
     countries_list_state: ListState,
     cities_list_state: ListState,
-    pending_g: bool, // for gg command
+    pending_g: bool,
     filter_mode: bool,
     filter_input: String,
 }
@@ -44,7 +40,6 @@ impl TuiApp {
 
         Ok(Self {
             state,
-            notification_timer: NOTIFICATION_TIMER_DEFAULT,
             countries_list_state: ListState::default(),
             cities_list_state: ListState::default(),
             pending_g: false,
@@ -72,19 +67,9 @@ impl TuiApp {
             terminal.draw(|f| self.render(f))?;
 
             // Sync connection state (checks for background connection completion)
-            let notification_shown = self.state.sync_connection_state();
+            let _notification_shown = self.state.sync_connection_state();
 
-            if self.notification_timer > 0 {
-                self.notification_timer -= 1;
-                if self.notification_timer == 0 {
-                    self.state.clear_notification();
-                }
-            }
-
-            // Reset timer if sync_connection_state showed a new notification
-            if notification_shown {
-                self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
-            }
+            self.state.tick_notifications();
 
             if event::poll(std::time::Duration::from_millis(100))? {
                 if let Event::Key(key_event) = event::read()? {
@@ -157,20 +142,18 @@ impl TuiApp {
             }
             KeyCode::Char('l') => {
                 self.state.move_to_cities();
-                self.notification_timer = NOTIFICATION_TIMER_SHORT;
+
                 None
             }
             KeyCode::Char('h') => {
                 if self.state.get_pane_focus() == Pane::Cities {
                     self.state.move_to_countries();
-                    self.notification_timer = NOTIFICATION_TIMER_SHORT;
                 }
                 None
             }
             KeyCode::Backspace => {
                 if self.state.get_pane_focus() == Pane::Cities {
                     self.state.move_to_countries();
-                    self.notification_timer = NOTIFICATION_TIMER_SHORT;
                 }
                 None
             }
@@ -179,7 +162,6 @@ impl TuiApp {
                     self.handle_connect();
                 } else {
                     self.state.move_to_cities();
-                    self.notification_timer = NOTIFICATION_TIMER_SHORT;
                 }
                 None
             }
@@ -236,7 +218,6 @@ impl TuiApp {
             KeyCode::Char(' ') => {
                 if let Some(idx) = self.state.settings_selected {
                     self.state.toggle_settings_off(idx);
-                    self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
                 } else {
                     self.state.show_notification(
                         "No setting selected".to_string(),
@@ -248,7 +229,6 @@ impl TuiApp {
             KeyCode::Enter => {
                 if let Some(idx) = self.state.settings_selected {
                     self.state.toggle_settings(idx);
-                    self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
                 } else {
                     self.state.show_notification(
                         "No setting selected".to_string(),
@@ -393,38 +373,31 @@ impl TuiApp {
                 let city_name = self.state.current_cities.get(idx).map(|c| c.name.clone());
                 if let Some(name) = city_name {
                     self.state.connect_city(&name);
-                    self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
                 }
             }
         } else {
             self.state.connect();
-            self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
         }
     }
 
     fn handle_disconnect(&mut self) {
         self.state.disconnect();
-        self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
     }
 
     fn handle_connect_random(&mut self) {
         self.state.connect_random();
-        self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
     }
 
     fn handle_refresh(&mut self) {
         self.state.refresh_servers();
-        self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
     }
 
     fn handle_cycle_sort(&mut self) {
         self.state.cycle_sort();
-        self.notification_timer = NOTIFICATION_TIMER_SHORT;
     }
 
     fn handle_cycle_sort_field(&mut self) {
         self.state.cycle_sort_field();
-        self.notification_timer = NOTIFICATION_TIMER_SHORT;
     }
 
     fn handle_filter_input(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
@@ -448,12 +421,10 @@ impl TuiApp {
                     self.state.input_mode = InputMode::Normal;
                     if !dns_ips.is_empty() {
                         self.state.apply_dns_setting(&dns_ips);
-                        self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
                     }
                 } else {
                     self.state.set_search_query(self.filter_input.clone());
                     self.filter_mode = false;
-                    self.notification_timer = NOTIFICATION_TIMER_SHORT;
                 }
                 None
             }
@@ -530,7 +501,7 @@ impl TuiApp {
         }
 
         // Render notification as popup last (on top)
-        if self.state.notification.is_some() {
+        if !self.state.notifications.is_empty() {
             self.render_notification_popup(f);
         }
     }
@@ -588,62 +559,71 @@ impl TuiApp {
     }
 
     fn render_notification_popup(&self, f: &mut Frame<'_>) {
-        let Some(ref notification) = self.state.notification else {
-            return;
-        };
-
         let theme = self.get_theme();
-        let (fg_color, title) = match notification.notification_type {
-            crate::state::NotificationType::Info => (theme.primary, None),
-            crate::state::NotificationType::Success => (theme.success, None),
-            crate::state::NotificationType::Error => {
-                let title = if notification.message.contains("Disconnect") {
-                    Some("Disconnect failed")
-                } else if notification.message.contains("Connect")
-                    || notification.message.contains("Connection")
-                {
-                    Some("Connection failed")
-                } else {
-                    Some("Error")
-                };
-                (theme.error, title)
-            }
-        };
-
-        let raw_msg = &notification.message;
-        let msg_single_line = raw_msg.replace('\n', " ");
-        let max_len = NOTIFICATION_MSG_MAX_LEN;
-        let message = if msg_single_line.len() > max_len {
-            msg_single_line[..max_len - 3].to_string()
-        } else {
-            msg_single_line
-        };
-
-        let popup_width = (message.len() + 4).clamp(POPUP_WIDTH_MIN, POPUP_WIDTH_MAX) as u16;
-        let popup_height = if title.is_some() { 4 } else { 3 };
-
         let terminal = f.size();
-        let x = terminal.width.saturating_sub(popup_width + 1);
-        let y = 1;
-        let area = Rect::new(x, y, popup_width, popup_height);
 
-        let mut lines = Vec::new();
-        if let Some(title) = title {
-            lines.push(Line::from(title).centered());
+        let notifications: Vec<_> = self.state.notifications.iter().rev().collect();
+
+        for (i, notification) in notifications.iter().enumerate() {
+            let position_from_bottom = i;
+            let popup_height = 3u16;
+
+            let y = terminal
+                .height
+                .saturating_sub(3 + (position_from_bottom as u16 * popup_height));
+            if y < 1 {
+                break;
+            }
+
+            let (fg_color, title) = match notification.notification_type {
+                crate::state::NotificationType::Info => (theme.primary, None),
+                crate::state::NotificationType::Success => (theme.success, None),
+                crate::state::NotificationType::Error => {
+                    let title = if notification.message.contains("Disconnect") {
+                        Some("Disconnect failed")
+                    } else if notification.message.contains("Connect")
+                        || notification.message.contains("Connection")
+                    {
+                        Some("Connection failed")
+                    } else {
+                        Some("Error")
+                    };
+                    (theme.error, title)
+                }
+            };
+
+            let raw_msg = &notification.message;
+            let msg_single_line = raw_msg.replace('\n', " ");
+            let max_len = NOTIFICATION_MSG_MAX_LEN;
+            let message = if msg_single_line.len() > max_len {
+                msg_single_line[..max_len - 3].to_string()
+            } else {
+                msg_single_line
+            };
+
+            let popup_width = (message.len() + 4).clamp(POPUP_WIDTH_MIN, POPUP_WIDTH_MAX) as u16;
+
+            let x = terminal.width.saturating_sub(popup_width + 1);
+            let area = Rect::new(x, y, popup_width, popup_height);
+
+            let mut lines = Vec::new();
+            if let Some(title) = title {
+                lines.push(Line::from(title).centered());
+            }
+            lines.push(Line::from(message.as_str()).centered());
+
+            let block = Block::bordered()
+                .border_style(Style::default().fg(fg_color))
+                .style(Style::default().fg(theme.foreground).bg(theme.background));
+
+            let paragraph = Paragraph::new(lines)
+                .block(block)
+                .style(Style::default().fg(theme.foreground))
+                .alignment(ratatui::layout::Alignment::Center);
+
+            f.render_widget(Clear, area);
+            f.render_widget(paragraph, area);
         }
-        lines.push(Line::from(message.as_str()).centered());
-
-        let block = Block::bordered()
-            .border_style(Style::default().fg(fg_color))
-            .style(Style::default().fg(theme.foreground).bg(theme.background));
-
-        let paragraph = Paragraph::new(lines)
-            .block(block)
-            .style(Style::default().fg(theme.foreground))
-            .alignment(ratatui::layout::Alignment::Center);
-
-        f.render_widget(Clear, area);
-        f.render_widget(paragraph, area);
     }
 
     fn render_header(&mut self, f: &mut Frame<'_>, area: Rect) {

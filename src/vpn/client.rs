@@ -88,8 +88,7 @@ impl VpnClient {
 
         self.check_cli_error(&output, &stdout, &stderr)?;
 
-        let combined = format!("{} {}", stdout, stderr);
-        let (server_id, ip, _city, _country) = self.parse_connect_output(&combined);
+        let (server_id, ip, _city, _country) = self.parse_connect_output(&stdout);
 
         let final_server = if !server_id.is_empty() {
             server_id
@@ -114,8 +113,7 @@ impl VpnClient {
 
         self.check_cli_error(&output, &stdout, &stderr)?;
 
-        let combined = format!("{} {}", stdout, stderr);
-        let (server_id, ip, _city, _country) = self.parse_connect_output(&combined);
+        let (server_id, ip, _city, _country) = self.parse_connect_output(&stdout);
 
         let final_server = if !server_id.is_empty() {
             server_id
@@ -140,8 +138,7 @@ impl VpnClient {
 
         self.check_cli_error(&output, &stdout, &stderr)?;
 
-        let combined = format!("{} {}", stdout, stderr);
-        let (server_id, ip, _city, _country) = self.parse_connect_output(&combined);
+        let (server_id, ip, _city, _country) = self.parse_connect_output(&stdout);
 
         let final_server = if !server_id.is_empty() {
             server_id

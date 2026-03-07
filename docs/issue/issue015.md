@@ -1,6 +1,6 @@
 # issue015: Countries Pane - Highlight Priority & City Parsing Bug
 
-## Status: PARTIALLY RESOLVED (2026-03-07)
+## Status: RESOLVED (2026-03-07)
 
 ## Summary
 
@@ -8,7 +8,7 @@ Three issues identified in the Countries/Cities Pane:
 
 1. ✅ **RESOLVED**: Highlight priority - check `is_selected` before `is_connected`
 2. ✅ **RESOLVED**: City names with spaces - use 2+ consecutive whitespaces as delimiter
-3. ⚠️ **NOT RESOLVED**: Connect output parsing - still has issues
+3. ✅ **RESOLVED**: Connect parsing - use stdout only (not combined with stderr)
 
 ---
 
@@ -65,21 +65,39 @@ while let Some((start, c)) = chars.next() {
 
 ---
 
-## Issue 3: Connect Output Parsing Error ⚠️ NOT RESOLVED
+## Issue 3: Connect Output Parsing Error ⚠️ RESOLVED
 
 ### Location
-`src/vpn/client.rs` - `parse_connect_output` function
-
-### Current Status
-The fix was applied to find "Connected to" line first, but there are still edge cases that need investigation.
+`src/vpn/client.rs` - `connect` function (lines 79-103)
 
 ### Problem Description
-When parsing `protonvpn connect` output:
-- Traceback with IP-like numbers may cause wrong IP extraction
-- "Server list outdated" message appearing first may cause issues
+When `protonvpn connect` is executed, the output may contain both success message AND error/traceback:
 
-### Next Steps
-Need to investigate actual failing cases to understand what's still broken.
+```
+stdout: "Connected to JP#255 in Tokyo, Japan. Your new IP address is 159.26.119.30."
+stderr: "ERROR | exception calling callback..."
+```
+
+When combined: `"Connected to JP#255... 159.26.119.30.ERROR | exception..."`
+
+This causes IP parsing to fail because "ERROR" appears after the IP address.
+
+### Root Cause
+The code was using `stdout + stderr` combined for parsing:
+```rust
+let combined = format!("{} {}", stdout, stderr);
+let (server_id, ip, _city, _country) = self.parse_connect_output(&combined);
+```
+
+### Fix Applied
+Use only stdout for parsing (success messages go to stdout):
+```rust
+let (server_id, ip, _city, _country) = self.parse_connect_output(&stdout);
+```
+
+### Expected Behavior
+- `check_cli_error` uses combined output (to detect errors)
+- `parse_connect_output` uses stdout only (success messages are in stdout)
 
 ---
 

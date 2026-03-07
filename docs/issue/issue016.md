@@ -7,7 +7,8 @@
 - **Category 3 (Architecture)**: 📋 Pending
 - **Category 4 (Missing Logging)**: ✅ COMPLETED (2026-03-07)
 - **Category 5 (Potential Bugs)**: ✅ COMPLETED (2026-03-07)
-- **Category 6-8**: 📋 Pending
+- **Category 6 (Code Quality)**: ✅ COMPLETED (2026-03-07)
+- **Category 7-8**: 📋 Pending
 
 ## Summary
 
@@ -271,6 +272,12 @@ strip = true  # Reduce binary size
 - Fixed Mutex unwrap in `app_state.rs` - replaced `.lock().unwrap()` with proper error handling using `match`
 - Fixed Index Bounds issue - added validation for empty `connected_id` before using it
 - Fixed Cache Race Conditions - refactored `save_cache` to clone data inside lock and perform I/O outside lock
+
+### Category 6: Code Quality - ✅ COMPLETED (2026-03-07)
+- Fixed magic number in `app.rs` - replaced `notification_timer: 30` with constant
+- Added doc comments to key public APIs in `vpn/client.rs` (connect, connect_random, connect_city, disconnect, is_connected, etc.)
+- Added doc comments to key public APIs in `app_state.rs` (get_theme, sync_connection_state, filtered_servers)
+- Note: Splitting handle_key() and render() functions skipped - large refactoring, marked as Low Priority in backlog
 
 ---
 

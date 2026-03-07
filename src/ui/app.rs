@@ -44,7 +44,7 @@ impl TuiApp {
 
         Ok(Self {
             state,
-            notification_timer: 30,
+            notification_timer: NOTIFICATION_TIMER_DEFAULT,
             countries_list_state: ListState::default(),
             cities_list_state: ListState::default(),
             pending_g: false,

@@ -205,6 +205,7 @@ impl AppState {
         }
     }
 
+    /// Get current theme based on dark/light mode
     pub fn get_theme(&self) -> Theme {
         if self.is_dark_theme {
             Theme::dark()
@@ -269,6 +270,7 @@ impl AppState {
 
     /// Sync connection state with background tasks.
     /// Returns true if any notification was shown during sync.
+    /// Sync connection state with system (call periodically)
     pub fn sync_connection_state(&mut self) -> bool {
         let mut notification_shown = false;
         // Check for pending server refresh result
@@ -579,6 +581,7 @@ impl AppState {
             .spawn_connect_city(self.vpn_state.clone(), city, tx);
     }
 
+    /// Get filtered and sorted server list
     pub fn filtered_servers(&self) -> Vec<Server> {
         let version = self.filtered_servers_version;
         let cached = match self.filtered_servers_cache.lock() {

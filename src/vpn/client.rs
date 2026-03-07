@@ -86,6 +86,7 @@ impl VpnClient {
         cache_data.save(cache_path)
     }
 
+    /// Connect to a server by country code
     pub fn connect(&self, target: &str) -> AppResult<(String, Option<String>)> {
         let output = Command::new(&self.cli_path)
             .args(["connect", "--country", target])
@@ -111,6 +112,7 @@ impl VpnClient {
         Ok((final_server, ip))
     }
 
+    /// Connect to a random server
     pub fn connect_random(&self) -> AppResult<(String, Option<String>)> {
         let output = Command::new(&self.cli_path)
             .args(["connect", "--random"])
@@ -136,6 +138,7 @@ impl VpnClient {
         Ok((final_server, ip))
     }
 
+    /// Connect to a server by city name
     pub fn connect_city(&self, city: &str) -> AppResult<(String, Option<String>)> {
         let output = Command::new(&self.cli_path)
             .args(["connect", "--city", city])
@@ -242,6 +245,7 @@ impl VpnClient {
         (server_id, ip, city, country)
     }
 
+    /// Disconnect from VPN
     pub fn disconnect(&self) -> AppResult<()> {
         let result = Command::new(&self.cli_path).args(["disconnect"]).output();
         if let Err(e) = result {
@@ -263,6 +267,7 @@ impl VpnClient {
     }
 
     /// Check if connected using system-level check (proton0 interface)
+    /// Check if VPN is connected (by checking proton0 interface)
     pub fn is_connected(&self) -> bool {
         // Check proton0 interface for active connection
         match Command::new("ip")
@@ -278,12 +283,14 @@ impl VpnClient {
         }
     }
 
+    /// Get currently connected server name
     pub fn get_connected_server(&self) -> Option<String> {
         self.with_cache(|c| c.connected_server.clone())
             .ok()
             .flatten()
     }
 
+    /// Get VPN IP address if connected
     pub fn get_vpn_ip(&self) -> Option<String> {
         self.with_cache(|c| c.connected_ip.clone()).ok().flatten()
     }
@@ -292,6 +299,7 @@ impl VpnClient {
         self.with_cache(|c| c.matches_ip(ip)).is_ok_and(|r| r)
     }
 
+    /// Get countries map (code -> name)
     pub fn get_countries(&self) -> AppResult<HashMap<String, String>> {
         let is_empty = self.with_cache(|c| c.countries.is_empty())?;
         if is_empty {
@@ -466,6 +474,7 @@ impl VpnClient {
         cities
     }
 
+    /// List all available servers
     pub fn list_servers(&self) -> AppResult<Vec<Server>> {
         let is_stale = self.with_cache(|c| c.is_stale())?;
         let is_empty = self.with_cache(|c| c.countries.is_empty())?;
@@ -477,6 +486,7 @@ impl VpnClient {
         self.refresh_servers()
     }
 
+    /// Get cached servers (non-refreshing)
     pub fn get_servers(&self) -> Vec<Server> {
         let countries = match self.with_cache(|c| c.countries.clone()) {
             Ok(c) => c,

@@ -131,15 +131,9 @@ impl TuiApp {
                     }
                 } else {
                     match self.state.current_view {
-                        AppView::Cities => {
-                            if let Some(idx) = self.state.selected_server {
-                                let city_name =
-                                    self.state.current_cities.get(idx).map(|c| c.name.clone());
-                                if let Some(name) = city_name {
-                                    self.state.connect_city(&name);
-                                    self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
-                                }
-                            }
+                        AppView::Settings => {
+                            self.state.connect();
+                            self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
                         }
                         _ => {
                             self.state.connect();
@@ -216,16 +210,6 @@ impl TuiApp {
                             self.notification_timer = NOTIFICATION_TIMER_SHORT;
                         }
                     }
-                    AppView::Cities => {
-                        if let Some(idx) = self.state.selected_server {
-                            let city_name =
-                                self.state.current_cities.get(idx).map(|c| c.name.clone());
-                            if let Some(name) = city_name {
-                                self.state.connect_city(&name);
-                                self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
-                            }
-                        }
-                    }
                     _ => {}
                 }
                 None
@@ -241,7 +225,6 @@ impl TuiApp {
                 } else {
                     match self.state.current_view {
                         AppView::Servers => self.state.select_page_down(),
-                        AppView::Cities => self.state.select_page_down(),
                         AppView::Settings => {
                             self.state.settings_select_page_down();
                         }
@@ -281,7 +264,6 @@ impl TuiApp {
                 } else {
                     match self.state.current_view {
                         AppView::Servers => self.state.select_next(),
-                        AppView::Cities => self.state.select_next(),
                         AppView::Settings => {
                             self.state.settings_select_next();
                         }
@@ -301,10 +283,6 @@ impl TuiApp {
                 } else {
                     match self.state.current_view {
                         AppView::Servers => {
-                            self.state.select_prev();
-                            self.pending_g = false;
-                        }
-                        AppView::Cities => {
                             self.state.select_prev();
                             self.pending_g = false;
                         }
@@ -329,7 +307,6 @@ impl TuiApp {
                     } else {
                         match self.state.current_view {
                             AppView::Servers => self.state.select_first(),
-                            AppView::Cities => self.state.select_first(),
                             AppView::Settings => {
                                 self.state.settings_select_first();
                             }
@@ -353,7 +330,6 @@ impl TuiApp {
                 } else {
                     match self.state.current_view {
                         AppView::Servers => self.state.select_last(),
-                        AppView::Cities => self.state.select_last(),
                         AppView::Settings => {
                             self.state.settings_select_last();
                         }
@@ -374,7 +350,6 @@ impl TuiApp {
                 } else {
                     match self.state.current_view {
                         AppView::Servers => self.state.select_page_up(),
-                        AppView::Cities => self.state.select_page_up(),
                         AppView::Settings => {
                             self.state.settings_select_page_up();
                         }
@@ -401,11 +376,6 @@ impl TuiApp {
             KeyCode::Esc => {
                 if self.state.current_view == AppView::Servers {
                     // Just clear filter - cities panel stays open
-                } else if self.state.current_view == AppView::Cities {
-                    self.state.current_view = AppView::Servers;
-                    self.state.current_cities.clear();
-                    self.state.current_country_code = None;
-                    self.state.selected_server = Some(0);
                 }
                 None
             }
@@ -749,12 +719,6 @@ impl TuiApp {
                 area,
             ),
             AppView::Help => views::help_view::render_help_view(&self.state, f, area),
-            AppView::Cities => views::cities_view::render_cities_view(
-                &mut self.state,
-                &mut self.cities_list_state,
-                f,
-                area,
-            ),
         }
     }
 
@@ -811,17 +775,6 @@ impl TuiApp {
                     ]
                 }
             }
-            AppView::Cities => vec![
-                Span::raw("["),
-                Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                Span::raw("] move | "),
-                Span::raw("["),
-                Span::styled("c/Enter", Style::default().fg(theme.key_hint)),
-                Span::raw("] connect | "),
-                Span::raw("["),
-                Span::styled("Esc", Style::default().fg(theme.key_hint)),
-                Span::raw("] back"),
-            ],
             AppView::Settings => vec![
                 Span::raw("["),
                 Span::styled("j/k", Style::default().fg(theme.key_hint)),

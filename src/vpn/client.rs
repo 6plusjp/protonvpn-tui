@@ -157,6 +157,11 @@ impl VpnClient {
         stdout: &str,
         stderr: &str,
     ) -> AppResult<()> {
+        // If "Connected to" is in stdout, connection succeeded (ignore stderr errors)
+        if stdout.to_lowercase().contains("connected to ") {
+            return Ok(());
+        }
+
         let combined = format!("{} {}", stdout, stderr).to_lowercase();
 
         if combined.contains("error:") || !output.status.success() {

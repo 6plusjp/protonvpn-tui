@@ -214,6 +214,33 @@ impl AppState {
         }
     }
 
+    // === Getters for tight coupling reduction ===
+
+    /// Get current connection state
+    pub fn get_connection(&self) -> &ConnectionState {
+        &self.connection
+    }
+
+    /// Get current view
+    pub fn get_current_view(&self) -> crate::state::AppView {
+        self.current_view
+    }
+
+    /// Get current pane focus
+    pub fn get_pane_focus(&self) -> Pane {
+        self.pane_focus
+    }
+
+    /// Get selected server index
+    pub fn get_selected_server(&self) -> Option<usize> {
+        self.selected_server
+    }
+
+    /// Get selected city index
+    pub fn get_selected_city(&self) -> Option<usize> {
+        self.selected_city
+    }
+
     pub fn set_search_query(&mut self, query: String) {
         self.search_query = query;
         self.invalidate_filtered_cache();

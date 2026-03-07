@@ -9,6 +9,7 @@ use crate::state::Pane;
 use crate::state::ServerFilter;
 use crate::state::ServerSort;
 use crate::state::SortDirection;
+use crate::ui::styles::Theme;
 use crate::vpn::Server;
 use crate::vpn::VpnState;
 use std::sync::mpsc;
@@ -201,6 +202,14 @@ impl AppState {
             proton_settings_cache: ProtonSettings::load(),
             filtered_servers_cache: Mutex::new(None),
             filtered_servers_version: 0,
+        }
+    }
+
+    pub fn get_theme(&self) -> Theme {
+        if self.is_dark_theme {
+            Theme::dark()
+        } else {
+            Theme::light()
         }
     }
 

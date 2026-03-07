@@ -3,7 +3,8 @@
 ## Status
 
 - **Category 1 (Error Handling)**: ✅ COMPLETED (2026-03-07)
-- **Category 2-8**: 📋 Pending
+- **Category 2 (Code Duplication)**: ✅ COMPLETED (2026-03-07)
+- **Category 3-8**: 📋 Pending
 
 ## Summary
 
@@ -226,7 +227,7 @@ strip = true  # Reduce binary size
 3. ~~Fix silent error ignorance in disconnect~~ ✅ DONE
 
 ### Medium Priority (Plan Soon)
-4. Extract theme helper method
+4. ~~Extract theme helper method~~ ✅ DONE
 5. Add thread pool for async operations
 6. Document public APIs
 
@@ -245,6 +246,13 @@ strip = true  # Reduce binary size
 - Fixed `src/vpn/client.rs:236` - added warning log for disconnect command failures
 - Fixed `src/vpn/client.rs:279,370` - replaced `.ok().unwrap_or(false)` with `.is_ok_and()`
 - Fixed `src/vpn/client.rs:467-469,478` - replaced silent `.unwrap_or_default()` with explicit error logging
+
+### Category 2: Code Duplication - ✅ COMPLETED (2026-03-07)
+- Added `get_theme()` method to `AppState` for shared theme access
+- Added `get_theme()` method to `TuiApp` for shared theme access
+- Replaced 6 duplicate theme initializations in `src/ui/app.rs`
+- Replaced 5 duplicate theme initializations in view files (`servers_view.rs`, `settings_view.rs`, `logs_view.rs`, `help_view.rs`, `stats_view.rs`)
+- Removed unused `Theme` imports from view files
 
 ---
 

@@ -18,11 +18,7 @@ pub fn render_servers_view(
     f: &mut Frame<'_>,
     area: Rect,
 ) {
-    let theme = if state.is_dark_theme {
-        Theme::dark()
-    } else {
-        Theme::light()
-    };
+    let theme = state.get_theme();
 
     let chunks = Layout::default()
         .direction(Direction::Horizontal)

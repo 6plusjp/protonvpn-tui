@@ -1,5 +1,4 @@
 use crate::ui::components::{centered_block, styled_list_item};
-use crate::ui::styles::Theme;
 use ratatui::{
     layout::Rect,
     style::Style,
@@ -10,11 +9,7 @@ use ratatui::{
 use crate::AppState;
 
 pub fn render_settings_view(state: &mut AppState, f: &mut Frame<'_>, area: Rect) {
-    let theme = if state.is_dark_theme {
-        Theme::dark()
-    } else {
-        Theme::light()
-    };
+    let theme = state.get_theme();
     let block = centered_block("Settings", &theme);
 
     let proton_settings = state.get_proton_settings();

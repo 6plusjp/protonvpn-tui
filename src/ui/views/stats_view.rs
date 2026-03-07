@@ -1,5 +1,4 @@
 use crate::ui::components::centered_block;
-use crate::ui::styles::Theme;
 use ratatui::{
     layout::Rect,
     style::Style,
@@ -10,11 +9,7 @@ use ratatui::{
 use crate::state::ConnectionState;
 
 pub fn render_stats_view(state: &mut crate::AppState, f: &mut Frame<'_>, area: Rect) {
-    let theme = if state.is_dark_theme {
-        Theme::dark()
-    } else {
-        Theme::light()
-    };
+    let theme = state.get_theme();
     let block = centered_block("Statistics", &theme);
 
     let proton_settings = state.get_proton_settings();

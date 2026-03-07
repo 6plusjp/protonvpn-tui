@@ -1,6 +1,5 @@
 use crate::state::{AppState, NotificationType};
 use crate::ui::components::centered_block;
-use crate::ui::styles::Theme;
 use ratatui::{
     layout::Rect,
     style::Style,
@@ -15,11 +14,7 @@ pub fn render_logs_view(
     f: &mut Frame<'_>,
     area: Rect,
 ) {
-    let theme = if state.is_dark_theme {
-        Theme::dark()
-    } else {
-        Theme::light()
-    };
+    let theme = state.get_theme();
     let block = centered_block("Logs", &theme);
 
     let items: Vec<ListItem> = state

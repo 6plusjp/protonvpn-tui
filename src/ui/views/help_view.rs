@@ -1,5 +1,4 @@
 use crate::ui::components::{centered_block, key_span, primary_style};
-use crate::ui::styles::Theme;
 use ratatui::{
     layout::Rect,
     text::{Line, Span},
@@ -10,11 +9,7 @@ use ratatui::{
 use crate::AppState;
 
 pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
-    let theme = if state.is_dark_theme {
-        Theme::dark()
-    } else {
-        Theme::light()
-    };
+    let theme = state.get_theme();
     let block = centered_block("Help", &theme);
 
     let help_text = vec![

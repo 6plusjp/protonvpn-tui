@@ -53,6 +53,14 @@ impl TuiApp {
         })
     }
 
+    pub fn get_theme(&self) -> Theme {
+        if self.state.is_dark_theme {
+            Theme::dark()
+        } else {
+            Theme::light()
+        }
+    }
+
     pub fn run(&mut self) -> io::Result<()> {
         execute!(io::stdout(), EnterAlternateScreen)?;
         enable_raw_mode()?;
@@ -437,11 +445,7 @@ impl TuiApp {
 
     fn render(&mut self, f: &mut Frame<'_>) {
         // Apply theme background to entire terminal
-        let theme = if self.state.is_dark_theme {
-            Theme::dark()
-        } else {
-            Theme::light()
-        };
+        let theme = self.get_theme();
         let area = f.size();
         f.render_widget(
             Paragraph::new("").style(Style::default().bg(theme.background)),
@@ -496,11 +500,7 @@ impl TuiApp {
     }
 
     fn render_filter_input(&self, f: &mut Frame<'_>, area: Rect) {
-        let theme = if self.state.is_dark_theme {
-            Theme::dark()
-        } else {
-            Theme::light()
-        };
+        let theme = self.get_theme();
         let prompt = "/ filter: ";
         let input_display = format!("{}{}", prompt, self.filter_input);
         let cursor = if self.filter_input.is_empty() {
@@ -526,11 +526,7 @@ impl TuiApp {
     }
 
     fn render_dns_input(&self, f: &mut Frame<'_>, area: Rect) {
-        let theme = if self.state.is_dark_theme {
-            Theme::dark()
-        } else {
-            Theme::light()
-        };
+        let theme = self.get_theme();
         let prompt = "DNS IPs (comma-separated): ";
         let input_display = format!("{}{}", prompt, self.state.dns_input);
         let cursor = if self.state.dns_input.is_empty() {
@@ -560,11 +556,7 @@ impl TuiApp {
             return;
         };
 
-        let theme = if self.state.is_dark_theme {
-            Theme::dark()
-        } else {
-            Theme::light()
-        };
+        let theme = self.get_theme();
         let (fg_color, title) = match notification.notification_type {
             crate::state::NotificationType::Info => (theme.primary, None),
             crate::state::NotificationType::Success => (theme.success, None),
@@ -619,11 +611,7 @@ impl TuiApp {
     }
 
     fn render_header(&mut self, f: &mut Frame<'_>, area: Rect) {
-        let theme = if self.state.is_dark_theme {
-            Theme::dark()
-        } else {
-            Theme::light()
-        };
+        let theme = self.get_theme();
 
         let (status_text, status_color): (String, _) = match &self.state.connection {
             crate::state::ConnectionState::Disconnected => {
@@ -723,11 +711,7 @@ impl TuiApp {
     }
 
     fn render_footer(&self, f: &mut Frame<'_>, area: Rect) {
-        let theme = if self.state.is_dark_theme {
-            Theme::dark()
-        } else {
-            Theme::light()
-        };
+        let theme = self.get_theme();
         let sort_label = self.state.sort.label();
         let direction_label = self.state.sort_direction.label();
         let _sort_display = format!("{} {}", sort_label, direction_label);

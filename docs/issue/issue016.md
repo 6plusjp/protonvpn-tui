@@ -1,14 +1,24 @@
 # issue016: Code Review - Potential Improvements
 
-## Status
+## Completed Categories (Done)
 
 - **Category 1 (Error Handling)**: ✅ COMPLETED (2026-03-07)
 - **Category 2 (Code Duplication)**: ✅ COMPLETED (2026-03-07)
-- **Category 3 (Architecture)**: ✅ COMPLETED (2026-03-07)
 - **Category 4 (Missing Logging)**: ✅ COMPLETED (2026-03-07)
 - **Category 5 (Potential Bugs)**: ✅ COMPLETED (2026-03-07)
 - **Category 6 (Code Quality)**: ✅ COMPLETED (2026-03-07)
-- **Category 7-8**: 📋 Pending (Category 7: Testing, Category 8: Configuration)
+  - Note: Splitting handle_key() and render() functions was skipped (large refactoring, marked as backlog)
+
+## Partially Completed Categories
+
+- **Category 3 (Architecture)**: ⚠️ PARTIALLY COMPLETED (2026-03-07)
+  - ✅ Completed: Thread pool implementation, is_connected() error handling
+  - ❌ NOT Completed: 3.2 Tight Coupling (getter methods for connection, current_view, pane_focus, selected_server)
+
+## Pending Categories (Not Completed)
+
+- **Category 7 (Testing)**: ⏳ PENDING
+- **Category 8 (Configuration)**: ⏳ PENDING
 
 ## Summary
 
@@ -221,24 +231,7 @@ Release profile could benefit from security-focused flags:
 strip = true  # Reduce binary size
 ```
 
----
 
-## Priority Recommendations
-
-### High Priority (Fix Soon)
-1. ~~Error handling improvements - replace unwraps with proper error handling~~ ✅ DONE
-2. ~~Add logging for connection state changes~~ ✅ DONE (included in #1)
-3. ~~Fix silent error ignorance in disconnect~~ ✅ DONE
-
-### Medium Priority (Plan Soon)
-4. ~~Extract theme helper method~~ ✅ DONE
-5. ~~Add thread pool for async operations~~ ✅ DONE
-6. Document public APIs
-
-### Low Priority (Backlog)
-7. Split long functions
-8. Add more tests
-9. Configure dependency versions
 
 ---
 
@@ -287,6 +280,30 @@ strip = true  # Reduce binary size
 - Added doc comments to key public APIs in `vpn/client.rs` (connect, connect_random, connect_city, disconnect, is_connected, etc.)
 - Added doc comments to key public APIs in `app_state.rs` (get_theme, sync_connection_state, filtered_servers)
 - Note: Splitting handle_key() and render() functions skipped - large refactoring, marked as Low Priority in backlog
+
+---
+
+## Remaining Issues (Priority Order)
+
+### High Priority
+
+| Issue | Description | Category |
+|-------|-------------|----------|
+| **3.2 Tight Coupling** | Add getter methods to `AppState` for `connection`, `current_view`, `pane_focus`, `selected_server` to reduce direct field access | Category 3 |
+
+### Medium Priority
+
+| Issue | Description | Category |
+|-------|-------------|----------|
+| **7.1 Test Coverage** | Add tests for async operations, UI rendering, and VPN operations | Category 7 |
+
+### Low Priority
+
+| Issue | Description | Category |
+|-------|-------------|----------|
+| **7.2 Test Code Improvements** | Refactor test code to replace `unwrap()` with cleaner patterns | Category 7 |
+| **8.1 Dependency Versions** | Use strict version constraints (e.g., `=X.Y.Z`) for critical dependencies in Cargo.toml | Category 8 |
+| **8.2 Security Flags** | Add security-focused flags to release profile (e.g., `strip = true`) | Category 8 |
 
 ---
 

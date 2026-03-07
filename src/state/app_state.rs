@@ -241,7 +241,10 @@ impl AppState {
         self.notification = None;
     }
 
-    pub fn sync_connection_state(&mut self) {
+    /// Sync connection state with background tasks.
+    /// Returns true if any notification was shown during sync.
+    pub fn sync_connection_state(&mut self) -> bool {
+        let mut notification_shown = false;
         // Check for pending server refresh result
         if let Some(rx) = self.pending_refresh.as_mut() {
             if let Ok(result) = rx.try_recv() {
@@ -252,12 +255,14 @@ impl AppState {
                             format!("Refreshed {} servers", self.servers.len()),
                             NotificationType::Success,
                         );
+                        notification_shown = true;
                     }
                     Err(e) => {
                         self.show_notification(
                             format!("Refresh failed: {}", e),
                             NotificationType::Error,
                         );
+                        notification_shown = true;
                     }
                 }
                 self.pending_refresh = None;
@@ -281,7 +286,7 @@ impl AppState {
                             };
                             self.previous_connection = None;
                             self.pending_connect = None;
-                            return;
+                            return true;
                         }
                         Err(e) => {
                             if let Some(prev) = self.previous_connection.take() {
@@ -294,7 +299,7 @@ impl AppState {
                                 NotificationType::Error,
                             );
                             self.pending_connect = None;
-                            return;
+                            return true;
                         }
                     }
                 }
@@ -311,6 +316,7 @@ impl AppState {
                                 "Disconnected".to_string(),
                                 NotificationType::Info,
                             );
+                            notification_shown = true;
                             self.previous_connection = None;
                             self.pending_disconnect = None;
                         }
@@ -324,6 +330,7 @@ impl AppState {
                                 format!("Disconnect failed: {}", e),
                                 NotificationType::Error,
                             );
+                            notification_shown = true;
                             self.pending_disconnect = None;
                         }
                     }
@@ -343,12 +350,14 @@ impl AppState {
                             format!("Loaded {} cities", cities.len()),
                             NotificationType::Success,
                         );
+                        notification_shown = true;
                     }
                     Err(e) => {
                         self.show_notification(
                             format!("Failed to load cities: {}", e),
                             NotificationType::Error,
                         );
+                        notification_shown = true;
                     }
                 }
                 self.pending_cities = None;
@@ -365,6 +374,7 @@ impl AppState {
                             format!("Connected to {}", &server),
                             NotificationType::Success,
                         );
+                        notification_shown = true;
                         self.connection = ConnectionState::Connected {
                             server,
                             ip: ip.unwrap_or_default(),
@@ -382,6 +392,7 @@ impl AppState {
                             format!("Connection failed: {}", e),
                             NotificationType::Error,
                         );
+                        notification_shown = true;
                         self.pending_connect_city = None;
                     }
                 }
@@ -391,7 +402,7 @@ impl AppState {
         // When already connected, don't keep checking system state
         // This prevents flickering between connected/disconnected
         if self.connection.is_connected() {
-            return;
+            return notification_shown;
         }
 
         // When disconnected, check if externally connected
@@ -401,6 +412,8 @@ impl AppState {
                 ip: String::new(),
             };
         }
+
+        notification_shown
     }
 
     pub fn refresh_servers(&mut self) {

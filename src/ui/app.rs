@@ -62,13 +62,18 @@ impl TuiApp {
             terminal.draw(|f| self.render(f))?;
 
             // Sync connection state (checks for background connection completion)
-            self.state.sync_connection_state();
+            let notification_shown = self.state.sync_connection_state();
 
             if self.notification_timer > 0 {
                 self.notification_timer -= 1;
                 if self.notification_timer == 0 {
                     self.state.clear_notification();
                 }
+            }
+
+            // Reset timer if sync_connection_state showed a new notification
+            if notification_shown {
+                self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
             }
 
             if event::poll(std::time::Duration::from_millis(100))? {

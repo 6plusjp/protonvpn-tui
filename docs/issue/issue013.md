@@ -77,7 +77,7 @@ Create a new `AppView::ServersWithCities` variant that handles the split-pane lo
 
 ## Related Issues
 
-- issue011: Cursor resets when returning from Cities (will be resolved by this)
+- resolved_issue011: Cursor resets when returning from Cities (RESOLVED)
 - issue012: Notification timing bug (separate)
 
 ## Tags

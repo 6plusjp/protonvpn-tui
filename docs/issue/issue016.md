@@ -4,11 +4,11 @@
 
 - **Category 1 (Error Handling)**: ✅ COMPLETED (2026-03-07)
 - **Category 2 (Code Duplication)**: ✅ COMPLETED (2026-03-07)
-- **Category 3 (Architecture)**: 📋 Pending
+- **Category 3 (Architecture)**: ✅ COMPLETED (2026-03-07)
 - **Category 4 (Missing Logging)**: ✅ COMPLETED (2026-03-07)
 - **Category 5 (Potential Bugs)**: ✅ COMPLETED (2026-03-07)
 - **Category 6 (Code Quality)**: ✅ COMPLETED (2026-03-07)
-- **Category 7-8**: 📋 Pending
+- **Category 7-8**: 📋 Pending (Category 7: Testing, Category 8: Configuration)
 
 ## Summary
 
@@ -232,7 +232,7 @@ strip = true  # Reduce binary size
 
 ### Medium Priority (Plan Soon)
 4. ~~Extract theme helper method~~ ✅ DONE
-5. Add thread pool for async operations
+5. ~~Add thread pool for async operations~~ ✅ DONE
 6. Document public APIs
 
 ### Low Priority (Backlog)
@@ -257,6 +257,15 @@ strip = true  # Reduce binary size
 - Replaced 6 duplicate theme initializations in `src/ui/app.rs`
 - Replaced 5 duplicate theme initializations in view files (`servers_view.rs`, `settings_view.rs`, `logs_view.rs`, `help_view.rs`, `stats_view.rs`)
 - Removed unused `Theme` imports from view files
+
+### Category 3: Architecture - ✅ COMPLETED (2026-03-07)
+- Implemented custom thread pool in `async_tasks.rs` to replace per-operation thread spawning
+- Thread pool uses fixed number of worker threads (default: 4) to reduce overhead
+- Zero external dependencies - uses only `std::thread`, `std::sync::Mutex`, and `std::collections::VecDeque`
+- Proper shutdown handling with Drop trait implementation
+- API backward compatible: `AsyncTaskManager::new()` still works with default 4 workers
+- Optional: `AsyncTaskManager::new_with_workers(n)` for custom worker count
+- Fixed `is_connected()` error hiding - added `tracing::debug!` for error cases
 
 ### Category 4: Missing Logging - ✅ COMPLETED (2026-03-07)
 - Added logging for connection state changes (connect/disconnect) in `app_state.rs`

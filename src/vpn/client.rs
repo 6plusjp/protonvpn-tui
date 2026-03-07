@@ -266,7 +266,6 @@ impl VpnClient {
         ))
     }
 
-    /// Check if connected using system-level check (proton0 interface)
     /// Check if VPN is connected (by checking proton0 interface)
     pub fn is_connected(&self) -> bool {
         // Check proton0 interface for active connection
@@ -276,10 +275,12 @@ impl VpnClient {
         {
             Ok(output) => {
                 let stdout = String::from_utf8_lossy(&output.stdout);
-                // If proton0 has an IP address, we're connected
                 stdout.contains("inet ")
             }
-            Err(_) => false,
+            Err(e) => {
+                tracing::debug!("Failed to check proton0 interface: {}", e);
+                false
+            }
         }
     }
 

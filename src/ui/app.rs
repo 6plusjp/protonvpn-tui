@@ -24,7 +24,8 @@ use std::panic;
 pub struct TuiApp {
     state: AppState,
     notification_timer: u8,
-    list_state: ListState,
+    countries_list_state: ListState,
+    cities_list_state: ListState,
     pending_g: bool, // for gg command
     filter_mode: bool,
     filter_input: String,
@@ -44,7 +45,8 @@ impl TuiApp {
         Ok(Self {
             state,
             notification_timer: 30,
-            list_state: ListState::default(),
+            countries_list_state: ListState::default(),
+            cities_list_state: ListState::default(),
             pending_g: false,
             filter_mode: false,
             filter_input: String::new(),
@@ -732,20 +734,24 @@ impl TuiApp {
         match self.state.current_view {
             AppView::Servers => views::servers_view::render_servers_view(
                 &mut self.state,
-                &mut self.list_state,
+                &mut self.countries_list_state,
+                &mut self.cities_list_state,
                 f,
                 area,
             ),
             AppView::Settings => {
                 views::settings_view::render_settings_view(&mut self.state, f, area)
             }
-            AppView::Logs => {
-                views::logs_view::render_logs_view(&self.state, &mut self.list_state, f, area)
-            }
+            AppView::Logs => views::logs_view::render_logs_view(
+                &self.state,
+                &mut self.countries_list_state,
+                f,
+                area,
+            ),
             AppView::Help => views::help_view::render_help_view(&self.state, f, area),
             AppView::Cities => views::cities_view::render_cities_view(
                 &mut self.state,
-                &mut self.list_state,
+                &mut self.cities_list_state,
                 f,
                 area,
             ),

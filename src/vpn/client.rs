@@ -42,7 +42,13 @@ impl VpnClient {
             .join("protonvpn-tui")
             .join("server_cache.toml");
 
-        let cache = ServerCache::load(cache_path.clone()).unwrap_or_default();
+        let cache = match ServerCache::load(cache_path.clone()) {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::warn!("Failed to load server cache: {}, using empty cache", e);
+                ServerCache::default()
+            }
+        };
 
         Self {
             cli_path: "protonvpn".to_string(),
@@ -233,7 +239,10 @@ impl VpnClient {
     }
 
     pub fn disconnect(&self) -> AppResult<()> {
-        let _ = Command::new(&self.cli_path).args(["disconnect"]).output();
+        let result = Command::new(&self.cli_path).args(["disconnect"]).output();
+        if let Err(e) = result {
+            tracing::warn!("Failed to execute disconnect command: {}", e);
+        }
 
         for _ in 0..DISCONNECT_RETRY_COUNT {
             if !self.is_connected() {
@@ -276,7 +285,7 @@ impl VpnClient {
     }
 
     pub fn matches_ip(&self, ip: &str) -> bool {
-        self.with_cache(|c| c.matches_ip(ip)).ok().unwrap_or(false)
+        self.with_cache(|c| c.matches_ip(ip)).is_ok_and(|r| r)
     }
 
     pub fn get_countries(&self) -> AppResult<HashMap<String, String>> {
@@ -360,7 +369,7 @@ impl VpnClient {
         let is_stale = self.with_cache(|c| c.is_stale())?;
         let has_cached = self
             .with_cache(|c| c.cities.contains_key(country_code))
-            .unwrap_or(false);
+            .is_ok_and(|r| r);
 
         if !is_stale && has_cached {
             if let Ok(Some(cities)) = self.with_cache(|c| c.cities.get(country_code).cloned()) {
@@ -465,7 +474,13 @@ impl VpnClient {
     }
 
     pub fn get_servers(&self) -> Vec<Server> {
-        let countries = self.with_cache(|c| c.countries.clone()).unwrap_or_default();
+        let countries = match self.with_cache(|c| c.countries.clone()) {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::debug!("Failed to get countries from cache: {}", e);
+                HashMap::new()
+            }
+        };
         self.countries_to_servers(&countries)
     }
 
@@ -475,7 +490,13 @@ impl VpnClient {
     }
 
     fn countries_to_servers(&self, countries: &HashMap<String, String>) -> Vec<Server> {
-        let cities_map = self.with_cache(|c| c.cities.clone()).unwrap_or_default();
+        let cities_map = match self.with_cache(|c| c.cities.clone()) {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::debug!("Failed to get cities from cache: {}", e);
+                HashMap::new()
+            }
+        };
         let servers: Vec<Server> = countries
             .iter()
             .map(|(code, name)| Server {

@@ -96,10 +96,10 @@ fn render_countries_pane(
                 width = country_width
             );
 
-            if is_connected {
-                connected_list_item(&row, theme)
-            } else if is_selected {
+            if is_selected {
                 styled_list_item(&row, true, is_focused, theme)
+            } else if is_connected {
+                connected_list_item(&row, theme)
             } else {
                 styled_list_item(&row, false, is_focused, theme)
             }

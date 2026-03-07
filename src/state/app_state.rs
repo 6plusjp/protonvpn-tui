@@ -775,10 +775,7 @@ impl AppState {
         if self.current_view == crate::state::AppView::Servers && self.pane_focus == Pane::Cities {
             self.current_cities.len()
         } else {
-            match self.current_view {
-                crate::state::AppView::Cities => self.current_cities.len(),
-                _ => self.filtered_servers().len(),
-            }
+            self.filtered_servers().len()
         }
     }
 

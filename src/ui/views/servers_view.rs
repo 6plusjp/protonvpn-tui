@@ -13,7 +13,8 @@ use crate::AppState;
 
 pub fn render_servers_view(
     state: &mut AppState,
-    list_state: &mut ListState,
+    countries_list_state: &mut ListState,
+    cities_list_state: &mut ListState,
     f: &mut Frame<'_>,
     area: Rect,
 ) {
@@ -28,8 +29,8 @@ pub fn render_servers_view(
         .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
         .split(area);
 
-    render_countries_pane(state, list_state, f, chunks[0], &theme);
-    render_cities_pane(state, list_state, f, chunks[1], &theme);
+    render_countries_pane(state, countries_list_state, f, chunks[0], &theme);
+    render_cities_pane(state, cities_list_state, f, chunks[1], &theme);
 }
 
 fn render_countries_pane(
@@ -56,6 +57,8 @@ fn render_countries_pane(
         ConnectionState::Connected { server, .. } => Some(server.clone()),
         _ => None,
     };
+
+    let is_focused = state.pane_focus == Pane::Countries;
 
     let max_country_len = servers
         .iter()
@@ -96,10 +99,9 @@ fn render_countries_pane(
             if is_connected {
                 connected_list_item(&row, theme)
             } else if is_selected {
-                let row_with_indicator = format!("> {}", row);
-                styled_list_item(&row_with_indicator, false, theme)
+                styled_list_item(&row, true, is_focused, theme)
             } else {
-                styled_list_item(&row, false, theme)
+                styled_list_item(&row, false, is_focused, theme)
             }
         })
         .collect();
@@ -118,11 +120,28 @@ fn render_cities_pane(
     area: Rect,
     theme: &Theme,
 ) {
-    let country_code = state.current_country_code.as_deref().unwrap_or("Cities");
-    let title = if state.pane_focus == Pane::Cities {
-        format!("> {} - Cities", country_code)
-    } else {
-        format!("  {} - Cities", country_code)
+    let title = match (&state.current_country_code, state.current_cities.is_empty()) {
+        (None, _) => {
+            if state.pane_focus == Pane::Cities {
+                "> Select country".to_string()
+            } else {
+                "  Select country".to_string()
+            }
+        }
+        (Some(code), true) => {
+            if state.pane_focus == Pane::Cities {
+                format!("> {} - Loading...", code)
+            } else {
+                format!("  {} - Loading...", code)
+            }
+        }
+        (Some(code), false) => {
+            if state.pane_focus == Pane::Cities {
+                format!("> {} - Cities", code)
+            } else {
+                format!("  {} - Cities", code)
+            }
+        }
     };
     let block = centered_block(&title, theme);
 
@@ -151,6 +170,8 @@ fn render_cities_pane(
     let selected_idx = state.selected_city.unwrap_or(0);
     list_state.select(Some(selected_idx.min(cities.len() - 1)));
 
+    let is_focused = state.pane_focus == Pane::Cities;
+
     let items: Vec<ListItem> = cities
         .iter()
         .enumerate()
@@ -163,7 +184,7 @@ fn render_cities_pane(
                 format!("{:<15} {}", city_name, features)
             };
 
-            styled_list_item(&row, is_selected, theme)
+            styled_list_item(&row, is_selected, is_focused, theme)
         })
         .collect();
 

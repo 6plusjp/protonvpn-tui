@@ -95,6 +95,10 @@ Have `sync_connection_state()` return a boolean indicating whether it showed a n
 - `src/state/app_state.rs:244-404` - `sync_connection_state()` method
 - `src/constants.rs:2-3` - Timer constants (30 = 3 seconds at 100ms tick)
 
+## Status
+
+**Resolved** by commit: See implementation that returns bool from `sync_connection_state()` to reset notification timer.
+
 ## Tags
 
 - bug

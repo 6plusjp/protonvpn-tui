@@ -212,6 +212,18 @@ impl AppState {
     pub fn set_servers(&mut self, servers: Vec<Server>) {
         self.servers = servers;
         self.invalidate_filtered_cache();
+
+        self.load_cities_for_selected_server();
+    }
+
+    fn load_cities_for_selected_server(&mut self) {
+        if let Some(idx) = self.selected_server {
+            if let Some(server) = self.filtered_servers().get(idx) {
+                if self.current_country_code.as_deref() != Some(&server.id) {
+                    self.fetch_cities(&server.id);
+                }
+            }
+        }
     }
 
     pub fn get_proton_settings(&self) -> Option<&ProtonSettings> {

@@ -581,7 +581,13 @@ impl AppState {
 
     pub fn filtered_servers(&self) -> Vec<Server> {
         let version = self.filtered_servers_version;
-        let cached = self.filtered_servers_cache.lock().unwrap();
+        let cached = match self.filtered_servers_cache.lock() {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::warn!("Failed to lock filtered_servers_cache: {}", e);
+                return self.compute_filtered_servers();
+            }
+        };
         if let Some((ref cached_result, cached_version)) = *cached {
             if cached_version == version {
                 return cached_result.clone();
@@ -590,7 +596,14 @@ impl AppState {
         drop(cached);
 
         let result = self.compute_filtered_servers();
-        *self.filtered_servers_cache.lock().unwrap() = Some((result.clone(), version));
+        let mut cache = match self.filtered_servers_cache.lock() {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::warn!("Failed to lock filtered_servers_cache for write: {}", e);
+                return result;
+            }
+        };
+        *cache = Some((result.clone(), version));
         result
     }
 
@@ -638,12 +651,14 @@ impl AppState {
         }
 
         if let Some(ref connected_id) = connected_server_id {
-            if let Some(pos) = result
-                .iter()
-                .position(|s| connected_id.starts_with(&s.id) || s.id.starts_with(connected_id))
-            {
-                let server = result.remove(pos);
-                result.insert(0, server);
+            if !connected_id.is_empty() {
+                if let Some(pos) = result
+                    .iter()
+                    .position(|s| connected_id.starts_with(&s.id) || s.id.starts_with(connected_id))
+                {
+                    let server = result.remove(pos);
+                    result.insert(0, server);
+                }
             }
         }
 

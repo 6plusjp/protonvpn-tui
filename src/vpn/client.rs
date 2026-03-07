@@ -75,12 +75,15 @@ impl VpnClient {
     }
 
     fn save_cache(&self) -> AppResult<()> {
-        let cache = self
-            .cache
-            .lock()
-            .map_err(|e| AppError::ConfigError(format!("Failed to lock cache: {}", e)))?;
-        tracing::debug!("Saving server cache to disk");
-        cache.save(self.cache_path.clone())
+        let (cache_data, cache_path) = {
+            let cache = self
+                .cache
+                .lock()
+                .map_err(|e| AppError::ConfigError(format!("Failed to lock cache: {}", e)))?;
+            tracing::debug!("Saving server cache to disk");
+            (cache.clone(), self.cache_path.clone())
+        };
+        cache_data.save(cache_path)
     }
 
     pub fn connect(&self, target: &str) -> AppResult<(String, Option<String>)> {

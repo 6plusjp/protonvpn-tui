@@ -6,7 +6,8 @@
 - **Category 2 (Code Duplication)**: ✅ COMPLETED (2026-03-07)
 - **Category 3 (Architecture)**: 📋 Pending
 - **Category 4 (Missing Logging)**: ✅ COMPLETED (2026-03-07)
-- **Category 5-8**: 📋 Pending
+- **Category 5 (Potential Bugs)**: ✅ COMPLETED (2026-03-07)
+- **Category 6-8**: 📋 Pending
 
 ## Summary
 
@@ -265,6 +266,11 @@ strip = true  # Reduce binary size
 - Added logging for theme changes
 - Added logging for cache save operations in `client.rs` and `cache.rs`
 - Added logging for server list refresh (start, success, failure)
+
+### Category 5: Potential Bugs - ✅ COMPLETED (2026-03-07)
+- Fixed Mutex unwrap in `app_state.rs` - replaced `.lock().unwrap()` with proper error handling using `match`
+- Fixed Index Bounds issue - added validation for empty `connected_id` before using it
+- Fixed Cache Race Conditions - refactored `save_cache` to clone data inside lock and perform I/O outside lock
 
 ---
 

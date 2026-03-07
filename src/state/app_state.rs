@@ -5,6 +5,7 @@ use crate::constants::state::MAX_NOTIFICATION_LOG;
 use crate::constants::state::PAGE_SIZE;
 use crate::state::async_tasks::{create_channel, AsyncResult, AsyncTaskManager};
 use crate::state::ConnectionState;
+use crate::state::Pane;
 use crate::state::ServerFilter;
 use crate::state::ServerSort;
 use crate::state::SortDirection;
@@ -143,6 +144,8 @@ pub struct AppState {
     // === UI State ( views から直接アクセス ) ===
     pub current_view: crate::state::AppView,
     pub selected_server: Option<usize>,
+    pub selected_city: Option<usize>,
+    pub pane_focus: Pane,
     pub settings_selected: Option<usize>,
     pub search_query: String,
     pub filter: ServerFilter,
@@ -180,6 +183,8 @@ impl AppState {
             current_cities: Vec::new(),
             current_country_code: None,
             selected_server: Some(0),
+            selected_city: Some(0),
+            pane_focus: Pane::Countries,
             settings_selected: Some(0),
             input_mode: InputMode::Normal,
             dns_input: String::new(),
@@ -695,11 +700,73 @@ impl AppState {
             .move_page_up(self.get_selection_bounds());
     }
 
-    /// Get the bounds for selection navigation based on current view
+    pub fn move_to_cities(&mut self) {
+        if let Some(idx) = self.selected_server {
+            let servers = self.filtered_servers();
+            if let Some(server) = servers.get(idx) {
+                if self.current_country_code.as_deref() != Some(&server.id) {
+                    self.fetch_cities(&server.id);
+                    self.current_country_code = Some(server.id.clone());
+                }
+            }
+        }
+        self.pane_focus = Pane::Cities;
+    }
+
+    pub fn move_to_countries(&mut self) {
+        self.pane_focus = Pane::Countries;
+    }
+
+    pub fn city_select_next(&mut self) {
+        let bounds = self.current_cities.len();
+        if bounds > 0 {
+            self.selected_city.move_next(bounds);
+        }
+    }
+
+    pub fn city_select_prev(&mut self) {
+        let bounds = self.current_cities.len();
+        if bounds > 0 {
+            self.selected_city.move_prev(bounds);
+        }
+    }
+
+    pub fn city_select_first(&mut self) {
+        let bounds = self.current_cities.len();
+        if bounds > 0 {
+            self.selected_city.move_first(bounds);
+        }
+    }
+
+    pub fn city_select_last(&mut self) {
+        let bounds = self.current_cities.len();
+        if bounds > 0 {
+            self.selected_city.move_last(bounds);
+        }
+    }
+
+    pub fn city_select_page_down(&mut self) {
+        let bounds = self.current_cities.len();
+        if bounds > 0 {
+            self.selected_city.move_page_down(bounds);
+        }
+    }
+
+    pub fn city_select_page_up(&mut self) {
+        let bounds = self.current_cities.len();
+        if bounds > 0 {
+            self.selected_city.move_page_up(bounds);
+        }
+    }
+
     fn get_selection_bounds(&self) -> usize {
-        match self.current_view {
-            crate::state::AppView::Cities => self.current_cities.len(),
-            _ => self.filtered_servers().len(),
+        if self.current_view == crate::state::AppView::Servers && self.pane_focus == Pane::Cities {
+            self.current_cities.len()
+        } else {
+            match self.current_view {
+                crate::state::AppView::Cities => self.current_cities.len(),
+                _ => self.filtered_servers().len(),
+            }
         }
     }
 

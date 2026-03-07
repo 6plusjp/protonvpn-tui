@@ -14,8 +14,29 @@ pub enum AppView {
     Logs,
     /// Help view (only accessible via ?)
     Help,
-    /// City list for selected country
+    /// City list for selected country (deprecated - use split pane instead)
+    #[allow(dead_code)]
     Cities,
+}
+
+/// Represents which pane has focus in split-pane view
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+pub enum Pane {
+    /// Left pane - countries list
+    #[default]
+    Countries,
+    /// Right pane - cities list
+    Cities,
+}
+
+impl Pane {
+    /// Toggle between panes
+    pub fn toggle(&mut self) {
+        *self = match self {
+            Self::Countries => Self::Cities,
+            Self::Cities => Self::Countries,
+        };
+    }
 }
 
 impl AppView {

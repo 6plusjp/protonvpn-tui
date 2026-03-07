@@ -14,9 +14,6 @@ pub enum AppView {
     Logs,
     /// Help view (only accessible via ?)
     Help,
-    /// City list for selected country (deprecated - use split pane instead)
-    #[allow(dead_code)]
-    Cities,
 }
 
 /// Represents which pane has focus in split-pane view
@@ -47,7 +44,6 @@ impl AppView {
             Self::Settings => Self::Logs,
             Self::Logs => Self::Servers,
             Self::Help => Self::Servers,
-            Self::Cities => Self::Servers,
         }
     }
 
@@ -58,7 +54,6 @@ impl AppView {
             Self::Settings => Self::Servers,
             Self::Logs => Self::Settings,
             Self::Help => Self::Servers,
-            Self::Cities => Self::Servers,
         }
     }
 }

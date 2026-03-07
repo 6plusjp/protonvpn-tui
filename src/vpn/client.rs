@@ -409,8 +409,27 @@ impl VpnClient {
                 continue;
             }
 
-            // Split name (before first whitespace) from features (after)
-            let name_end = line.find(|c: char| c.is_whitespace());
+            let mut chars = line.char_indices().peekable();
+            let mut name_end = None;
+
+            while let Some((start, c)) = chars.next() {
+                if c.is_whitespace() {
+                    let mut consecutive = 1;
+                    while let Some(&(_, next_c)) = chars.peek() {
+                        if next_c.is_whitespace() {
+                            consecutive += 1;
+                            chars.next();
+                        } else {
+                            break;
+                        }
+                    }
+                    if consecutive >= 2 {
+                        name_end = Some(start);
+                        break;
+                    }
+                }
+            }
+
             let (name, features_str) = match name_end {
                 Some(pos) => (line[..pos].to_string(), line[pos..].trim()),
                 None => (line.to_string(), ""),
@@ -691,6 +710,19 @@ Japan               JP"#;
         assert_eq!(cities.len(), 2);
         assert_eq!(cities[0].name, "Tokyo");
         assert_eq!(cities[1].name, "Osaka");
+    }
+
+    #[test]
+    fn test_parse_cities_multi_word_with_features() {
+        let client = VpnClient::new();
+        let output = "Tel Aviv  P2P, Secure Core\nOsaka  P2P";
+        let cities = client.parse_cities_with_features(output);
+
+        assert_eq!(cities.len(), 2);
+        assert_eq!(cities[0].name, "Tel Aviv");
+        assert_eq!(cities[0].features, vec!["P2P", "Secure Core"]);
+        assert_eq!(cities[1].name, "Osaka");
+        assert_eq!(cities[1].features, vec!["P2P"]);
     }
 
     #[test]

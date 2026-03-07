@@ -4,114 +4,100 @@
 
 Implement Yazi-inspired split-pane navigation where Servers list and Cities panel are always side-by-side.
 
-## Yazi-style Behavior
+## Behavior
 
 | Key | Action |
 |-----|--------|
-| Default | Split-pane view (Servers left, Cities panel right - empty initially) |
-| Enter or l | Load cities in right panel, stay in split-pane |
-| h or Backspace | Close cities panel, return focus to Servers |
-| Esc | Close cities panel |
+| Default | Split-pane view (Countries left, Cities right - empty initially) |
+| Enter or l | Move focus from Countries to Cities |
+| h or Backspace | Move focus from Cities back to Countries |
+| Esc | Clear filter |
 | j/k | Navigate within focused pane |
-| Tab or w | Switch focus between Servers and Cities panes |
-
-## Current Behavior
-
-1. User selects a server in Servers view
-2. User presses Enter
-3. Full view switches to Cities view
-4. User presses Esc to return to Servers
-5. Cursor resets to top (see issue011)
-
-## Desired Behavior (Yazi-style)
-
-1. Split-pane view is **always** visible (Servers left, Cities right)
-2. When server selected + Enter → Cities load in right panel (split-pane maintained)
-3. User can navigate between Servers (left) and Cities (right)
-4. Press h or Backspace or Esc → Close cities panel, return focus to Servers
-5. Servers selection is preserved when returning from Cities
+| Tab | Cycle views: Servers → Settings → Logs → Servers (position preserved) |
 
 ## UI Mockup
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  │  Servers          │  Cities for JP                    │
-├──┴───────────────────┼───────────────────────────────────┤
-│> │  JP #1            │  > Tokyo #1                       │
-│  │    JP #2          │    Osaka #2                       │
-│  │    US #1          │    Yokohama #3                   │
-│  │    DE #1          │                                   │
-│  │                   │                                   │
-│  │  [j/k] navigate   │  [j/k] navigate  [h/Backspace] close │
-└──┴───────────────────┴───────────────────────────────────┘
-  ^ focus indicator (>)
+│  ProtonVPN TUI                                    │
+├─────────────────────────────────────────────────────────┤
+│  > Countries          │  Cities for JP                   │
+│  ├────────────────────┼─────────────────────────────────┤
+│  │> JP #1             │    Tokyo #1                     │
+│  │   JP #2            │    Osaka #2                     │
+│  │   US #1            │    Yokohama #3                  │
+│  │   DE #1            │                                  │
+│  │                    │                                  │
+└────────────────────────┴─────────────────────────────────┘
+  ^ Countries: > only    ^ Cities: normal highlight
 ```
 
-## Implementation Approach
+## Detailed Specification
 
-### Chosen: Option B - Extend Servers View
+### Layout
+- Default ratio: 60% Countries / 40% Cities
+- Left panel: Countries (shows server list, "Countries" as title)
+- Right panel: Cities for selected country
 
-- Modify `AppView::Servers` to support split-pane mode
-- Remove or integrate `AppView::Cities` (unified into Servers)
-- Add `split_pane_mode: SplitPaneState` to track split-pane state
-- Independent selection state managed via existing `selected_server`
+### Focus Management
+- **Countries (left panel)**: Shows `>` indicator for selected item
+- **Cities (right panel)**: Normal selection highlight (no `>`)
+
+### State Persistence
+- When switching views (Tab), return to exact same position when coming back
+- Countries selection is preserved when moving focus to Cities and back
 
 ### Key Bindings
 
 | Key | Action |
 |-----|--------|
-| Enter or l | Open cities panel, switch focus to Cities |
-| Backspace or h | Close cities panel, return focus to Servers |
+| Enter or l | Move focus from Countries to Cities |
+| h or Backspace | Move focus from Cities to Countries |
 | j/k | Navigate within focused pane |
-| c | Connect to selected item (server or city depending on focus) |
-
-### Layout
-
-- Default ratio: 60% Servers / 40% Cities
-- User configurable (future enhancement)
+| c | Connect (to server in Countries, or city in Cities) |
+| gg/G | Go to top/bottom of focused pane |
+| Ctrl+d/u | Page down/up in focused pane |
 
 ### Footer
 
-Dynamic key hints based on state:
-
-| State | Footer Keys |
+| Focus | Footer Keys |
 |-------|-------------|
-| Panel closed | `[j/k] navigate [l/Enter] cities [c] connect [d] disconnect [r] refresh` |
-| Panel open + Servers focus | `[j/k] navigate [h/Backspace] close [c] connect` |
-| Panel open + Cities focus | `[j/k] navigate [h/Backspace] back [c/Enter] connect` |
+| Countries | `[j/k] navigate [l/Enter] cities [c] connect [d] disconnect [r] refresh [s] sort [f] field [h] back` |
+| Cities | `[j/k] navigate [c/Enter] connect [h/Backspace] countries` |
 
 Global keys (always visible): `[?] help [Tab] switch view [q] quit`
 
-### State Management
+### Initial State
+- On first launch: Both panels empty
+- After servers loaded: First country selected, its cities shown in right panel
 
-- `split_pane_open: bool` - Whether cities panel is open
-- `pane_focus: Pane` - Which pane has focus (Servers or Cities)
-- Use existing `selected_server` for both panes:
-  - When focus is on Servers: index into filtered_servers
-  - When focus is on Cities: index into current_cities
+## Implementation Approach
 
-## Required Changes
+### Chosen: Option B - Extend Servers View
+
+- Modify `AppView::Servers` to always show split-pane
+- Remove `split_pane_open` concept (always open in Servers view)
+- Use `pane_focus: Pane` to track focus (Countries or Cities)
+
+### Required Changes
 
 1. **`src/state/app_view.rs`**:
-   - Add `Pane` enum (Servers, Cities)
+   - Add `Pane` enum (Countries, Cities)
 
 2. **`src/state/app_state.rs`**:
-   - Add `split_pane_open: bool` field
    - Add `pane_focus: Pane` field
+   - Add `selected_city: Option<usize>` for independent city selection
 
 3. **`src/ui/views/servers_view.rs`**:
-   - Modify to support split-pane rendering
-   - Add optional cities panel on right side
+   - Always render split-pane (no single-pane mode)
+   - Countries: `>` highlight only
+   - Cities: normal selection highlight
 
-4. **`src/ui/views/mod.rs`**:
-   - (No changes needed if reusing servers_view)
-
-5. **`src/ui/app.rs`**:
-   - Update Enter/l handling: open cities panel, switch focus to Cities
-   - Update Backspace/h handling: close cities panel, focus to Servers
-   - Update j/k handling: navigate based on pane_focus
-   - Update render_footer: dynamic key hints based on split_pane_open and pane_focus
-   - Remove or update AppView::Cities handling (unified)
+4. **`src/ui/app.rs`**:
+   - Enter/l: switch focus to Cities
+   - Backspace/h: switch focus to Countries
+   - Tab: cycle views, preserve position
+   - Update footer for new bindings
 
 ## Related Issues
 

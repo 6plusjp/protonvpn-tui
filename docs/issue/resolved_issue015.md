@@ -4,7 +4,7 @@
 
 ## Summary
 
-Three issues identified in the Countries/Cities Pane:
+Three issues in the Countries/Cities Pane were resolved:
 
 1. ✅ **RESOLVED**: Highlight priority - check `is_selected` before `is_connected`
 2. ✅ **RESOLVED**: City names with spaces - use 2+ consecutive whitespaces as delimiter
@@ -12,12 +12,15 @@ Three issues identified in the Countries/Cities Pane:
 
 ---
 
-## Issue 1: Highlight Priority ✅ RESOLVED
+## Issue 1: Highlight Priority
 
 ### Location
 `src/ui/views/servers_view.rs` - lines 99-105
 
-### Fix Applied
+### Problem
+When a country is both selected (keyboard navigation) AND connected, the "connected" highlight was shown instead of "selected" highlight.
+
+### Fix
 Swapped condition order - check `is_selected` first:
 
 ```rust
@@ -30,14 +33,22 @@ if is_selected {
 }
 ```
 
+### Commit
+`aa0f6df` - fix(issue015-1): swap highlight priority
+
 ---
 
-## Issue 2: City Name Parsing Bug ✅ RESOLVED
+## Issue 2: City Name Parsing Bug
 
 ### Location
 `src/vpn/client.rs` - `parse_cities_with_features` function
 
-### Fix Applied
+### Problem
+Multi-word city names like "Tel Aviv" were incorrectly parsed because the code split on the first whitespace:
+- Input: `"Tel Aviv  P2P, Secure Core"`
+- Wrong: `name="Tel"`, `features="Aviv P2P..."`
+
+### Fix
 Changed to find 2+ consecutive whitespaces as delimiter:
 
 ```rust
@@ -63,15 +74,18 @@ while let Some((start, c)) = chars.next() {
 }
 ```
 
+### Commit
+`5e49d6f` - fix(issue015-2): parse city names using 2+ consecutive whitespaces
+
 ---
 
-## Issue 3: Connect Output Parsing Error ⚠️ RESOLVED
+## Issue 3: Connect Output Parsing Error
 
 ### Location
-`src/vpn/client.rs` - `connect` function (lines 79-103)
+`src/vpn/client.rs` - `connect` function
 
-### Problem Description
-When `protonvpn connect` is executed, the output may contain both success message AND error/traceback:
+### Problem
+When `protonvpn connect` executes, stdout contains success message but stderr may contain error/traceback:
 
 ```
 stdout: "Connected to JP#255 in Tokyo, Japan. Your new IP address is 159.26.119.30."
@@ -80,24 +94,22 @@ stderr: "ERROR | exception calling callback..."
 
 When combined: `"Connected to JP#255... 159.26.119.30.ERROR | exception..."`
 
-This causes IP parsing to fail because "ERROR" appears after the IP address.
+This caused IP parsing to fail because "ERROR" appeared after the IP address.
 
-### Root Cause
-The code was using `stdout + stderr` combined for parsing:
-```rust
-let combined = format!("{} {}", stdout, stderr);
-let (server_id, ip, _city, _country) = self.parse_connect_output(&combined);
-```
-
-### Fix Applied
+### Fix
 Use only stdout for parsing (success messages go to stdout):
+
 ```rust
-let (server_id, ip, _city, _country) = self.parse_connect_output(&stdout);
+// Before (wrong):
+let combined = format!("{} {}", stdout, stderr);
+let (server_id, ip, ...) = self.parse_connect_output(&combined);
+
+// After (correct):
+let (server_id, ip, ...) = self.parse_connect_output(&stdout);
 ```
 
-### Expected Behavior
-- `check_cli_error` uses combined output (to detect errors)
-- `parse_connect_output` uses stdout only (success messages are in stdout)
+### Commit
+`7a6f256` - fix(issue015-3): use stdout only for parsing connect output
 
 ---
 
@@ -106,4 +118,4 @@ let (server_id, ip, _city, _country) = self.parse_connect_output(&stdout);
 - bug
 - ui
 - parsing
-- partially-resolved
+- resolved

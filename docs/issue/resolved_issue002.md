@@ -305,7 +305,7 @@ protonvpn connect --city Tokyo
 
 ## Tests
 
-Regression tests are located in `tests/issue002_test.rs`.
+Regression tests are located in `tests/server_test.rs`.
 
 ```bash
 cargo test --test issue002_test

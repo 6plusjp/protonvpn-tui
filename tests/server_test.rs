@@ -12,12 +12,6 @@ mod app_view {
     }
 
     #[test]
-    fn test_app_view_cities_exists() {
-        let view = AppView::Cities;
-        assert_eq!(view, AppView::Cities);
-    }
-
-    #[test]
     fn test_app_view_default_is_servers() {
         let view = AppView::default();
         assert_eq!(view, AppView::Servers);
@@ -60,23 +54,10 @@ mod app_view {
     }
 
     #[test]
-    fn test_app_view_prev_from_cities() {
-        let view = AppView::Cities;
-        assert_eq!(view.prev(), AppView::Servers);
-    }
-
-    #[test]
     fn test_app_view_help_cycles_to_servers() {
         let view = AppView::Help;
         assert_eq!(view.next(), AppView::Servers);
         assert_eq!(view.prev(), AppView::Servers);
-    }
-
-    #[test]
-    fn test_app_view_cities_is_not_help() {
-        let cities = AppView::Cities;
-        let help = AppView::Help;
-        assert_ne!(cities, help);
     }
 
     #[test]
@@ -85,7 +66,7 @@ mod app_view {
             AppView::Servers,
             AppView::Settings,
             AppView::Help,
-            AppView::Cities,
+            AppView::Logs,
         ];
 
         for (i, v1) in views.iter().enumerate() {

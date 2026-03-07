@@ -1,104 +1,86 @@
-# issue011: Notifications Sometimes Don't Disappear
+# issue011: Cursor Selection Issues
 
 ## Summary
 
-Notifications sometimes stay visible indefinitely or disappear too quickly after async operations complete.
+Two cursor/selection state issues affect user experience:
+1. Cursor resets to top when navigating Servers -> Cities -> Servers
+2. No item selected on application startup
 
-## Symptom
+## Issue 1: Cursor Resets on Cities -> Servers Navigation
 
-- User performs an action (connect, disconnect, refresh, etc.)
-- Initial notification appears correctly (e.g., "Connecting...")
-- After the async operation completes, a new notification appears (e.g., "Connected to X")
-- This new notification either:
-  - Disappears almost immediately (within a few hundred milliseconds)
-  - Or stays visible indefinitely
+### Symptom
 
-## Root Cause
+1. User is on Servers view, selects a server in the middle of the list (e.g., index 10)
+2. User presses Enter to view Cities for that server
+3. User presses Esc to go back to Servers view
+4. Cursor is now at the top (index 0) instead of staying at the original position
 
-**Problem 1: Timer not reset when `sync_connection_state()` shows notifications**
+### Root Cause
 
-In `src/ui/app.rs`, the main loop:
+In `src/ui/app.rs:300-306`, when handling Esc key to return from Cities to Servers:
+
 ```rust
-loop {
-    terminal.draw(|f| self.render(f))?;
-    self.state.sync_connection_state();  // Can call show_notification()
-    
-    if self.notification_timer > 0 {
-        self.notification_timer -= 1;
-        if self.notification_timer == 0 {
-            self.state.clear_notification();
-        }
+KeyCode::Esc => {
+    if self.state.current_view == AppView::Cities {
+        self.state.current_view = AppView::Servers;
+        self.state.current_cities.clear();
+        self.state.current_country_code = None;
     }
-    // ...
+    None
 }
 ```
 
-`sync_connection_state()` is called BEFORE the timer check. When it shows a new notification (e.g., when async connection completes), it does NOT reset `notification_timer`.
+The code clears `current_cities` and `current_country_code` but does NOT reset `selected_server`. Since Cities list is shorter than Servers list, the stored index may be:
+- Out of bounds for the Servers list
+- Or point to a different server than originally selected
 
-If the timer was already close to 0 when the new notification appears, it will be cleared almost immediately.
+### Fix
 
-**Problem 2: `notification_timer` only reset in key handlers**
+Add `self.state.selected_server = Some(0);` when returning to Servers view, OR store and restore the original selection.
 
-The timer is only reset in key event handlers (lines 118, 124, 133, 148, 173, 196, 201, 206, 211, 292, 333, 338 in `src/ui/app.rs`). Notifications triggered by `sync_connection_state()` don't reset it.
+### Related Code
 
-**Problem 3: No mechanism to reset timer from AppState**
+- `src/ui/app.rs:300-306` - Esc key handler
+- `src/state/app_state.rs:145` - `selected_server` field
 
-`AppState::show_notification()` has no access to `TuiApp::notification_timer`. There's no way for async completion handlers to reset the display timer.
+---
 
-## Affected Code Paths
+## Issue 2: No Initial Selection on Startup
 
-All async operations that call `show_notification()` via `sync_connection_state()`:
-- Connection completion (`src/state/app_state.rs:274`)
-- Connection failure (`src/state/app_state.rs:292`)
-- Disconnect completion (`src/state/app_state.rs:310`)
-- Disconnect failure (`src/state/app_state.rs:323`)
-- Server refresh completion (`src/state/app_state.rs:251`)
-- Server refresh failure (`src/state/app_state.rs:257`)
-- Cities load completion (`src/state/app_state.rs:342`)
-- Cities load failure (`src/state/app_state.rs:348`)
-- City connection completion (`src/state/app_state.rs:364`)
-- City connection failure (`src/state/app_state.rs:381`)
+### Symptom
 
-## Proposed Solution
+When the application starts, no server is selected. User must press j/k to select the first server before they can connect.
 
-**Option A: Add timer reset parameter to show_notification**
+### Root Cause
 
-Modify `AppState::show_notification()` to return whether a notification was shown, then reset timer in `TuiApp`:
+In `src/state/app_state.rs:182`:
+
 ```rust
-// In AppState
-pub fn show_notification(&mut self, ...) -> bool {
-    self.notification = Some(...);
-    // ...
-    return true;  // Notification was shown
-}
-
-// In TuiApp main loop
-let notification_shown = self.state.sync_connection_state();
-if notification_shown {
-    self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
-}
+selected_server: None,
 ```
 
-**Option B: Move timer management entirely to AppState**
+`selected_server` initializes to `None`, meaning no item is selected on startup.
 
-Store `notification_timer` in `AppState` instead of `TuiApp`, and manage it alongside notification state.
+### Fix
 
-**Option C: Reset timer in sync_connection_state return value**
+Change to:
 
-Have `sync_connection_state()` return a boolean indicating whether it showed a notification, and reset timer accordingly.
+```rust
+selected_server: Some(0),
+```
 
-## Related Code
+This will automatically select the first server in the list on startup.
 
-- `src/ui/app.rs:26` - `notification_timer: u8` field
-- `src/ui/app.rs:67-71` - Timer decrement and clear logic
-- `src/state/app_state.rs:226-238` - `show_notification()` method
-- `src/state/app_state.rs:244-404` - `sync_connection_state()` method
-- `src/constants.rs:2-3` - Timer constants (30 = 3 seconds at 100ms tick)
+### Related Code
+
+- `src/state/app_state.rs:182` - Initialization in `AppState::new()`
+
+---
 
 ## Tags
 
 - bug
-- notification
-- async
-- timing
+- cursor
+- selection
+- navigation
 - ui

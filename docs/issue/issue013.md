@@ -10,7 +10,7 @@ Implement split-pane view where Servers list remains visible on the left, and Ci
 2. User presses Enter
 3. Full view switches to Cities view
 4. User presses Esc to return to Servers
-5. Cursor resets to top (see issue012)
+5. Cursor resets to top (see issue011)
 
 ## Desired Behavior
 
@@ -77,8 +77,8 @@ Create a new `AppView::ServersWithCities` variant that handles the split-pane lo
 
 ## Related Issues
 
-- issue012: Cursor resets when returning from Cities (will be resolved by this)
-- issue011: Notification timing bug (separate)
+- issue011: Cursor resets when returning from Cities (will be resolved by this)
+- issue012: Notification timing bug (separate)
 
 ## Tags
 

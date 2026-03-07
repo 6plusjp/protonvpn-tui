@@ -508,7 +508,7 @@ impl TuiApp {
 
     fn render_filter_input(&self, f: &mut Frame<'_>, area: Rect) {
         let theme = self.get_theme();
-        let prompt = "/ filter: ";
+        let prompt = "filter: ";
         let input_display = format!("{}{}", prompt, self.filter_input);
         let cursor = if self.filter_input.is_empty() {
             prompt.len()
@@ -744,7 +744,7 @@ impl TuiApp {
             Span::raw("["),
             Span::styled("q", Style::default().fg(theme.key_hint)),
             Span::raw("] quit"),
-            Span::raw(" | "),
+            Span::raw(" "),
         ]);
 
         text.spans.extend(action_spans);
@@ -759,25 +759,25 @@ impl TuiApp {
             (AppView::Servers, Pane::Countries) => vec![
                 Span::raw("["),
                 Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                Span::raw("] navigate | "),
+                Span::raw("] navigate "),
                 Span::raw("["),
                 Span::styled("l/Enter", Style::default().fg(theme.key_hint)),
-                Span::raw("] cities | "),
+                Span::raw("] cities "),
                 Span::raw("["),
                 Span::styled("c", Style::default().fg(theme.key_hint)),
-                Span::raw("] connect | "),
+                Span::raw("] connect "),
                 Span::raw("["),
                 Span::styled("d", Style::default().fg(theme.key_hint)),
-                Span::raw("] disconnect | "),
+                Span::raw("] disconnect "),
                 Span::raw("["),
                 Span::styled("r", Style::default().fg(theme.key_hint)),
-                Span::raw("] refresh | "),
+                Span::raw("] refresh "),
                 Span::raw("["),
                 Span::styled("s", Style::default().fg(theme.key_hint)),
-                Span::raw("] sort | "),
+                Span::raw("] sort "),
                 Span::raw("["),
                 Span::styled("f", Style::default().fg(theme.key_hint)),
-                Span::raw("] field | "),
+                Span::raw("] field "),
                 Span::raw("["),
                 Span::styled("/", Style::default().fg(theme.key_hint)),
                 Span::raw("] filter"),
@@ -785,10 +785,10 @@ impl TuiApp {
             (AppView::Servers, Pane::Cities) => vec![
                 Span::raw("["),
                 Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                Span::raw("] navigate | "),
+                Span::raw("] navigate "),
                 Span::raw("["),
                 Span::styled("c/Enter", Style::default().fg(theme.key_hint)),
-                Span::raw("] connect | "),
+                Span::raw("] connect "),
                 Span::raw("["),
                 Span::styled("h/Backspace", Style::default().fg(theme.key_hint)),
                 Span::raw("] countries"),
@@ -796,10 +796,10 @@ impl TuiApp {
             (AppView::Settings, _) => vec![
                 Span::raw("["),
                 Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                Span::raw("] move | "),
+                Span::raw("] move "),
                 Span::raw("["),
                 Span::styled("Enter", Style::default().fg(theme.key_hint)),
-                Span::raw("] toggle/input | "),
+                Span::raw("] toggle/input "),
                 Span::raw("["),
                 Span::styled("Space", Style::default().fg(theme.key_hint)),
                 Span::raw("] off"),

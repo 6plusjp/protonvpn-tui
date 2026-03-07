@@ -277,6 +277,7 @@ impl AppState {
                 match result {
                     Ok(servers) => {
                         self.set_servers(servers);
+                        tracing::info!("Server list refreshed: {} servers", self.servers.len());
                         self.show_notification(
                             format!("Refreshed {} servers", self.servers.len()),
                             NotificationType::Success,
@@ -284,6 +285,7 @@ impl AppState {
                         notification_shown = true;
                     }
                     Err(e) => {
+                        tracing::warn!("Server list refresh failed: {}", e);
                         self.show_notification(
                             format!("Refresh failed: {}", e),
                             NotificationType::Error,
@@ -306,6 +308,7 @@ impl AppState {
                                 format!("Connected to {}", &server),
                                 NotificationType::Success,
                             );
+                            tracing::info!("Successfully connected to server: {}", server);
                             self.connection = ConnectionState::Connected {
                                 server,
                                 ip: ip.unwrap_or_default(),
@@ -320,6 +323,7 @@ impl AppState {
                             } else {
                                 self.connection = ConnectionState::Disconnected;
                             }
+                            tracing::warn!("Connection failed: {}", e);
                             self.show_notification(
                                 format!("Connection failed: {}", e),
                                 NotificationType::Error,
@@ -338,6 +342,7 @@ impl AppState {
                     match result {
                         Ok(()) => {
                             self.connection = ConnectionState::Disconnected;
+                            tracing::info!("Successfully disconnected from VPN");
                             self.show_notification(
                                 "Disconnected".to_string(),
                                 NotificationType::Info,
@@ -352,6 +357,7 @@ impl AppState {
                             } else {
                                 self.connection = ConnectionState::Disconnected;
                             }
+                            tracing::warn!("Disconnect failed: {}", e);
                             self.show_notification(
                                 format!("Disconnect failed: {}", e),
                                 NotificationType::Error,
@@ -401,6 +407,10 @@ impl AppState {
                             NotificationType::Success,
                         );
                         notification_shown = true;
+                        tracing::info!(
+                            "Successfully connected to server (connect_city): {}",
+                            server
+                        );
                         self.connection = ConnectionState::Connected {
                             server,
                             ip: ip.unwrap_or_default(),
@@ -414,6 +424,7 @@ impl AppState {
                         } else {
                             self.connection = ConnectionState::Disconnected;
                         }
+                        tracing::warn!("Connection failed (connect_city): {}", e);
                         self.show_notification(
                             format!("Connection failed: {}", e),
                             NotificationType::Error,
@@ -443,6 +454,7 @@ impl AppState {
     }
 
     pub fn refresh_servers(&mut self) {
+        tracing::info!("Refreshing server list");
         let cached = self.vpn_state.get_servers();
         if !cached.is_empty() {
             self.set_servers(cached);
@@ -478,6 +490,7 @@ impl AppState {
             }
         };
 
+        tracing::info!("Connecting to server: {}", server_id);
         self.previous_connection = Some(self.connection.clone());
         self.connection = ConnectionState::Connecting;
         self.show_notification("Connecting...".to_string(), NotificationType::Info);
@@ -489,6 +502,7 @@ impl AppState {
     }
 
     pub fn connect_random(&mut self) {
+        tracing::info!("Connecting to random server");
         self.previous_connection = Some(self.connection.clone());
         self.connection = ConnectionState::Connecting;
         self.show_notification(
@@ -507,6 +521,7 @@ impl AppState {
             return;
         }
 
+        tracing::info!("Disconnecting from VPN");
         self.previous_connection = Some(self.connection.clone());
         self.connection = ConnectionState::Disconnecting;
         self.show_notification("Disconnecting...".to_string(), NotificationType::Info);
@@ -901,6 +916,10 @@ impl AppState {
             }
             7 => {
                 self.is_dark_theme = !self.is_dark_theme;
+                tracing::info!(
+                    "Theme changed to {}",
+                    if self.is_dark_theme { "Dark" } else { "Light" }
+                );
                 self.show_notification(
                     format!(
                         "Theme changed to {}",
@@ -921,6 +940,7 @@ impl AppState {
 
         match result {
             Ok(msg) => {
+                tracing::info!("Setting updated: {}", msg);
                 self.show_notification(
                     format!("Setting updated: {}", msg),
                     NotificationType::Success,
@@ -928,6 +948,7 @@ impl AppState {
                 self.proton_settings_cache = None;
             }
             Err(e) => {
+                tracing::warn!("Failed to update setting: {}", e);
                 self.show_notification(
                     format!("Failed to update setting: {}", e),
                     NotificationType::Error,

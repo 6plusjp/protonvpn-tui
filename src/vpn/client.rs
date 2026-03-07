@@ -79,6 +79,7 @@ impl VpnClient {
             .cache
             .lock()
             .map_err(|e| AppError::ConfigError(format!("Failed to lock cache: {}", e)))?;
+        tracing::debug!("Saving server cache to disk");
         cache.save(self.cache_path.clone())
     }
 

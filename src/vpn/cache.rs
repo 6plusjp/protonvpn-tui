@@ -43,7 +43,9 @@ impl ServerCache {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
+        let path_for_log = path.clone();
         std::fs::write(path, content)?;
+        tracing::debug!("Server cache saved to {:?}", path_for_log);
         Ok(())
     }
 

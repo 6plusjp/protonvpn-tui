@@ -4,7 +4,9 @@
 
 - **Category 1 (Error Handling)**: ✅ COMPLETED (2026-03-07)
 - **Category 2 (Code Duplication)**: ✅ COMPLETED (2026-03-07)
-- **Category 3-8**: 📋 Pending
+- **Category 3 (Architecture)**: 📋 Pending
+- **Category 4 (Missing Logging)**: ✅ COMPLETED (2026-03-07)
+- **Category 5-8**: 📋 Pending
 
 ## Summary
 
@@ -253,6 +255,16 @@ strip = true  # Reduce binary size
 - Replaced 6 duplicate theme initializations in `src/ui/app.rs`
 - Replaced 5 duplicate theme initializations in view files (`servers_view.rs`, `settings_view.rs`, `logs_view.rs`, `help_view.rs`, `stats_view.rs`)
 - Removed unused `Theme` imports from view files
+
+### Category 4: Missing Logging - ✅ COMPLETED (2026-03-07)
+- Added logging for connection state changes (connect/disconnect) in `app_state.rs`
+- Added logging for successful connection to server
+- Added logging for connection failures
+- Added logging for disconnection success and failure
+- Added logging for settings modifications (toggle_settings)
+- Added logging for theme changes
+- Added logging for cache save operations in `client.rs` and `cache.rs`
+- Added logging for server list refresh (start, success, failure)
 
 ---
 

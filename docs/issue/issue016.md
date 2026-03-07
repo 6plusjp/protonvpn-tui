@@ -11,9 +11,9 @@
 
 ## Partially Completed Categories
 
-- **Category 3 (Architecture)**: ⚠️ PARTIALLY COMPLETED (2026-03-07)
+- **Category 3 (Architecture)**: ✅ COMPLETED (2026-03-07)
   - ✅ Completed: Thread pool implementation, is_connected() error handling
-  - ❌ NOT Completed: 3.2 Tight Coupling (getter methods for connection, current_view, pane_focus, selected_server)
+  - ✅ Completed: 3.2 Tight Coupling (getter methods for connection, current_view, pane_focus, selected_server)
 
 ## Pending Categories (Not Completed)
 
@@ -260,6 +260,16 @@ strip = true  # Reduce binary size
 - Optional: `AsyncTaskManager::new_with_workers(n)` for custom worker count
 - Fixed `is_connected()` error hiding - added `tracing::debug!` for error cases
 
+### 3.2 Tight Coupling - ✅ COMPLETED (2026-03-07)
+- Added getter methods to `AppState`:
+  - `get_connection()` - returns `&ConnectionState`
+  - `get_current_view()` - returns `AppView`
+  - `get_pane_focus()` - returns `Pane`
+  - `get_selected_server()` - returns `Option<usize>`
+  - `get_selected_city()` - returns `Option<usize>`
+- Updated `TuiApp` in `ui/app.rs` to use getter methods instead of direct field access
+- Assignment (`=`) still uses direct field access (required for mutation)
+
 ### Category 4: Missing Logging - ✅ COMPLETED (2026-03-07)
 - Added logging for connection state changes (connect/disconnect) in `app_state.rs`
 - Added logging for successful connection to server
@@ -285,7 +295,7 @@ strip = true  # Reduce binary size
 
 ## Remaining Issues (Priority Order)
 
-### High Priority
+### Completed
 
 | Issue | Description | Category |
 |-------|-------------|----------|

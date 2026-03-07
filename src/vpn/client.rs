@@ -642,8 +642,11 @@ impl VpnClient {
         }
 
         let client = Self::new();
-        client.cache.lock().unwrap().countries = countries;
-        client.cache.lock().unwrap().cities = cities_map;
+        // Use match for cleaner error handling in test code
+        if let Ok(mut cache) = client.cache.lock() {
+            cache.countries = countries;
+            cache.cities = cities_map;
+        }
 
         client
     }

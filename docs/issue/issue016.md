@@ -4,20 +4,18 @@
 
 - **Category 1 (Error Handling)**: ✅ COMPLETED (2026-03-07)
 - **Category 2 (Code Duplication)**: ✅ COMPLETED (2026-03-07)
+- **Category 3 (Architecture)**: ✅ COMPLETED (2026-03-07)
 - **Category 4 (Missing Logging)**: ✅ COMPLETED (2026-03-07)
 - **Category 5 (Potential Bugs)**: ✅ COMPLETED (2026-03-07)
 - **Category 6 (Code Quality)**: ✅ COMPLETED (2026-03-07)
   - Note: Splitting handle_key() and render() functions was skipped (large refactoring, marked as backlog)
-
-## Partially Completed Categories
-
-- **Category 3 (Architecture)**: ✅ COMPLETED (2026-03-07)
-  - ✅ Completed: Thread pool implementation, is_connected() error handling
-  - ✅ Completed: 3.2 Tight Coupling (getter methods for connection, current_view, pane_focus, selected_server)
+- **Category 7 (Testing)**: ✅ COMPLETED (2026-03-07)
+  - Added 25 new tests across 2 new test files
+  - Fixed test code unwrap() pattern
+  - Total tests: 105 (up from 80)
 
 ## Pending Categories (Not Completed)
 
-- **Category 7 (Testing)**: ⏳ PENDING
 - **Category 8 (Configuration)**: ⏳ PENDING
 
 ## Summary
@@ -291,6 +289,22 @@ strip = true  # Reduce binary size
 - Added doc comments to key public APIs in `app_state.rs` (get_theme, sync_connection_state, filtered_servers)
 - Note: Splitting handle_key() and render() functions skipped - large refactoring, marked as Low Priority in backlog
 
+### Category 7: Testing Gaps - ✅ COMPLETED (2026-03-07)
+- Added new test file `tests/async_task_test.rs` with 12 tests:
+  - AsyncTaskManager creation (default, custom workers, zero, many)
+  - AsyncTaskManager clone
+  - Channel creation and send/receive
+  - ThreadPool creation and shutdown
+- Added new test file `tests/vpn_ops_test.rs` with 13 tests:
+  - VPN client operations (new, with_path, get_servers)
+  - VPN state operations (new, get_servers, get_servers_or_refresh)
+  - Server serialization/deserialization roundtrip
+  - Multiple cities serialization
+  - City with features serialization
+  - VPN connection state methods (is_connected, get_connected_server, get_vpn_ip, matches_ip)
+- Fixed test code unwrap() in `src/vpn/client.rs:631-650` - replaced with cleaner `if let Ok(mut)` pattern
+- Total test count increased from 80 to 105 tests
+
 ---
 
 ## Remaining Issues (Priority Order)
@@ -300,18 +314,13 @@ strip = true  # Reduce binary size
 | Issue | Description | Category |
 |-------|-------------|----------|
 | **3.2 Tight Coupling** | Add getter methods to `AppState` for `connection`, `current_view`, `pane_focus`, `selected_server` to reduce direct field access | Category 3 |
-
-### Medium Priority
-
-| Issue | Description | Category |
-|-------|-------------|----------|
 | **7.1 Test Coverage** | Add tests for async operations, UI rendering, and VPN operations | Category 7 |
+| **7.2 Test Code Improvements** | Refactor test code to replace `unwrap()` with cleaner patterns | Category 7 |
 
 ### Low Priority
 
 | Issue | Description | Category |
 |-------|-------------|----------|
-| **7.2 Test Code Improvements** | Refactor test code to replace `unwrap()` with cleaner patterns | Category 7 |
 | **8.1 Dependency Versions** | Use strict version constraints (e.g., `=X.Y.Z`) for critical dependencies in Cargo.toml | Category 8 |
 | **8.2 Security Flags** | Add security-focused flags to release profile (e.g., `strip = true`) | Category 8 |
 

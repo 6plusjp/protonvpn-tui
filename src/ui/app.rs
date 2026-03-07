@@ -123,9 +123,9 @@ impl TuiApp {
             KeyCode::Char('q') => Some(AppAction::Quit),
             KeyCode::Tab => Some(AppAction::SwitchView),
             KeyCode::Char('c') => {
-                if self.state.current_view == AppView::Servers {
-                    if self.state.pane_focus == Pane::Cities {
-                        if let Some(idx) = self.state.selected_city {
+                if self.state.get_current_view() == AppView::Servers {
+                    if self.state.get_pane_focus() == Pane::Cities {
+                        if let Some(idx) = self.state.get_selected_city() {
                             let city_name =
                                 self.state.current_cities.get(idx).map(|c| c.name.clone());
                             if let Some(name) = city_name {
@@ -138,7 +138,7 @@ impl TuiApp {
                         self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
                     }
                 } else {
-                    match self.state.current_view {
+                    match self.state.get_current_view() {
                         AppView::Settings => {
                             self.state.connect();
                             self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
@@ -152,7 +152,7 @@ impl TuiApp {
                 None
             }
             KeyCode::Char(' ') => {
-                if self.state.current_view == AppView::Settings {
+                if self.state.get_current_view() == AppView::Settings {
                     if let Some(idx) = self.state.settings_selected {
                         self.state.toggle_settings_off(idx);
                         self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
@@ -166,15 +166,15 @@ impl TuiApp {
                 None
             }
             KeyCode::Char('l') => {
-                if self.state.current_view == AppView::Servers {
+                if self.state.get_current_view() == AppView::Servers {
                     self.state.move_to_cities();
                     self.notification_timer = NOTIFICATION_TIMER_SHORT;
                 }
                 None
             }
             KeyCode::Char('h') => {
-                if self.state.current_view == AppView::Servers
-                    && self.state.pane_focus == Pane::Cities
+                if self.state.get_current_view() == AppView::Servers
+                    && self.state.get_pane_focus() == Pane::Cities
                 {
                     self.state.move_to_countries();
                     self.notification_timer = NOTIFICATION_TIMER_SHORT;
@@ -182,8 +182,8 @@ impl TuiApp {
                 None
             }
             KeyCode::Backspace => {
-                if self.state.current_view == AppView::Servers
-                    && self.state.pane_focus == Pane::Cities
+                if self.state.get_current_view() == AppView::Servers
+                    && self.state.get_pane_focus() == Pane::Cities
                 {
                     self.state.move_to_countries();
                     self.notification_timer = NOTIFICATION_TIMER_SHORT;
@@ -191,7 +191,7 @@ impl TuiApp {
                 None
             }
             KeyCode::Enter => {
-                match self.state.current_view {
+                match self.state.get_current_view() {
                     AppView::Settings => {
                         if let Some(idx) = self.state.settings_selected {
                             self.state.toggle_settings(idx);
@@ -204,8 +204,8 @@ impl TuiApp {
                         }
                     }
                     AppView::Servers => {
-                        if self.state.pane_focus == Pane::Cities {
-                            if let Some(idx) = self.state.selected_city {
+                        if self.state.get_pane_focus() == Pane::Cities {
+                            if let Some(idx) = self.state.get_selected_city() {
                                 let city_name =
                                     self.state.current_cities.get(idx).map(|c| c.name.clone());
                                 if let Some(name) = city_name {
@@ -224,14 +224,14 @@ impl TuiApp {
             }
             // Ctrl+d = page down (must be before 'd' for disconnect)
             KeyCode::Char('d') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                if self.state.current_view == AppView::Servers {
-                    if self.state.pane_focus == Pane::Cities {
+                if self.state.get_current_view() == AppView::Servers {
+                    if self.state.get_pane_focus() == Pane::Cities {
                         self.state.city_select_page_down();
                     } else {
                         self.state.select_page_down();
                     }
                 } else {
-                    match self.state.current_view {
+                    match self.state.get_current_view() {
                         AppView::Servers => self.state.select_page_down(),
                         AppView::Settings => {
                             self.state.settings_select_page_down();
@@ -263,14 +263,14 @@ impl TuiApp {
                 None
             }
             KeyCode::Char('j') | KeyCode::Down => {
-                if self.state.current_view == AppView::Servers {
-                    if self.state.pane_focus == Pane::Cities {
+                if self.state.get_current_view() == AppView::Servers {
+                    if self.state.get_pane_focus() == Pane::Cities {
                         self.state.city_select_next();
                     } else {
                         self.state.select_next();
                     }
                 } else {
-                    match self.state.current_view {
+                    match self.state.get_current_view() {
                         AppView::Servers => self.state.select_next(),
                         AppView::Settings => {
                             self.state.settings_select_next();
@@ -281,15 +281,15 @@ impl TuiApp {
                 None
             }
             KeyCode::Char('k') | KeyCode::Up => {
-                if self.state.current_view == AppView::Servers {
-                    if self.state.pane_focus == Pane::Cities {
+                if self.state.get_current_view() == AppView::Servers {
+                    if self.state.get_pane_focus() == Pane::Cities {
                         self.state.city_select_prev();
                     } else {
                         self.state.select_prev();
                     }
                     self.pending_g = false;
                 } else {
-                    match self.state.current_view {
+                    match self.state.get_current_view() {
                         AppView::Servers => {
                             self.state.select_prev();
                             self.pending_g = false;
@@ -306,14 +306,14 @@ impl TuiApp {
             // Vim: gg = go to top
             KeyCode::Char('g') => {
                 if self.pending_g {
-                    if self.state.current_view == AppView::Servers {
-                        if self.state.pane_focus == Pane::Cities {
+                    if self.state.get_current_view() == AppView::Servers {
+                        if self.state.get_pane_focus() == Pane::Cities {
                             self.state.city_select_first();
                         } else {
                             self.state.select_first();
                         }
                     } else {
-                        match self.state.current_view {
+                        match self.state.get_current_view() {
                             AppView::Servers => self.state.select_first(),
                             AppView::Settings => {
                                 self.state.settings_select_first();
@@ -329,14 +329,14 @@ impl TuiApp {
             }
             // Vim: G = go to bottom
             KeyCode::Char('G') => {
-                if self.state.current_view == AppView::Servers {
-                    if self.state.pane_focus == Pane::Cities {
+                if self.state.get_current_view() == AppView::Servers {
+                    if self.state.get_pane_focus() == Pane::Cities {
                         self.state.city_select_last();
                     } else {
                         self.state.select_last();
                     }
                 } else {
-                    match self.state.current_view {
+                    match self.state.get_current_view() {
                         AppView::Servers => self.state.select_last(),
                         AppView::Settings => {
                             self.state.settings_select_last();
@@ -349,14 +349,14 @@ impl TuiApp {
             }
             // Ctrl+u = page up
             KeyCode::Char('u') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                if self.state.current_view == AppView::Servers {
-                    if self.state.pane_focus == Pane::Cities {
+                if self.state.get_current_view() == AppView::Servers {
+                    if self.state.get_pane_focus() == Pane::Cities {
                         self.state.city_select_page_up();
                     } else {
                         self.state.select_page_up();
                     }
                 } else {
-                    match self.state.current_view {
+                    match self.state.get_current_view() {
                         AppView::Servers => self.state.select_page_up(),
                         AppView::Settings => {
                             self.state.settings_select_page_up();
@@ -382,7 +382,7 @@ impl TuiApp {
                 None
             }
             KeyCode::Esc => {
-                if self.state.current_view == AppView::Servers {
+                if self.state.get_current_view() == AppView::Servers {
                     // Just clear filter - cities panel stays open
                 }
                 None
@@ -613,7 +613,7 @@ impl TuiApp {
     fn render_header(&mut self, f: &mut Frame<'_>, area: Rect) {
         let theme = self.get_theme();
 
-        let (status_text, status_color): (String, _) = match &self.state.connection {
+        let (status_text, status_color): (String, _) = match self.state.get_connection() {
             crate::state::ConnectionState::Disconnected => {
                 ("Disconnected".to_string(), theme.foreground)
             }
@@ -638,7 +638,7 @@ impl TuiApp {
 
         let title = " ProtonVPN TUI ";
 
-        let status_indicator = match &self.state.connection {
+        let status_indicator = match self.state.get_connection() {
             crate::state::ConnectionState::Connected { .. } => "●",
             crate::state::ConnectionState::Connecting
             | crate::state::ConnectionState::Disconnecting => "◐",
@@ -689,7 +689,7 @@ impl TuiApp {
     }
 
     fn render_main(&mut self, f: &mut Frame<'_>, area: Rect) {
-        match self.state.current_view {
+        match self.state.get_current_view() {
             AppView::Servers => views::servers_view::render_servers_view(
                 &mut self.state,
                 &mut self.countries_list_state,
@@ -716,9 +716,9 @@ impl TuiApp {
         let direction_label = self.state.sort_direction.label();
         let _sort_display = format!("{} {}", sort_label, direction_label);
 
-        let action_spans: Vec<Span<'_>> = match self.state.current_view {
+        let action_spans: Vec<Span<'_>> = match self.state.get_current_view() {
             AppView::Servers => {
-                if self.state.pane_focus == Pane::Countries {
+                if self.state.get_pane_focus() == Pane::Countries {
                     vec![
                         Span::raw("["),
                         Span::styled("j/k", Style::default().fg(theme.key_hint)),

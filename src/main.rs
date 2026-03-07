@@ -15,7 +15,7 @@ fn main() -> io::Result<()> {
 
     // Log to file in home directory or temp
     let log_path = std::env::var("PROTONVPN_TUI_LOG")
-        .map(|p| std::path::PathBuf::from(p))
+        .map(std::path::PathBuf::from)
         .unwrap_or_else(|_| std::env::temp_dir().join("protonvpn-tui.log"));
 
     let log_file = std::fs::OpenOptions::new()

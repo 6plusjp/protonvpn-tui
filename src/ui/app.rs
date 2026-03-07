@@ -119,261 +119,24 @@ impl TuiApp {
             return self.handle_filter_input(key_event);
         }
 
+        if let Some(action) = self.handle_common_keys(key_event) {
+            return Some(action);
+        }
+
+        match self.state.get_current_view() {
+            AppView::Servers => self.handle_servers_key(key_event),
+            AppView::Settings => self.handle_settings_key(key_event),
+            AppView::Logs => self.handle_logs_key(key_event),
+            AppView::Help => self.handle_help_key(key_event),
+        }
+    }
+
+    fn handle_common_keys(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
         match key_event.code {
             KeyCode::Char('q') => Some(AppAction::Quit),
             KeyCode::Tab => Some(AppAction::SwitchView),
-            KeyCode::Char('c') => {
-                if self.state.get_current_view() == AppView::Servers {
-                    if self.state.get_pane_focus() == Pane::Cities {
-                        if let Some(idx) = self.state.get_selected_city() {
-                            let city_name =
-                                self.state.current_cities.get(idx).map(|c| c.name.clone());
-                            if let Some(name) = city_name {
-                                self.state.connect_city(&name);
-                                self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
-                            }
-                        }
-                    } else {
-                        self.state.connect();
-                        self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
-                    }
-                } else {
-                    match self.state.get_current_view() {
-                        AppView::Settings => {
-                            self.state.connect();
-                            self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
-                        }
-                        _ => {
-                            self.state.connect();
-                            self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
-                        }
-                    }
-                }
-                None
-            }
-            KeyCode::Char(' ') => {
-                if self.state.get_current_view() == AppView::Settings {
-                    if let Some(idx) = self.state.settings_selected {
-                        self.state.toggle_settings_off(idx);
-                        self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
-                    } else {
-                        self.state.show_notification(
-                            "No setting selected".to_string(),
-                            crate::state::NotificationType::Info,
-                        );
-                    }
-                }
-                None
-            }
-            KeyCode::Char('l') => {
-                if self.state.get_current_view() == AppView::Servers {
-                    self.state.move_to_cities();
-                    self.notification_timer = NOTIFICATION_TIMER_SHORT;
-                }
-                None
-            }
-            KeyCode::Char('h') => {
-                if self.state.get_current_view() == AppView::Servers
-                    && self.state.get_pane_focus() == Pane::Cities
-                {
-                    self.state.move_to_countries();
-                    self.notification_timer = NOTIFICATION_TIMER_SHORT;
-                }
-                None
-            }
-            KeyCode::Backspace => {
-                if self.state.get_current_view() == AppView::Servers
-                    && self.state.get_pane_focus() == Pane::Cities
-                {
-                    self.state.move_to_countries();
-                    self.notification_timer = NOTIFICATION_TIMER_SHORT;
-                }
-                None
-            }
-            KeyCode::Enter => {
-                match self.state.get_current_view() {
-                    AppView::Settings => {
-                        if let Some(idx) = self.state.settings_selected {
-                            self.state.toggle_settings(idx);
-                            self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
-                        } else {
-                            self.state.show_notification(
-                                "No setting selected".to_string(),
-                                crate::state::NotificationType::Info,
-                            );
-                        }
-                    }
-                    AppView::Servers => {
-                        if self.state.get_pane_focus() == Pane::Cities {
-                            if let Some(idx) = self.state.get_selected_city() {
-                                let city_name =
-                                    self.state.current_cities.get(idx).map(|c| c.name.clone());
-                                if let Some(name) = city_name {
-                                    self.state.connect_city(&name);
-                                    self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
-                                }
-                            }
-                        } else {
-                            self.state.move_to_cities();
-                            self.notification_timer = NOTIFICATION_TIMER_SHORT;
-                        }
-                    }
-                    _ => {}
-                }
-                None
-            }
-            // Ctrl+d = page down (must be before 'd' for disconnect)
-            KeyCode::Char('d') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                if self.state.get_current_view() == AppView::Servers {
-                    if self.state.get_pane_focus() == Pane::Cities {
-                        self.state.city_select_page_down();
-                    } else {
-                        self.state.select_page_down();
-                    }
-                } else {
-                    match self.state.get_current_view() {
-                        AppView::Servers => self.state.select_page_down(),
-                        AppView::Settings => {
-                            self.state.settings_select_page_down();
-                        }
-                        _ => {}
-                    }
-                }
-                self.pending_g = false;
-                None
-            }
-            KeyCode::Char('d') => {
-                self.state.disconnect();
-                self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
-                None
-            }
-            KeyCode::Char('r') => {
-                self.state.refresh_servers();
-                self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
-                None
-            }
-            KeyCode::Char('s') => {
-                self.state.cycle_sort();
-                self.notification_timer = NOTIFICATION_TIMER_SHORT;
-                None
-            }
-            KeyCode::Char('f') => {
-                self.state.cycle_sort_field();
-                self.notification_timer = NOTIFICATION_TIMER_SHORT;
-                None
-            }
-            KeyCode::Char('j') | KeyCode::Down => {
-                if self.state.get_current_view() == AppView::Servers {
-                    if self.state.get_pane_focus() == Pane::Cities {
-                        self.state.city_select_next();
-                    } else {
-                        self.state.select_next();
-                    }
-                } else {
-                    match self.state.get_current_view() {
-                        AppView::Servers => self.state.select_next(),
-                        AppView::Settings => {
-                            self.state.settings_select_next();
-                        }
-                        _ => {}
-                    }
-                }
-                None
-            }
-            KeyCode::Char('k') | KeyCode::Up => {
-                if self.state.get_current_view() == AppView::Servers {
-                    if self.state.get_pane_focus() == Pane::Cities {
-                        self.state.city_select_prev();
-                    } else {
-                        self.state.select_prev();
-                    }
-                    self.pending_g = false;
-                } else {
-                    match self.state.get_current_view() {
-                        AppView::Servers => {
-                            self.state.select_prev();
-                            self.pending_g = false;
-                        }
-                        AppView::Settings => {
-                            self.state.settings_select_prev();
-                            self.pending_g = false;
-                        }
-                        _ => {}
-                    }
-                }
-                None
-            }
-            // Vim: gg = go to top
-            KeyCode::Char('g') => {
-                if self.pending_g {
-                    if self.state.get_current_view() == AppView::Servers {
-                        if self.state.get_pane_focus() == Pane::Cities {
-                            self.state.city_select_first();
-                        } else {
-                            self.state.select_first();
-                        }
-                    } else {
-                        match self.state.get_current_view() {
-                            AppView::Servers => self.state.select_first(),
-                            AppView::Settings => {
-                                self.state.settings_select_first();
-                            }
-                            _ => {}
-                        }
-                    }
-                    self.pending_g = false;
-                } else {
-                    self.pending_g = true;
-                }
-                None
-            }
-            // Vim: G = go to bottom
-            KeyCode::Char('G') => {
-                if self.state.get_current_view() == AppView::Servers {
-                    if self.state.get_pane_focus() == Pane::Cities {
-                        self.state.city_select_last();
-                    } else {
-                        self.state.select_last();
-                    }
-                } else {
-                    match self.state.get_current_view() {
-                        AppView::Servers => self.state.select_last(),
-                        AppView::Settings => {
-                            self.state.settings_select_last();
-                        }
-                        _ => {}
-                    }
-                }
-                self.pending_g = false;
-                None
-            }
-            // Ctrl+u = page up
-            KeyCode::Char('u') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                if self.state.get_current_view() == AppView::Servers {
-                    if self.state.get_pane_focus() == Pane::Cities {
-                        self.state.city_select_page_up();
-                    } else {
-                        self.state.select_page_up();
-                    }
-                } else {
-                    match self.state.get_current_view() {
-                        AppView::Servers => self.state.select_page_up(),
-                        AppView::Settings => {
-                            self.state.settings_select_page_up();
-                        }
-                        _ => {}
-                    }
-                }
-                self.pending_g = false;
-                None
-            }
             KeyCode::Char('?') => {
                 self.state.current_view = AppView::Help;
-                None
-            }
-            KeyCode::Char('x') => {
-                self.state.connect_random();
-                self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
                 None
             }
             KeyCode::Char('/') => {
@@ -381,14 +144,287 @@ impl TuiApp {
                 self.filter_input = self.state.search_query.clone();
                 None
             }
-            KeyCode::Esc => {
-                if self.state.get_current_view() == AppView::Servers {
-                    // Just clear filter - cities panel stays open
+            KeyCode::Esc => None,
+            _ => None,
+        }
+    }
+
+    fn handle_servers_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
+        match key_event.code {
+            KeyCode::Char('c') => {
+                self.handle_connect();
+                None
+            }
+            KeyCode::Char('l') => {
+                self.state.move_to_cities();
+                self.notification_timer = NOTIFICATION_TIMER_SHORT;
+                None
+            }
+            KeyCode::Char('h') => {
+                if self.state.get_pane_focus() == Pane::Cities {
+                    self.state.move_to_countries();
+                    self.notification_timer = NOTIFICATION_TIMER_SHORT;
                 }
+                None
+            }
+            KeyCode::Backspace => {
+                if self.state.get_pane_focus() == Pane::Cities {
+                    self.state.move_to_countries();
+                    self.notification_timer = NOTIFICATION_TIMER_SHORT;
+                }
+                None
+            }
+            KeyCode::Enter => {
+                if self.state.get_pane_focus() == Pane::Cities {
+                    self.handle_connect();
+                } else {
+                    self.state.move_to_cities();
+                    self.notification_timer = NOTIFICATION_TIMER_SHORT;
+                }
+                None
+            }
+            KeyCode::Char('j') | KeyCode::Down => {
+                self.handle_navigation_down();
+                None
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                self.handle_navigation_up();
+                None
+            }
+            KeyCode::Char('d') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.handle_page_down();
+                None
+            }
+            KeyCode::Char('d') => {
+                self.handle_disconnect();
+                None
+            }
+            KeyCode::Char('r') => {
+                self.handle_refresh();
+                None
+            }
+            KeyCode::Char('s') => {
+                self.handle_cycle_sort();
+                None
+            }
+            KeyCode::Char('f') => {
+                self.handle_cycle_sort_field();
+                None
+            }
+            KeyCode::Char('g') => {
+                self.handle_go_to_first();
+                None
+            }
+            KeyCode::Char('G') => {
+                self.handle_go_to_last();
+                None
+            }
+            KeyCode::Char('u') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.handle_page_up();
+                None
+            }
+            KeyCode::Char('x') => {
+                self.handle_connect_random();
                 None
             }
             _ => None,
         }
+    }
+
+    fn handle_settings_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
+        match key_event.code {
+            KeyCode::Char(' ') => {
+                if let Some(idx) = self.state.settings_selected {
+                    self.state.toggle_settings_off(idx);
+                    self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                } else {
+                    self.state.show_notification(
+                        "No setting selected".to_string(),
+                        crate::state::NotificationType::Info,
+                    );
+                }
+                None
+            }
+            KeyCode::Enter => {
+                if let Some(idx) = self.state.settings_selected {
+                    self.state.toggle_settings(idx);
+                    self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                } else {
+                    self.state.show_notification(
+                        "No setting selected".to_string(),
+                        crate::state::NotificationType::Info,
+                    );
+                }
+                None
+            }
+            KeyCode::Char('c') => {
+                self.handle_connect();
+                None
+            }
+            KeyCode::Char('j') | KeyCode::Down => {
+                self.handle_navigation_down();
+                None
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                self.handle_navigation_up();
+                None
+            }
+            KeyCode::Char('d') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.handle_page_down();
+                None
+            }
+            KeyCode::Char('g') => {
+                self.handle_go_to_first();
+                None
+            }
+            KeyCode::Char('G') => {
+                self.handle_go_to_last();
+                None
+            }
+            KeyCode::Char('u') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.handle_page_up();
+                None
+            }
+            _ => None,
+        }
+    }
+
+    fn handle_logs_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
+        match key_event.code {
+            KeyCode::Char('j') | KeyCode::Down => {
+                self.handle_navigation_down();
+                None
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                self.handle_navigation_up();
+                None
+            }
+            KeyCode::Char('d') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.handle_page_down();
+                None
+            }
+            KeyCode::Char('g') => {
+                self.handle_go_to_first();
+                None
+            }
+            KeyCode::Char('G') => {
+                self.handle_go_to_last();
+                None
+            }
+            KeyCode::Char('u') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.handle_page_up();
+                None
+            }
+            _ => None,
+        }
+    }
+
+    fn handle_help_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
+        let _ = key_event;
+        None
+    }
+
+    fn handle_navigation_down(&mut self) {
+        match (self.state.get_current_view(), self.state.get_pane_focus()) {
+            (AppView::Servers, Pane::Cities) => self.state.city_select_next(),
+            (AppView::Servers, Pane::Countries) => self.state.select_next(),
+            (AppView::Settings, _) => self.state.settings_select_next(),
+            _ => {}
+        }
+    }
+
+    fn handle_navigation_up(&mut self) {
+        self.pending_g = false;
+        match (self.state.get_current_view(), self.state.get_pane_focus()) {
+            (AppView::Servers, Pane::Cities) => self.state.city_select_prev(),
+            (AppView::Servers, Pane::Countries) => self.state.select_prev(),
+            (AppView::Settings, _) => self.state.settings_select_prev(),
+            _ => {}
+        }
+    }
+
+    fn handle_page_down(&mut self) {
+        self.pending_g = false;
+        match (self.state.get_current_view(), self.state.get_pane_focus()) {
+            (AppView::Servers, Pane::Cities) => self.state.city_select_page_down(),
+            (AppView::Servers, Pane::Countries) => self.state.select_page_down(),
+            (AppView::Settings, _) => self.state.settings_select_page_down(),
+            _ => {}
+        }
+    }
+
+    fn handle_page_up(&mut self) {
+        self.pending_g = false;
+        match (self.state.get_current_view(), self.state.get_pane_focus()) {
+            (AppView::Servers, Pane::Cities) => self.state.city_select_page_up(),
+            (AppView::Servers, Pane::Countries) => self.state.select_page_up(),
+            (AppView::Settings, _) => self.state.settings_select_page_up(),
+            _ => {}
+        }
+    }
+
+    fn handle_go_to_first(&mut self) {
+        if self.pending_g {
+            match (self.state.get_current_view(), self.state.get_pane_focus()) {
+                (AppView::Servers, Pane::Cities) => self.state.city_select_first(),
+                (AppView::Servers, Pane::Countries) => self.state.select_first(),
+                (AppView::Settings, _) => self.state.settings_select_first(),
+                _ => {}
+            }
+            self.pending_g = false;
+        } else {
+            self.pending_g = true;
+        }
+    }
+
+    fn handle_go_to_last(&mut self) {
+        self.pending_g = false;
+        match (self.state.get_current_view(), self.state.get_pane_focus()) {
+            (AppView::Servers, Pane::Cities) => self.state.city_select_last(),
+            (AppView::Servers, Pane::Countries) => self.state.select_last(),
+            (AppView::Settings, _) => self.state.settings_select_last(),
+            _ => {}
+        }
+    }
+
+    fn handle_connect(&mut self) {
+        if self.state.get_pane_focus() == Pane::Cities {
+            if let Some(idx) = self.state.get_selected_city() {
+                let city_name = self.state.current_cities.get(idx).map(|c| c.name.clone());
+                if let Some(name) = city_name {
+                    self.state.connect_city(&name);
+                    self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                }
+            }
+        } else {
+            self.state.connect();
+            self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+        }
+    }
+
+    fn handle_disconnect(&mut self) {
+        self.state.disconnect();
+        self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+    }
+
+    fn handle_connect_random(&mut self) {
+        self.state.connect_random();
+        self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+    }
+
+    fn handle_refresh(&mut self) {
+        self.state.refresh_servers();
+        self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+    }
+
+    fn handle_cycle_sort(&mut self) {
+        self.state.cycle_sort();
+        self.notification_timer = NOTIFICATION_TIMER_SHORT;
+    }
+
+    fn handle_cycle_sort_field(&mut self) {
+        self.state.cycle_sort_field();
+        self.notification_timer = NOTIFICATION_TIMER_SHORT;
     }
 
     fn handle_filter_input(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
@@ -716,67 +752,7 @@ impl TuiApp {
         let direction_label = self.state.sort_direction.label();
         let _sort_display = format!("{} {}", sort_label, direction_label);
 
-        let action_spans: Vec<Span<'_>> = match self.state.get_current_view() {
-            AppView::Servers => {
-                if self.state.get_pane_focus() == Pane::Countries {
-                    vec![
-                        Span::raw("["),
-                        Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                        Span::raw("] navigate | "),
-                        Span::raw("["),
-                        Span::styled("l/Enter", Style::default().fg(theme.key_hint)),
-                        Span::raw("] cities | "),
-                        Span::raw("["),
-                        Span::styled("c", Style::default().fg(theme.key_hint)),
-                        Span::raw("] connect | "),
-                        Span::raw("["),
-                        Span::styled("d", Style::default().fg(theme.key_hint)),
-                        Span::raw("] disconnect | "),
-                        Span::raw("["),
-                        Span::styled("r", Style::default().fg(theme.key_hint)),
-                        Span::raw("] refresh | "),
-                        Span::raw("["),
-                        Span::styled("s", Style::default().fg(theme.key_hint)),
-                        Span::raw("] sort | "),
-                        Span::raw("["),
-                        Span::styled("f", Style::default().fg(theme.key_hint)),
-                        Span::raw("] field | "),
-                        Span::raw("["),
-                        Span::styled("/", Style::default().fg(theme.key_hint)),
-                        Span::raw("] filter"),
-                    ]
-                } else {
-                    vec![
-                        Span::raw("["),
-                        Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                        Span::raw("] navigate | "),
-                        Span::raw("["),
-                        Span::styled("c/Enter", Style::default().fg(theme.key_hint)),
-                        Span::raw("] connect | "),
-                        Span::raw("["),
-                        Span::styled("h/Backspace", Style::default().fg(theme.key_hint)),
-                        Span::raw("] countries"),
-                    ]
-                }
-            }
-            AppView::Settings => vec![
-                Span::raw("["),
-                Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                Span::raw("] move | "),
-                Span::raw("["),
-                Span::styled("Enter", Style::default().fg(theme.key_hint)),
-                Span::raw("] toggle/input | "),
-                Span::raw("["),
-                Span::styled("Space", Style::default().fg(theme.key_hint)),
-                Span::raw("] off"),
-            ],
-            AppView::Logs => vec![
-                Span::raw("["),
-                Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                Span::raw("] scroll"),
-            ],
-            AppView::Help => vec![Span::raw("Press Tab or q to return")],
-        };
+        let action_spans = self.get_footer_action_hints();
 
         let mut text = Line::from(vec![
             Span::raw("["),
@@ -794,6 +770,67 @@ impl TuiApp {
         text.spans.extend(action_spans);
 
         f.render_widget(Paragraph::new(text), area);
+    }
+
+    fn get_footer_action_hints(&self) -> Vec<Span<'_>> {
+        let theme = self.get_theme();
+
+        match (self.state.get_current_view(), self.state.get_pane_focus()) {
+            (AppView::Servers, Pane::Countries) => vec![
+                Span::raw("["),
+                Span::styled("j/k", Style::default().fg(theme.key_hint)),
+                Span::raw("] navigate | "),
+                Span::raw("["),
+                Span::styled("l/Enter", Style::default().fg(theme.key_hint)),
+                Span::raw("] cities | "),
+                Span::raw("["),
+                Span::styled("c", Style::default().fg(theme.key_hint)),
+                Span::raw("] connect | "),
+                Span::raw("["),
+                Span::styled("d", Style::default().fg(theme.key_hint)),
+                Span::raw("] disconnect | "),
+                Span::raw("["),
+                Span::styled("r", Style::default().fg(theme.key_hint)),
+                Span::raw("] refresh | "),
+                Span::raw("["),
+                Span::styled("s", Style::default().fg(theme.key_hint)),
+                Span::raw("] sort | "),
+                Span::raw("["),
+                Span::styled("f", Style::default().fg(theme.key_hint)),
+                Span::raw("] field | "),
+                Span::raw("["),
+                Span::styled("/", Style::default().fg(theme.key_hint)),
+                Span::raw("] filter"),
+            ],
+            (AppView::Servers, Pane::Cities) => vec![
+                Span::raw("["),
+                Span::styled("j/k", Style::default().fg(theme.key_hint)),
+                Span::raw("] navigate | "),
+                Span::raw("["),
+                Span::styled("c/Enter", Style::default().fg(theme.key_hint)),
+                Span::raw("] connect | "),
+                Span::raw("["),
+                Span::styled("h/Backspace", Style::default().fg(theme.key_hint)),
+                Span::raw("] countries"),
+            ],
+            (AppView::Settings, _) => vec![
+                Span::raw("["),
+                Span::styled("j/k", Style::default().fg(theme.key_hint)),
+                Span::raw("] move | "),
+                Span::raw("["),
+                Span::styled("Enter", Style::default().fg(theme.key_hint)),
+                Span::raw("] toggle/input | "),
+                Span::raw("["),
+                Span::styled("Space", Style::default().fg(theme.key_hint)),
+                Span::raw("] off"),
+            ],
+            (AppView::Logs, _) => vec![
+                Span::raw("["),
+                Span::styled("j/k", Style::default().fg(theme.key_hint)),
+                Span::raw("] scroll"),
+            ],
+            (AppView::Help, _) => vec![Span::raw("Press Tab or q to return")],
+        }
     }
 }
 

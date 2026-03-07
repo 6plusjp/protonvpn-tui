@@ -2,7 +2,7 @@ use crate::constants::ui::{
     NOTIFICATION_MSG_MAX_LEN, NOTIFICATION_TIMER_DEFAULT, NOTIFICATION_TIMER_SHORT,
     POPUP_WIDTH_MAX, POPUP_WIDTH_MIN,
 };
-use crate::state::{AppState, AppView, InputMode};
+use crate::state::{AppState, AppView, InputMode, Pane};
 use crate::ui::styles::Theme;
 use crate::ui::views;
 use crossterm::{
@@ -113,9 +113,9 @@ impl TuiApp {
             KeyCode::Char('q') => Some(AppAction::Quit),
             KeyCode::Tab => Some(AppAction::SwitchView),
             KeyCode::Char('c') => {
-                match self.state.current_view {
-                    AppView::Cities => {
-                        if let Some(idx) = self.state.selected_server {
+                if self.state.current_view == AppView::Servers {
+                    if self.state.pane_focus == Pane::Cities {
+                        if let Some(idx) = self.state.selected_city {
                             let city_name =
                                 self.state.current_cities.get(idx).map(|c| c.name.clone());
                             if let Some(name) = city_name {
@@ -123,10 +123,26 @@ impl TuiApp {
                                 self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
                             }
                         }
-                    }
-                    _ => {
+                    } else {
                         self.state.connect();
                         self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                    }
+                } else {
+                    match self.state.current_view {
+                        AppView::Cities => {
+                            if let Some(idx) = self.state.selected_server {
+                                let city_name =
+                                    self.state.current_cities.get(idx).map(|c| c.name.clone());
+                                if let Some(name) = city_name {
+                                    self.state.connect_city(&name);
+                                    self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                                }
+                            }
+                        }
+                        _ => {
+                            self.state.connect();
+                            self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                        }
                     }
                 }
                 None
@@ -145,6 +161,31 @@ impl TuiApp {
                 }
                 None
             }
+            KeyCode::Char('l') => {
+                if self.state.current_view == AppView::Servers {
+                    self.state.move_to_cities();
+                    self.notification_timer = NOTIFICATION_TIMER_SHORT;
+                }
+                None
+            }
+            KeyCode::Char('h') => {
+                if self.state.current_view == AppView::Servers
+                    && self.state.pane_focus == Pane::Cities
+                {
+                    self.state.move_to_countries();
+                    self.notification_timer = NOTIFICATION_TIMER_SHORT;
+                }
+                None
+            }
+            KeyCode::Backspace => {
+                if self.state.current_view == AppView::Servers
+                    && self.state.pane_focus == Pane::Cities
+                {
+                    self.state.move_to_countries();
+                    self.notification_timer = NOTIFICATION_TIMER_SHORT;
+                }
+                None
+            }
             KeyCode::Enter => {
                 match self.state.current_view {
                     AppView::Settings => {
@@ -159,14 +200,18 @@ impl TuiApp {
                         }
                     }
                     AppView::Servers => {
-                        if let Some(idx) = self.state.selected_server {
-                            let servers = self.state.filtered_servers();
-                            if let Some(server) = servers.get(idx) {
-                                self.state.fetch_cities(&server.id);
-                                self.state.current_country_code = Some(server.id.clone());
-                                self.state.current_view = AppView::Cities;
-                                self.state.selected_server = Some(0);
+                        if self.state.pane_focus == Pane::Cities {
+                            if let Some(idx) = self.state.selected_city {
+                                let city_name =
+                                    self.state.current_cities.get(idx).map(|c| c.name.clone());
+                                if let Some(name) = city_name {
+                                    self.state.connect_city(&name);
+                                    self.notification_timer = NOTIFICATION_TIMER_DEFAULT;
+                                }
                             }
+                        } else {
+                            self.state.move_to_cities();
+                            self.notification_timer = NOTIFICATION_TIMER_SHORT;
                         }
                     }
                     AppView::Cities => {
@@ -185,13 +230,21 @@ impl TuiApp {
             }
             // Ctrl+d = page down (must be before 'd' for disconnect)
             KeyCode::Char('d') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                match self.state.current_view {
-                    AppView::Servers => self.state.select_page_down(),
-                    AppView::Cities => self.state.select_page_down(),
-                    AppView::Settings => {
-                        self.state.settings_select_page_down();
+                if self.state.current_view == AppView::Servers {
+                    if self.state.pane_focus == Pane::Cities {
+                        self.state.city_select_page_down();
+                    } else {
+                        self.state.select_page_down();
                     }
-                    _ => {}
+                } else {
+                    match self.state.current_view {
+                        AppView::Servers => self.state.select_page_down(),
+                        AppView::Cities => self.state.select_page_down(),
+                        AppView::Settings => {
+                            self.state.settings_select_page_down();
+                        }
+                        _ => {}
+                    }
                 }
                 self.pending_g = false;
                 None
@@ -217,44 +270,69 @@ impl TuiApp {
                 None
             }
             KeyCode::Char('j') | KeyCode::Down => {
-                match self.state.current_view {
-                    AppView::Servers => self.state.select_next(),
-                    AppView::Cities => self.state.select_next(),
-                    AppView::Settings => {
-                        self.state.settings_select_next();
+                if self.state.current_view == AppView::Servers {
+                    if self.state.pane_focus == Pane::Cities {
+                        self.state.city_select_next();
+                    } else {
+                        self.state.select_next();
                     }
-                    _ => {}
+                } else {
+                    match self.state.current_view {
+                        AppView::Servers => self.state.select_next(),
+                        AppView::Cities => self.state.select_next(),
+                        AppView::Settings => {
+                            self.state.settings_select_next();
+                        }
+                        _ => {}
+                    }
                 }
                 None
             }
             KeyCode::Char('k') | KeyCode::Up => {
-                match self.state.current_view {
-                    AppView::Servers => {
+                if self.state.current_view == AppView::Servers {
+                    if self.state.pane_focus == Pane::Cities {
+                        self.state.city_select_prev();
+                    } else {
                         self.state.select_prev();
-                        self.pending_g = false;
                     }
-                    AppView::Cities => {
-                        self.state.select_prev();
-                        self.pending_g = false;
+                    self.pending_g = false;
+                } else {
+                    match self.state.current_view {
+                        AppView::Servers => {
+                            self.state.select_prev();
+                            self.pending_g = false;
+                        }
+                        AppView::Cities => {
+                            self.state.select_prev();
+                            self.pending_g = false;
+                        }
+                        AppView::Settings => {
+                            self.state.settings_select_prev();
+                            self.pending_g = false;
+                        }
+                        _ => {}
                     }
-                    AppView::Settings => {
-                        self.state.settings_select_prev();
-                        self.pending_g = false;
-                    }
-                    _ => {}
                 }
                 None
             }
             // Vim: gg = go to top
             KeyCode::Char('g') => {
                 if self.pending_g {
-                    match self.state.current_view {
-                        AppView::Servers => self.state.select_first(),
-                        AppView::Cities => self.state.select_first(),
-                        AppView::Settings => {
-                            self.state.settings_select_first();
+                    if self.state.current_view == AppView::Servers {
+                        if self.state.pane_focus == Pane::Cities {
+                            self.state.city_select_first();
+                        } else {
+                            self.state.select_first();
                         }
-                        _ => {}
+                    } else {
+                        match self.state.current_view {
+                            AppView::Servers => self.state.select_first(),
+                            AppView::Cities => self.state.select_first(),
+                            AppView::Settings => {
+                                self.state.settings_select_first();
+                            }
+                            _ => {}
+                        }
                     }
                     self.pending_g = false;
                 } else {
@@ -264,26 +342,42 @@ impl TuiApp {
             }
             // Vim: G = go to bottom
             KeyCode::Char('G') => {
-                match self.state.current_view {
-                    AppView::Servers => self.state.select_last(),
-                    AppView::Cities => self.state.select_last(),
-                    AppView::Settings => {
-                        self.state.settings_select_last();
+                if self.state.current_view == AppView::Servers {
+                    if self.state.pane_focus == Pane::Cities {
+                        self.state.city_select_last();
+                    } else {
+                        self.state.select_last();
                     }
-                    _ => {}
+                } else {
+                    match self.state.current_view {
+                        AppView::Servers => self.state.select_last(),
+                        AppView::Cities => self.state.select_last(),
+                        AppView::Settings => {
+                            self.state.settings_select_last();
+                        }
+                        _ => {}
+                    }
                 }
                 self.pending_g = false;
                 None
             }
             // Ctrl+u = page up
             KeyCode::Char('u') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                match self.state.current_view {
-                    AppView::Servers => self.state.select_page_up(),
-                    AppView::Cities => self.state.select_page_up(),
-                    AppView::Settings => {
-                        self.state.settings_select_page_up();
+                if self.state.current_view == AppView::Servers {
+                    if self.state.pane_focus == Pane::Cities {
+                        self.state.city_select_page_up();
+                    } else {
+                        self.state.select_page_up();
                     }
-                    _ => {}
+                } else {
+                    match self.state.current_view {
+                        AppView::Servers => self.state.select_page_up(),
+                        AppView::Cities => self.state.select_page_up(),
+                        AppView::Settings => {
+                            self.state.settings_select_page_up();
+                        }
+                        _ => {}
+                    }
                 }
                 self.pending_g = false;
                 None
@@ -303,7 +397,9 @@ impl TuiApp {
                 None
             }
             KeyCode::Esc => {
-                if self.state.current_view == AppView::Cities {
+                if self.state.current_view == AppView::Servers {
+                    // Just clear filter - cities panel stays open
+                } else if self.state.current_view == AppView::Cities {
                     self.state.current_view = AppView::Servers;
                     self.state.current_cities.clear();
                     self.state.current_country_code = None;
@@ -664,34 +760,51 @@ impl TuiApp {
         };
         let sort_label = self.state.sort.label();
         let direction_label = self.state.sort_direction.label();
-        let sort_display = format!("{} {}", sort_label, direction_label);
+        let _sort_display = format!("{} {}", sort_label, direction_label);
 
         let action_spans: Vec<Span<'_>> = match self.state.current_view {
-            AppView::Servers => vec![
-                Span::raw("["),
-                Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                Span::raw("] move | "),
-                Span::raw("["),
-                Span::styled("Enter", Style::default().fg(theme.key_hint)),
-                Span::raw("] cities | "),
-                Span::raw("["),
-                Span::styled("c", Style::default().fg(theme.key_hint)),
-                Span::raw("] connect | "),
-                Span::raw("["),
-                Span::styled("d", Style::default().fg(theme.key_hint)),
-                Span::raw("] disconnect | "),
-                Span::raw("["),
-                Span::styled("r", Style::default().fg(theme.key_hint)),
-                Span::raw("] refresh | "),
-                Span::raw("["),
-                Span::styled("s", Style::default().fg(theme.key_hint)),
-                Span::raw("] sort ("),
-                Span::raw(&sort_display),
-                Span::raw(") | "),
-                Span::raw("["),
-                Span::styled("/", Style::default().fg(theme.key_hint)),
-                Span::raw("] filter"),
-            ],
+            AppView::Servers => {
+                if self.state.pane_focus == Pane::Countries {
+                    vec![
+                        Span::raw("["),
+                        Span::styled("j/k", Style::default().fg(theme.key_hint)),
+                        Span::raw("] navigate | "),
+                        Span::raw("["),
+                        Span::styled("l/Enter", Style::default().fg(theme.key_hint)),
+                        Span::raw("] cities | "),
+                        Span::raw("["),
+                        Span::styled("c", Style::default().fg(theme.key_hint)),
+                        Span::raw("] connect | "),
+                        Span::raw("["),
+                        Span::styled("d", Style::default().fg(theme.key_hint)),
+                        Span::raw("] disconnect | "),
+                        Span::raw("["),
+                        Span::styled("r", Style::default().fg(theme.key_hint)),
+                        Span::raw("] refresh | "),
+                        Span::raw("["),
+                        Span::styled("s", Style::default().fg(theme.key_hint)),
+                        Span::raw("] sort | "),
+                        Span::raw("["),
+                        Span::styled("f", Style::default().fg(theme.key_hint)),
+                        Span::raw("] field | "),
+                        Span::raw("["),
+                        Span::styled("/", Style::default().fg(theme.key_hint)),
+                        Span::raw("] filter"),
+                    ]
+                } else {
+                    vec![
+                        Span::raw("["),
+                        Span::styled("j/k", Style::default().fg(theme.key_hint)),
+                        Span::raw("] navigate | "),
+                        Span::raw("["),
+                        Span::styled("c/Enter", Style::default().fg(theme.key_hint)),
+                        Span::raw("] connect | "),
+                        Span::raw("["),
+                        Span::styled("h/Backspace", Style::default().fg(theme.key_hint)),
+                        Span::raw("] countries"),
+                    ]
+                }
+            }
             AppView::Cities => vec![
                 Span::raw("["),
                 Span::styled("j/k", Style::default().fg(theme.key_hint)),

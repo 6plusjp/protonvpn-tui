@@ -302,6 +302,7 @@ impl TuiApp {
                     self.state.current_view = AppView::Servers;
                     self.state.current_cities.clear();
                     self.state.current_country_code = None;
+                    self.state.selected_server = Some(0);
                 }
                 None
             }

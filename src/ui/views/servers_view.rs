@@ -1,9 +1,10 @@
-use crate::state::ConnectionState;
+use crate::state::{ConnectionState, Pane};
 use crate::ui::components::{centered_block, connected_list_item, styled_list_item};
 use crate::ui::styles::Theme;
 use ratatui::{
-    layout::Rect,
+    layout::{Constraint, Direction, Layout, Rect},
     style::Style,
+    text::Line,
     widgets::{List, ListItem, ListState},
     Frame,
 };
@@ -21,7 +22,29 @@ pub fn render_servers_view(
     } else {
         Theme::light()
     };
-    let block = centered_block("Servers", &theme);
+
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+        .split(area);
+
+    render_countries_pane(state, list_state, f, chunks[0], &theme);
+    render_cities_pane(state, list_state, f, chunks[1], &theme);
+}
+
+fn render_countries_pane(
+    state: &mut AppState,
+    list_state: &mut ListState,
+    f: &mut Frame<'_>,
+    area: Rect,
+    theme: &Theme,
+) {
+    let title = if state.pane_focus == Pane::Countries {
+        "> Countries"
+    } else {
+        "  Countries"
+    };
+    let block = centered_block(title, theme);
 
     let servers = state.filtered_servers();
 
@@ -71,10 +94,76 @@ pub fn render_servers_view(
             );
 
             if is_connected {
-                connected_list_item(&row, &theme)
+                connected_list_item(&row, theme)
+            } else if is_selected {
+                let row_with_indicator = format!("> {}", row);
+                styled_list_item(&row_with_indicator, false, theme)
             } else {
-                styled_list_item(&row, is_selected, &theme)
+                styled_list_item(&row, false, theme)
             }
+        })
+        .collect();
+
+    let list = List::new(items)
+        .block(block)
+        .style(Style::default().fg(theme.foreground));
+
+    f.render_stateful_widget(list, area, list_state);
+}
+
+fn render_cities_pane(
+    state: &mut AppState,
+    list_state: &mut ListState,
+    f: &mut Frame<'_>,
+    area: Rect,
+    theme: &Theme,
+) {
+    let country_code = state.current_country_code.as_deref().unwrap_or("Cities");
+    let title = if state.pane_focus == Pane::Cities {
+        format!("> {} - Cities", country_code)
+    } else {
+        format!("  {} - Cities", country_code)
+    };
+    let block = centered_block(&title, theme);
+
+    let cities: Vec<(String, String)> = state
+        .current_cities
+        .iter()
+        .map(|city| {
+            let features = if city.features.is_empty() {
+                String::new()
+            } else {
+                city.features.join(", ")
+            };
+            (city.name.clone(), features)
+        })
+        .collect();
+
+    if cities.is_empty() {
+        let items = vec![ListItem::new(Line::from("No cities available"))];
+        let list = List::new(items)
+            .block(block)
+            .style(Style::default().fg(theme.secondary));
+        f.render_stateful_widget(list, area, list_state);
+        return;
+    }
+
+    let selected_idx = state.selected_city.unwrap_or(0);
+    list_state.select(Some(selected_idx.min(cities.len() - 1)));
+
+    let items: Vec<ListItem> = cities
+        .iter()
+        .enumerate()
+        .map(|(idx, (city_name, features))| {
+            let is_selected = state.selected_city == Some(idx);
+
+            let row = if features.is_empty() {
+                city_name.clone()
+            } else {
+                format!("{:<15} {}", city_name, features)
+            };
+
+            styled_list_item(&row, is_selected, theme)
         })
         .collect();
 

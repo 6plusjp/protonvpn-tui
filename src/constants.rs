@@ -4,6 +4,7 @@ pub mod ui {
     pub const NOTIFICATION_MSG_MAX_LEN: usize = 35;
     pub const POPUP_WIDTH_MIN: usize = 30;
     pub const POPUP_WIDTH_MAX: usize = 54;
+    pub const MAX_VISIBLE_NOTIFICATIONS: usize = 3;
 }
 
 pub mod state {

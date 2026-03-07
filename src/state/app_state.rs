@@ -3,6 +3,7 @@
 use crate::config::ProtonSettings;
 use crate::constants::state::MAX_NOTIFICATION_LOG;
 use crate::constants::state::PAGE_SIZE;
+use crate::constants::ui::{MAX_VISIBLE_NOTIFICATIONS, NOTIFICATION_TIMER_DEFAULT};
 use crate::state::async_tasks::{create_channel, AsyncResult, AsyncTaskManager};
 use crate::state::ConnectionState;
 use crate::state::Pane;
@@ -107,11 +108,19 @@ pub enum NotificationType {
     Error,
 }
 
-/// Notification popup
+/// Notification popup (legacy - used for notification_log)
 #[derive(Debug, Clone)]
 pub struct Notification {
     pub message: String,
     pub notification_type: NotificationType,
+}
+
+/// Toast notification with individual timer for stacked display
+#[derive(Debug, Clone)]
+pub struct ToastNotification {
+    pub message: String,
+    pub notification_type: NotificationType,
+    pub timer: u8,
 }
 
 /// Main application state
@@ -157,7 +166,7 @@ pub struct AppState {
     pub dns_input: String,
 
     // === Notification ===
-    pub notification: Option<Notification>,
+    pub notifications: Vec<ToastNotification>,
     pub notification_log: Vec<Notification>,
 
     // === Config (独立してロード可能) ===
@@ -190,7 +199,7 @@ impl AppState {
             input_mode: InputMode::Normal,
             dns_input: String::new(),
             vpn_state: Arc::new(VpnState::new()),
-            notification: None,
+            notifications: Vec::new(),
             notification_log: Vec::new(),
             async_manager: AsyncTaskManager::new(),
             pending_refresh: None,
@@ -278,10 +287,16 @@ impl AppState {
     }
 
     pub fn show_notification(&mut self, message: String, notification_type: NotificationType) {
-        self.notification = Some(Notification {
+        self.notifications.push(ToastNotification {
             message: message.clone(),
             notification_type,
+            timer: NOTIFICATION_TIMER_DEFAULT,
         });
+
+        if self.notifications.len() > MAX_VISIBLE_NOTIFICATIONS {
+            self.notifications.remove(0);
+        }
+
         self.notification_log.push(Notification {
             message,
             notification_type,
@@ -291,8 +306,17 @@ impl AppState {
         }
     }
 
-    pub fn clear_notification(&mut self) {
-        self.notification = None;
+    pub fn clear_notifications(&mut self) {
+        self.notifications.clear();
+    }
+
+    pub fn tick_notifications(&mut self) {
+        for notification in &mut self.notifications {
+            if notification.timer > 0 {
+                notification.timer -= 1;
+            }
+        }
+        self.notifications.retain(|n| n.timer > 0);
     }
 
     /// Sync connection state with background tasks.
@@ -1252,5 +1276,77 @@ mod tests {
 
         let result = state.compute_filtered_servers();
         assert!(!result.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod notification_tests {
+    use super::{AppState, NotificationType};
+
+    #[test]
+    fn test_show_notification_adds_to_vector() {
+        let mut state = AppState::new();
+        state.show_notification("Test 1".to_string(), NotificationType::Info);
+        state.show_notification("Test 2".to_string(), NotificationType::Success);
+
+        assert_eq!(state.notifications.len(), 2);
+    }
+
+    #[test]
+    fn test_tick_notifications_removes_expired() {
+        let mut state = AppState::new();
+        state.show_notification("Test".to_string(), NotificationType::Info);
+
+        for _ in 0..30 {
+            state.tick_notifications();
+        }
+
+        assert!(state.notifications.is_empty());
+    }
+
+    #[test]
+    fn test_tick_notifications_preserves_non_expired() {
+        let mut state = AppState::new();
+        state.show_notification("Test 1".to_string(), NotificationType::Info);
+        state.show_notification("Test 2".to_string(), NotificationType::Info);
+
+        state.tick_notifications();
+
+        assert_eq!(state.notifications.len(), 2);
+        assert!(state.notifications.iter().all(|n| n.timer < 30));
+    }
+
+    #[test]
+    fn test_max_notifications_enforced() {
+        let mut state = AppState::new();
+        for i in 0..5 {
+            state.show_notification(format!("Msg {}", i), NotificationType::Info);
+        }
+
+        assert_eq!(state.notifications.len(), 3);
+        assert!(state.notifications.iter().any(|n| n.message == "Msg 2"));
+        assert!(state.notifications.iter().any(|n| n.message == "Msg 3"));
+        assert!(state.notifications.iter().any(|n| n.message == "Msg 4"));
+    }
+
+    #[test]
+    fn test_notification_log_preserves_all() {
+        let mut state = AppState::new();
+        state.show_notification("Msg 1".to_string(), NotificationType::Info);
+        state.show_notification("Msg 2".to_string(), NotificationType::Error);
+
+        assert_eq!(state.notification_log.len(), 2);
+    }
+
+    #[test]
+    fn test_clear_notifications() {
+        let mut state = AppState::new();
+        state.show_notification("Test".to_string(), NotificationType::Info);
+        state.show_notification("Test 2".to_string(), NotificationType::Error);
+
+        state.clear_notifications();
+
+        assert!(state.notifications.is_empty());
+        assert_eq!(state.notification_log.len(), 2);
     }
 }

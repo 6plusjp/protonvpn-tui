@@ -13,7 +13,7 @@
 - Issue files are numbered sequentially: issue001.md, issue002.md, ...
 - Do not begin implementation before an issue document exists
 - Update documentation in the same commit as the code change
-- When an issue is resolved, rename the file with `resolved_` prefix (e.g., `issue002.md` → `resolved_issue002.md`)
+- When an issue is resolved: rename with `resolved_` prefix AND delete original (e.g., `issue002.md` → `resolved_issue002.md`, then delete `issue002.md`)
 
 ## Policy Updates
 

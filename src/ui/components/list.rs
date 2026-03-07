@@ -5,12 +5,22 @@ use ratatui::{
     widgets::ListItem,
 };
 
-pub fn styled_list_item(text: &str, is_selected: bool, theme: &Theme) -> ListItem<'static> {
+pub fn styled_list_item(
+    text: &str,
+    is_selected: bool,
+    is_focused: bool,
+    theme: &Theme,
+) -> ListItem<'static> {
     let prefix = if is_selected { "> " } else { "  " };
     let style = if is_selected {
-        Style::default()
-            .fg(theme.selection)
-            .add_modifier(Modifier::BOLD)
+        if is_focused {
+            Style::default()
+                .fg(theme.foreground)
+                .bg(theme.selection)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(theme.foreground)
+        }
     } else {
         Style::default().fg(theme.foreground)
     };

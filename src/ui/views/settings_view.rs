@@ -88,7 +88,7 @@ pub fn render_settings_view(state: &mut AppState, f: &mut Frame<'_>, area: Rect)
         .enumerate()
         .map(|(idx, s)| {
             let is_selected = state.settings_selected == Some(idx);
-            styled_list_item(s, is_selected, &theme)
+            styled_list_item(s, is_selected, true, &theme)
         })
         .collect();
 

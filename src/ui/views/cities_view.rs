@@ -65,7 +65,7 @@ pub fn render_cities_view(
                 format!("{:<15} {}", city_name, features)
             };
 
-            styled_list_item(&row, is_selected, &theme)
+            styled_list_item(&row, is_selected, true, &theme)
         })
         .collect();
 

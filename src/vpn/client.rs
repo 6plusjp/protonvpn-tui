@@ -86,6 +86,10 @@ impl VpnClient {
         cache_data.save(cache_path)
     }
 
+    pub fn is_cli_unavailable(&self) -> bool {
+        self.with_cache(|c| c.is_cli_unavailable()).unwrap_or(false)
+    }
+
     /// Connect to a server by country code
     pub fn connect(&self, target: &str) -> AppResult<(String, Option<String>)> {
         let output = Command::new(&self.cli_path)
@@ -327,16 +331,39 @@ impl VpnClient {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
 
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            tracing::warn!("protonvpn countries failed: {}", stderr);
+            return self.use_fallback_countries();
+        }
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         let countries = self.parse_countries(&stdout);
 
         self.with_cache(|c| {
             c.countries = countries.clone();
             c.last_updated = Some(Utc::now());
+            c.cli_unavailable = false;
         })?;
         self.save_cache()?;
 
         Ok(countries)
+    }
+
+    fn use_fallback_countries(&self) -> AppResult<HashMap<String, String>> {
+        use super::cache::FALLBACK_COUNTRIES;
+
+        let fallback: HashMap<String, String> = FALLBACK_COUNTRIES
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+
+        self.with_cache(|c| {
+            c.cli_unavailable = true;
+        })?;
+
+        tracing::info!("Using fallback countries (CLI unavailable)");
+        Ok(fallback)
     }
 
     /// Parse countries output
@@ -376,6 +403,18 @@ impl VpnClient {
     pub fn list_cities(&self, country_code: &str) -> AppResult<Vec<String>> {
         let cities = self.list_cities_with_features(country_code)?;
         Ok(cities.into_iter().map(|c| c.name).collect())
+    }
+
+    pub fn get_cached_cities(&self, country_code: &str) -> Option<Vec<City>> {
+        let has_cached = self
+            .with_cache(|c| c.cities.contains_key(country_code))
+            .ok()?;
+        if !has_cached {
+            return None;
+        }
+        self.with_cache(|c| c.cities.get(country_code).cloned())
+            .ok()
+            .flatten()
     }
 
     pub fn list_cities_with_features(&self, country_code: &str) -> AppResult<Vec<City>> {

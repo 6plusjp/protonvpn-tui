@@ -10,6 +10,141 @@ use std::path::PathBuf;
 
 use super::types::City;
 
+/// Fallback countries data - used when CLI is unavailable
+/// Format: country code → country name
+/// Source: `protonvpn countries` output
+pub const FALLBACK_COUNTRIES: &[(&str, &str)] = &[
+    ("AF", "Afghanistan"),
+    ("AL", "Albania"),
+    ("DZ", "Algeria"),
+    ("AO", "Angola"),
+    ("AR", "Argentina"),
+    ("AM", "Armenia"),
+    ("AU", "Australia"),
+    ("AT", "Austria"),
+    ("AZ", "Azerbaijan"),
+    ("BH", "Bahrain"),
+    ("BD", "Bangladesh"),
+    ("BY", "Belarus"),
+    ("BE", "Belgium"),
+    ("BT", "Bhutan"),
+    ("BA", "Bosnia and Herzegovina"),
+    ("BR", "Brazil"),
+    ("BN", "Brunei"),
+    ("BG", "Bulgaria"),
+    ("KH", "Cambodia"),
+    ("CM", "Cameroon"),
+    ("CA", "Canada"),
+    ("TD", "Chad"),
+    ("CL", "Chile"),
+    ("CO", "Colombia"),
+    ("KM", "Comoros"),
+    ("CR", "Costa Rica"),
+    ("HR", "Croatia"),
+    ("CU", "Cuba"),
+    ("CY", "Cyprus"),
+    ("CZ", "Czech Republic"),
+    ("DK", "Denmark"),
+    ("DO", "Dominican Republic"),
+    ("EC", "Ecuador"),
+    ("EG", "Egypt"),
+    ("SV", "El Salvador"),
+    ("ER", "Eritrea"),
+    ("EE", "Estonia"),
+    ("ET", "Ethiopia"),
+    ("FI", "Finland"),
+    ("FR", "France"),
+    ("GE", "Georgia"),
+    ("DE", "Germany"),
+    ("GH", "Ghana"),
+    ("GR", "Greece"),
+    ("GT", "Guatemala"),
+    ("HN", "Honduras"),
+    ("HK", "Hong Kong"),
+    ("HU", "Hungary"),
+    ("IS", "Iceland"),
+    ("IN", "India"),
+    ("ID", "Indonesia"),
+    ("IQ", "Iraq"),
+    ("IE", "Ireland"),
+    ("IL", "Israel"),
+    ("IT", "Italy"),
+    ("CI", "Ivory Coast"),
+    ("JP", "Japan"),
+    ("JO", "Jordan"),
+    ("KZ", "Kazakhstan"),
+    ("KE", "Kenya"),
+    ("KW", "Kuwait"),
+    ("LA", "Laos"),
+    ("LV", "Latvia"),
+    ("LY", "Libya"),
+    ("LT", "Lithuania"),
+    ("LU", "Luxembourg"),
+    ("MK", "Macedonia"),
+    ("MY", "Malaysia"),
+    ("MT", "Malta"),
+    ("MR", "Mauritania"),
+    ("MU", "Mauritius"),
+    ("MX", "Mexico"),
+    ("MD", "Moldova"),
+    ("MN", "Mongolia"),
+    ("ME", "Montenegro"),
+    ("MA", "Morocco"),
+    ("MZ", "Mozambique"),
+    ("MM", "Myanmar"),
+    ("NP", "Nepal"),
+    ("NL", "Netherlands"),
+    ("NZ", "New Zealand"),
+    ("NG", "Nigeria"),
+    ("NO", "Norway"),
+    ("OM", "Oman"),
+    ("PK", "Pakistan"),
+    ("PS", "Palestinian Territory"),
+    ("PA", "Panama"),
+    ("PE", "Peru"),
+    ("PH", "Philippines"),
+    ("PL", "Poland"),
+    ("PT", "Portugal"),
+    ("PR", "Puerto Rico"),
+    ("QA", "Qatar"),
+    ("RO", "Romania"),
+    ("RU", "Russia"),
+    ("RW", "Rwanda"),
+    ("SA", "Saudi Arabia"),
+    ("SN", "Senegal"),
+    ("RS", "Serbia"),
+    ("SG", "Singapore"),
+    ("SK", "Slovakia"),
+    ("SI", "Slovenia"),
+    ("SO", "Somalia"),
+    ("ZA", "South Africa"),
+    ("KR", "South Korea"),
+    ("SS", "South Sudan"),
+    ("ES", "Spain"),
+    ("LK", "Sri Lanka"),
+    ("SD", "Sudan"),
+    ("SE", "Sweden"),
+    ("CH", "Switzerland"),
+    ("SY", "Syria"),
+    ("TW", "Taiwan"),
+    ("TJ", "Tajikistan"),
+    ("TZ", "Tanzania"),
+    ("TH", "Thailand"),
+    ("TG", "Togo"),
+    ("TN", "Tunisia"),
+    ("TR", "Turkey"),
+    ("TM", "Turkmenistan"),
+    ("UG", "Uganda"),
+    ("UA", "Ukraine"),
+    ("AE", "United Arab Emirates"),
+    ("UK", "United Kingdom"),
+    ("US", "United States"),
+    ("UZ", "Uzbekistan"),
+    ("VE", "Venezuela"),
+    ("VN", "Vietnam"),
+    ("YE", "Yemen"),
+];
+
 /// Cached server data
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ServerCache {
@@ -23,6 +158,9 @@ pub struct ServerCache {
     pub connected_server: Option<String>,
     pub connected_ip: Option<String>,
     pub connected_at: Option<DateTime<Utc>>,
+    /// Flag indicating if CLI was unavailable during last refresh
+    #[serde(default)]
+    pub cli_unavailable: bool,
 }
 
 impl ServerCache {
@@ -85,5 +223,13 @@ impl ServerCache {
     /// Check if currently connected
     pub fn is_connected(&self) -> bool {
         self.connected_server.is_some()
+    }
+
+    pub fn set_cli_unavailable(&mut self, unavailable: bool) {
+        self.cli_unavailable = unavailable;
+    }
+
+    pub fn is_cli_unavailable(&self) -> bool {
+        self.cli_unavailable
     }
 }

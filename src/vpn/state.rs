@@ -41,6 +41,10 @@ impl VpnState {
         self.client.matches_ip(ip)
     }
 
+    pub fn is_cli_unavailable(&self) -> bool {
+        self.client.is_cli_unavailable()
+    }
+
     pub fn connect(&self, server: &str) -> AppResult<(String, Option<String>)> {
         let (server_id, ip) = self.client.connect(server)?;
         Ok((server_id, ip))
@@ -58,6 +62,10 @@ impl VpnState {
 
     pub fn list_cities_with_features(&self, country_code: &str) -> AppResult<Vec<City>> {
         self.client.list_cities_with_features(country_code)
+    }
+
+    pub fn get_cached_cities(&self, country_code: &str) -> Option<Vec<City>> {
+        self.client.get_cached_cities(country_code)
     }
 
     pub fn disconnect(&self) -> AppResult<()> {

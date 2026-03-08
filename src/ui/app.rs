@@ -129,7 +129,13 @@ impl TuiApp {
                 self.filter_input = self.state.search_query.clone();
                 None
             }
-            KeyCode::Esc => None,
+            KeyCode::Esc => {
+                if !self.state.search_query.is_empty() {
+                    self.state.set_search_query(String::new());
+                    self.filter_input.clear();
+                }
+                None
+            }
             _ => None,
         }
     }
@@ -459,22 +465,10 @@ impl TuiApp {
             area,
         );
 
-        if self.filter_mode {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(3),
-                    Constraint::Length(3),
-                    Constraint::Min(0),
-                    Constraint::Length(1),
-                ])
-                .split(f.size());
+        // Always show filter box between header and main view
+        let has_filter_active = !self.state.search_query.is_empty();
 
-            self.render_header(f, chunks[0]);
-            self.render_filter_input(f, chunks[1]);
-            self.render_main(f, chunks[2]);
-            self.render_footer(f, chunks[3]);
-        } else if self.state.input_mode == InputMode::DnsInput {
+        if self.state.input_mode == InputMode::DnsInput {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
@@ -494,14 +488,16 @@ impl TuiApp {
                 .direction(Direction::Vertical)
                 .constraints([
                     Constraint::Length(3),
+                    Constraint::Length(3),
                     Constraint::Min(0),
                     Constraint::Length(1),
                 ])
                 .split(f.size());
 
             self.render_header(f, chunks[0]);
-            self.render_main(f, chunks[1]);
-            self.render_footer(f, chunks[2]);
+            self.render_filter_input(f, chunks[1], has_filter_active);
+            self.render_main(f, chunks[2]);
+            self.render_footer(f, chunks[3]);
         }
 
         // Render notification as popup last (on top)
@@ -510,28 +506,51 @@ impl TuiApp {
         }
     }
 
-    fn render_filter_input(&self, f: &mut Frame<'_>, area: Rect) {
+    fn render_filter_input(&self, f: &mut Frame<'_>, area: Rect, has_filter_active: bool) {
         let theme = self.get_theme();
-        let prompt = "filter: ";
-        let input_display = format!("{}{}", prompt, self.filter_input);
-        let cursor = if self.filter_input.is_empty() {
+
+        let (prompt, input_text, border_style, text_style) = if self.filter_mode {
+            let prompt = "filter: ";
+            let text = self.filter_input.as_str();
+            (prompt, text, theme.primary, theme.foreground)
+        } else if has_filter_active {
+            let prompt = "filter: ";
+            let text = self.state.search_query.as_str();
+            (prompt, text, theme.success, theme.success)
+        } else {
+            ("filter: ", "", theme.key_hint, theme.secondary)
+        };
+
+        let input_display = if input_text.is_empty() {
+            if self.filter_mode {
+                format!("{} ", prompt)
+            } else if has_filter_active {
+                format!("{} ", prompt)
+            } else {
+                format!("{} [press / to search]", prompt)
+            }
+        } else {
+            format!("{}{}", prompt, input_text)
+        };
+
+        let cursor = if input_display.is_empty() {
             prompt.len()
         } else {
-            prompt.len() + self.filter_input.len()
+            prompt.len() + input_text.len()
         };
 
         let block = Block::default()
             .borders(Borders::ALL)
-            .style(Style::default().fg(theme.key_hint));
+            .style(Style::default().fg(border_style));
 
         let text = Line::from(input_display.as_str());
         let paragraph = Paragraph::new(text)
             .block(block)
-            .style(Style::default().fg(theme.foreground));
+            .style(Style::default().fg(text_style));
 
         f.render_widget(paragraph, area);
 
-        if area.width > cursor as u16 + 2 {
+        if self.filter_mode && area.width > cursor as u16 + 2 {
             f.set_cursor(area.x + cursor as u16 + 1, area.y + 1);
         }
     }
@@ -757,17 +776,6 @@ impl TuiApp {
         let theme = self.get_theme();
         let is_disconnected = self.state.connection.is_disconnected();
 
-        if self.filter_mode {
-            return vec![
-                Span::raw("["),
-                Span::styled("Enter", Style::default().fg(theme.key_hint)),
-                Span::raw("] apply "),
-                Span::raw("["),
-                Span::styled("Esc", Style::default().fg(theme.key_hint)),
-                Span::raw("] cancel"),
-            ];
-        }
-
         match (self.state.get_current_view(), self.state.get_pane_focus()) {
             (AppView::Servers, Pane::Countries) => {
                 let mut hints = vec![
@@ -797,10 +805,7 @@ impl TuiApp {
                     Span::raw("] sort "),
                     Span::raw("["),
                     Span::styled("f", Style::default().fg(theme.key_hint)),
-                    Span::raw("] field "),
-                    Span::raw("["),
-                    Span::styled("/", Style::default().fg(theme.key_hint)),
-                    Span::raw("] filter"),
+                    Span::raw("] field"),
                 ]);
                 hints
             }

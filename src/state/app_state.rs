@@ -144,8 +144,8 @@ pub struct AppState {
     pending_refresh: Option<ServerReceiver>,
     pending_connect: Option<ConnectReceiver>,
     pending_disconnect: Option<DisconnectReceiver>,
-    pending_cities: Option<CitiesReceiver>,
-    pending_cities_country: Option<String>,
+    pub(crate) pending_cities: Option<CitiesReceiver>,
+    pub(crate) pending_cities_country: Option<String>,
     pending_connect_city: Option<ConnectReceiver>,
 
     // === Server Data ===
@@ -264,14 +264,13 @@ impl AppState {
         self.servers = servers;
         self.invalidate_filtered_cache();
 
-        self.load_cities_for_selected_server();
-    }
-
-    fn load_cities_for_selected_server(&mut self) {
         if let Some(idx) = self.selected_server {
             if let Some(server) = self.filtered_servers().get(idx) {
-                if self.current_country_code.as_deref() != Some(&server.id) {
-                    self.fetch_cities(&server.id);
+                self.current_country_code = Some(server.id.clone());
+                if let Some(cities) = self.vpn_state.get_cached_cities(&server.id) {
+                    self.current_cities = cities;
+                } else {
+                    self.load_cities_async(&server.id);
                 }
             }
         }
@@ -339,10 +338,19 @@ impl AppState {
                     Ok(servers) => {
                         self.set_servers(servers);
                         tracing::info!("Server list refreshed: {} servers", self.servers.len());
-                        self.show_notification(
-                            format!("Refreshed {} servers", self.servers.len()),
-                            NotificationType::Success,
-                        );
+
+                        if self.vpn_state.is_cli_unavailable() {
+                            self.show_notification(
+                                "ProtonVPN CLI unavailable. VPN functionality disabled."
+                                    .to_string(),
+                                NotificationType::Error,
+                            );
+                        } else {
+                            self.show_notification(
+                                format!("Refreshed {} servers", self.servers.len()),
+                                NotificationType::Success,
+                            );
+                        }
                         notification_shown = true;
                     }
                     Err(e) => {
@@ -794,11 +802,56 @@ impl AppState {
     }
 
     pub fn select_next(&mut self) {
+        let old_idx = self.selected_server;
         self.selected_server.move_next(self.get_selection_bounds());
+
+        if old_idx != self.selected_server {
+            self.switch_cities_to_selected();
+        }
     }
 
     pub fn select_prev(&mut self) {
+        let old_idx = self.selected_server;
         self.selected_server.move_prev(self.get_selection_bounds());
+
+        if old_idx != self.selected_server {
+            self.switch_cities_to_selected();
+        }
+    }
+
+    fn switch_cities_to_selected(&mut self) {
+        if let Some(idx) = self.selected_server {
+            if let Some(server) = self.filtered_servers().get(idx) {
+                let country_code = &server.id;
+
+                if self.current_country_code.as_deref() != Some(country_code) {
+                    self.current_cities.clear();
+                    self.current_country_code = Some(country_code.clone());
+
+                    if let Some(cities) = self.vpn_state.get_cached_cities(country_code) {
+                        self.current_cities = cities;
+                    } else {
+                        self.load_cities_async(country_code);
+                    }
+                }
+            }
+        }
+    }
+
+    fn load_cities_async(&mut self, country_code: &str) {
+        let country_code = country_code.to_string();
+
+        self.pending_cities_country = Some(country_code.clone());
+
+        self.show_notification(
+            format!("Loading cities for {}...", country_code),
+            NotificationType::Info,
+        );
+
+        let (tx, rx) = create_channel();
+        self.pending_cities = Some(rx);
+        self.async_manager
+            .spawn_cities(self.vpn_state.clone(), country_code, tx);
     }
 
     pub fn select_first(&mut self) {
@@ -823,10 +876,9 @@ impl AppState {
         if let Some(idx) = self.selected_server {
             let servers = self.filtered_servers();
             if let Some(server) = servers.get(idx) {
-                if self.current_country_code.as_deref() != Some(&server.id) {
-                    self.fetch_cities(&server.id);
-                    self.current_country_code = Some(server.id.clone());
-                }
+                self.current_cities.clear();
+                self.current_country_code = Some(server.id.clone());
+                self.fetch_cities(&server.id);
             }
         }
         self.pane_focus = Pane::Cities;

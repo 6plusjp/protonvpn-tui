@@ -15,6 +15,7 @@ use crate::ui::styles::Theme;
 use crate::vpn::Server;
 use crate::vpn::VpnState;
 use chrono::{DateTime, Utc};
+use std::collections::HashMap;
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -144,8 +145,7 @@ pub struct AppState {
     pending_refresh: Option<ServerReceiver>,
     pending_connect: Option<ConnectReceiver>,
     pending_disconnect: Option<DisconnectReceiver>,
-    pub(crate) pending_cities: Option<CitiesReceiver>,
-    pub(crate) pending_cities_country: Option<String>,
+    pub(crate) pending_cities: HashMap<String, CitiesReceiver>,
     pending_connect_city: Option<ConnectReceiver>,
 
     // === Server Data ===
@@ -210,8 +210,7 @@ impl AppState {
             previous_connection: None,
             pending_connect: None,
             pending_disconnect: None,
-            pending_cities: None,
-            pending_cities_country: None,
+            pending_cities: HashMap::new(),
             pending_connect_city: None,
             proton_settings_cache: ProtonSettings::load(),
             filtered_servers_cache: Mutex::new(None),
@@ -439,36 +438,39 @@ impl AppState {
             }
         }
 
-        // Check for pending cities fetch result
-        if let Some(rx) = self.pending_cities.as_mut() {
+        // Check for pending cities fetch results
+        let mut results_to_process = Vec::new();
+        for (country_code, rx) in self.pending_cities.iter_mut() {
             if let Ok(result) = rx.try_recv() {
-                let pending_country = self.pending_cities_country.clone();
-
-                match result {
-                    Ok(cities) => {
-                        if let Some(pending) = pending_country {
-                            if self.current_country_code.as_deref() == Some(&pending) {
-                                self.current_cities = cities.clone();
-                            }
-                        }
-                        self.show_notification(
-                            format!("Loaded {} cities", cities.len()),
-                            NotificationType::Success,
-                        );
-                        notification_shown = true;
-                    }
-                    Err(e) => {
-                        self.show_notification(
-                            format!("Failed to load cities: {}", e),
-                            NotificationType::Error,
-                        );
-                        notification_shown = true;
-                    }
-                }
-                self.pending_cities = None;
-                self.pending_cities_country = None;
-                self.invalidate_filtered_cache();
+                results_to_process.push((country_code.clone(), result));
             }
+        }
+
+        for (country_code, result) in results_to_process {
+            match result {
+                Ok(cities) => {
+                    if self.current_country_code.as_deref() == Some(&country_code) {
+                        self.current_cities = cities.clone();
+                    }
+                    self.show_notification(
+                        format!("Loaded {} cities", cities.len()),
+                        NotificationType::Success,
+                    );
+                    notification_shown = true;
+                }
+                Err(e) => {
+                    self.show_notification(
+                        format!("Failed to load cities: {}", e),
+                        NotificationType::Error,
+                    );
+                    notification_shown = true;
+                }
+            }
+            self.pending_cities.remove(&country_code);
+        }
+
+        if !self.pending_cities.is_empty() {
+            self.invalidate_filtered_cache();
         }
 
         // Check for pending connect city result
@@ -614,8 +616,6 @@ impl AppState {
             self.current_country_code = Some(country_code.clone());
         }
 
-        self.pending_cities_country = Some(country_code.clone());
-
         self.invalidate_filtered_cache();
 
         self.show_notification(
@@ -624,7 +624,7 @@ impl AppState {
         );
 
         let (tx, rx) = create_channel();
-        self.pending_cities = Some(rx);
+        self.pending_cities.insert(country_code.clone(), rx);
         self.async_manager
             .spawn_cities(self.vpn_state.clone(), country_code, tx);
     }
@@ -841,15 +841,13 @@ impl AppState {
     fn load_cities_async(&mut self, country_code: &str) {
         let country_code = country_code.to_string();
 
-        self.pending_cities_country = Some(country_code.clone());
-
         self.show_notification(
             format!("Loading cities for {}...", country_code),
             NotificationType::Info,
         );
 
         let (tx, rx) = create_channel();
-        self.pending_cities = Some(rx);
+        self.pending_cities.insert(country_code.clone(), rx);
         self.async_manager
             .spawn_cities(self.vpn_state.clone(), country_code, tx);
     }

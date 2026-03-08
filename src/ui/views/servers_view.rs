@@ -74,11 +74,7 @@ fn render_countries_pane(
                 .map(|cid| cid.starts_with(&server.id) || server.id.starts_with(cid))
                 .unwrap_or(false);
 
-            let is_loading_this = state
-                .pending_cities_country
-                .as_deref()
-                .map(|c| c == &server.id)
-                .unwrap_or(false);
+            let is_loading_this = state.pending_cities.contains_key(&server.id);
 
             let cities_str = if is_loading_this {
                 "◐".to_string()
@@ -124,8 +120,12 @@ fn render_cities_pane(
     area: Rect,
     theme: &Theme,
 ) {
-    let is_loading = state.pending_cities.as_ref().is_some()
-        && state.pending_cities_country.as_deref() == state.current_country_code.as_deref();
+    let is_loading = state.pending_cities.contains_key(
+        state
+            .current_country_code
+            .as_deref()
+            .unwrap_or(&String::new()),
+    );
 
     let title = match (
         &state.current_country_code,

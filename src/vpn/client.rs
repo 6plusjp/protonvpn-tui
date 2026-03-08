@@ -17,7 +17,7 @@ use chrono::Utc;
 
 use super::cache::ServerCache;
 use super::types::{City, Server};
-use crate::constants::vpn::{DISCONNECT_RETRY_COUNT, DISCONNECT_RETRY_DELAY_MS};
+
 use crate::error::{AppError, AppResult};
 
 /// VPN client for interacting with protonvpn CLI
@@ -251,23 +251,43 @@ impl VpnClient {
 
     /// Disconnect from VPN
     pub fn disconnect(&self) -> AppResult<()> {
-        let result = Command::new(&self.cli_path).args(["disconnect"]).output();
-        if let Err(e) = result {
-            tracing::warn!("Failed to execute disconnect command: {}", e);
+        let output = Command::new(&self.cli_path)
+            .args(["disconnect"])
+            .output()
+            .map_err(|e| {
+                tracing::warn!("Failed to execute disconnect command: {}", e);
+                AppError::ConnectionFailed(format!("Failed to execute disconnect: {}", e))
+            })?;
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let combined_output = format!("{}{}", stdout, stderr);
+
+        // Exit code 0 = successfully disconnected
+        // Exit code 1 = already disconnected or error
+        if output.status.success() {
+            self.with_cache(|c| c.set_disconnected())?;
+            self.save_cache()?;
+            tracing::info!("Successfully disconnected from VPN");
+            return Ok(());
         }
 
-        for _ in 0..DISCONNECT_RETRY_COUNT {
-            if !self.is_connected() {
-                self.with_cache(|c| c.set_disconnected())?;
-                self.save_cache()?;
-                return Ok(());
-            }
-            std::thread::sleep(std::time::Duration::from_millis(DISCONNECT_RETRY_DELAY_MS));
+        // Handle "already disconnected" gracefully - not an error
+        if combined_output
+            .to_lowercase()
+            .contains("already disconnected")
+            || combined_output.to_lowercase().contains("not connected")
+        {
+            self.with_cache(|c| c.set_disconnected())?;
+            self.save_cache()?;
+            tracing::info!("Already disconnected from VPN");
+            return Ok(());
         }
 
-        Err(AppError::ConnectionFailed(
-            "Failed to disconnect".to_string(),
-        ))
+        Err(AppError::ConnectionFailed(format!(
+            "Failed to disconnect: {}",
+            combined_output.trim()
+        )))
     }
 
     /// Check if VPN is connected (by checking proton0 interface)

@@ -74,7 +74,15 @@ fn render_countries_pane(
                 .map(|cid| cid.starts_with(&server.id) || server.id.starts_with(cid))
                 .unwrap_or(false);
 
-            let cities_str = if server.cities.is_empty() {
+            let is_loading_this = state
+                .pending_cities_country
+                .as_deref()
+                .map(|c| c == &server.id)
+                .unwrap_or(false);
+
+            let cities_str = if is_loading_this {
+                "◐".to_string()
+            } else if server.cities.is_empty() {
                 "-".to_string()
             } else {
                 server
@@ -116,22 +124,36 @@ fn render_cities_pane(
     area: Rect,
     theme: &Theme,
 ) {
-    let title = match (&state.current_country_code, state.current_cities.is_empty()) {
-        (None, _) => {
+    let is_loading = state.pending_cities.as_ref().is_some()
+        && state.pending_cities_country.as_deref() == state.current_country_code.as_deref();
+
+    let title = match (
+        &state.current_country_code,
+        state.current_cities.is_empty(),
+        is_loading,
+    ) {
+        (None, _, _) => {
             if state.pane_focus == Pane::Cities {
                 "> Select country".to_string()
             } else {
                 "  Select country".to_string()
             }
         }
-        (Some(code), true) => {
+        (Some(code), _, true) => {
             if state.pane_focus == Pane::Cities {
                 format!("> {} - Loading...", code)
             } else {
                 format!("  {} - Loading...", code)
             }
         }
-        (Some(code), false) => {
+        (Some(code), true, false) => {
+            if state.pane_focus == Pane::Cities {
+                format!("> {} - No cities", code)
+            } else {
+                format!("  {} - No cities", code)
+            }
+        }
+        (Some(code), false, false) => {
             if state.pane_focus == Pane::Cities {
                 format!("> {} - Cities", code)
             } else {
@@ -154,7 +176,7 @@ fn render_cities_pane(
         })
         .collect();
 
-    if cities.is_empty() {
+    if cities.is_empty() && !is_loading {
         let items = vec![ListItem::new(Line::from("No cities available"))];
         let list = List::new(items)
             .block(block)
@@ -163,8 +185,12 @@ fn render_cities_pane(
         return;
     }
 
-    let selected_idx = state.selected_city.unwrap_or(0);
-    list_state.select(Some(selected_idx.min(cities.len() - 1)));
+    if cities.is_empty() {
+        list_state.select(None);
+    } else {
+        let selected_idx = state.selected_city.unwrap_or(0);
+        list_state.select(Some(selected_idx.min(cities.len() - 1)));
+    }
 
     let is_focused = state.pane_focus == Pane::Cities;
 

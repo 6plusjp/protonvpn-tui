@@ -5,6 +5,7 @@ use crate::constants::state::MAX_NOTIFICATION_LOG;
 use crate::constants::state::PAGE_SIZE;
 use crate::constants::ui::{MAX_VISIBLE_NOTIFICATIONS, NOTIFICATION_TIMER_DEFAULT};
 use crate::state::async_tasks::{create_channel, AsyncResult, AsyncTaskManager};
+use crate::state::log_persistence;
 use crate::state::ConnectionState;
 use crate::state::Pane;
 use crate::state::ServerFilter;
@@ -101,7 +102,7 @@ impl Navigatable for Option<usize> {
 }
 
 /// Notification type for UI feedback
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum NotificationType {
     Info,
     Success,
@@ -109,7 +110,7 @@ pub enum NotificationType {
 }
 
 /// Notification popup (legacy - used for notification_log)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Notification {
     pub message: String,
     pub notification_type: NotificationType,
@@ -142,6 +143,7 @@ pub struct AppState {
     pending_connect: Option<ConnectReceiver>,
     pending_disconnect: Option<DisconnectReceiver>,
     pending_cities: Option<CitiesReceiver>,
+    pending_cities_country: Option<String>,
     pending_connect_city: Option<ConnectReceiver>,
 
     // === Server Data ===
@@ -200,13 +202,14 @@ impl AppState {
             dns_input: String::new(),
             vpn_state: Arc::new(VpnState::new()),
             notifications: Vec::new(),
-            notification_log: Vec::new(),
+            notification_log: log_persistence::load_notification_log(),
             async_manager: AsyncTaskManager::new(),
             pending_refresh: None,
             previous_connection: None,
             pending_connect: None,
             pending_disconnect: None,
             pending_cities: None,
+            pending_cities_country: None,
             pending_connect_city: None,
             proton_settings_cache: ProtonSettings::load(),
             filtered_servers_cache: Mutex::new(None),
@@ -304,6 +307,8 @@ impl AppState {
         if self.notification_log.len() > MAX_NOTIFICATION_LOG {
             self.notification_log.remove(0);
         }
+
+        log_persistence::save_notification_log(&self.notification_log);
     }
 
     pub fn clear_notifications(&mut self) {
@@ -426,10 +431,14 @@ impl AppState {
         // Check for pending cities fetch result
         if let Some(rx) = self.pending_cities.as_mut() {
             if let Ok(result) = rx.try_recv() {
+                let pending_country = self.pending_cities_country.clone();
+
                 match result {
                     Ok(cities) => {
-                        if self.current_country_code.is_some() {
-                            self.current_cities = cities.clone();
+                        if let Some(pending) = pending_country {
+                            if self.current_country_code.as_deref() == Some(&pending) {
+                                self.current_cities = cities.clone();
+                            }
                         }
                         self.show_notification(
                             format!("Loaded {} cities", cities.len()),
@@ -446,6 +455,7 @@ impl AppState {
                     }
                 }
                 self.pending_cities = None;
+                self.pending_cities_country = None;
                 self.invalidate_filtered_cache();
             }
         }
@@ -588,11 +598,12 @@ impl AppState {
     pub fn fetch_cities(&mut self, country_code: &str) {
         let country_code = country_code.to_string();
 
-        // Load cached cities first (non-blocking)
         if let Ok(cities) = self.vpn_state.list_cities_with_features(&country_code) {
             self.current_cities = cities.clone();
             self.current_country_code = Some(country_code.clone());
         }
+
+        self.pending_cities_country = Some(country_code.clone());
 
         self.invalidate_filtered_cache();
 
@@ -1090,7 +1101,12 @@ impl AppState {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::state::log_persistence;
     use crate::vpn::City;
+
+    fn setup() {
+        log_persistence::set_test_mode(true);
+    }
 
     fn make_servers() -> Vec<Server> {
         vec![
@@ -1127,6 +1143,7 @@ mod tests {
 
     #[test]
     fn test_filtered_servers_empty_query() {
+        setup();
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
         state.search_query = String::new();
@@ -1138,6 +1155,7 @@ mod tests {
 
     #[test]
     fn test_filtered_servers_by_id() {
+        setup();
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
         state.search_query = "jp".to_string();
@@ -1282,9 +1300,15 @@ mod tests {
 #[cfg(test)]
 mod notification_tests {
     use super::{AppState, NotificationType};
+    use crate::state::log_persistence;
+
+    fn setup() {
+        log_persistence::set_test_mode(true);
+    }
 
     #[test]
     fn test_show_notification_adds_to_vector() {
+        setup();
         let mut state = AppState::new();
         state.show_notification("Test 1".to_string(), NotificationType::Info);
         state.show_notification("Test 2".to_string(), NotificationType::Success);
@@ -1294,6 +1318,7 @@ mod notification_tests {
 
     #[test]
     fn test_tick_notifications_removes_expired() {
+        setup();
         let mut state = AppState::new();
         state.show_notification("Test".to_string(), NotificationType::Info);
 
@@ -1306,6 +1331,7 @@ mod notification_tests {
 
     #[test]
     fn test_tick_notifications_preserves_non_expired() {
+        setup();
         let mut state = AppState::new();
         state.show_notification("Test 1".to_string(), NotificationType::Info);
         state.show_notification("Test 2".to_string(), NotificationType::Info);
@@ -1318,6 +1344,7 @@ mod notification_tests {
 
     #[test]
     fn test_max_notifications_enforced() {
+        setup();
         let mut state = AppState::new();
         for i in 0..5 {
             state.show_notification(format!("Msg {}", i), NotificationType::Info);
@@ -1331,6 +1358,7 @@ mod notification_tests {
 
     #[test]
     fn test_notification_log_preserves_all() {
+        setup();
         let mut state = AppState::new();
         state.show_notification("Msg 1".to_string(), NotificationType::Info);
         state.show_notification("Msg 2".to_string(), NotificationType::Error);
@@ -1340,6 +1368,7 @@ mod notification_tests {
 
     #[test]
     fn test_clear_notifications() {
+        setup();
         let mut state = AppState::new();
         state.show_notification("Test".to_string(), NotificationType::Info);
         state.show_notification("Test 2".to_string(), NotificationType::Error);

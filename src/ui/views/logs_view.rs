@@ -1,3 +1,4 @@
+use crate::state::format_relative_time;
 use crate::state::{AppState, NotificationType};
 use crate::ui::components::centered_block;
 use ratatui::{
@@ -26,7 +27,9 @@ pub fn render_logs_view(
                 NotificationType::Success => ("  [OK]   ", theme.success),
                 NotificationType::Error => ("  [ERR]  ", theme.error),
             };
+            let relative_time = format_relative_time(n.timestamp);
             let line = Line::from(vec![
+                Span::raw(format!("{:<8}", relative_time)),
                 Span::styled(prefix, Style::default().fg(color)),
                 Span::raw(&n.message),
             ]);

@@ -14,6 +14,7 @@ use crate::state::SortDirection;
 use crate::ui::styles::Theme;
 use crate::vpn::Server;
 use crate::vpn::VpnState;
+use chrono::{DateTime, Utc};
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -114,6 +115,7 @@ pub enum NotificationType {
 pub struct Notification {
     pub message: String,
     pub notification_type: NotificationType,
+    pub timestamp: DateTime<Utc>,
 }
 
 /// Toast notification with individual timer for stacked display
@@ -303,6 +305,7 @@ impl AppState {
         self.notification_log.push(Notification {
             message,
             notification_type,
+            timestamp: Utc::now(),
         });
         if self.notification_log.len() > MAX_NOTIFICATION_LOG {
             self.notification_log.remove(0);

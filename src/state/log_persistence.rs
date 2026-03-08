@@ -1,4 +1,5 @@
 use crate::state::Notification;
+use chrono::{DateTime, Utc};
 use std::fs;
 use std::path::PathBuf;
 
@@ -65,4 +66,24 @@ pub fn save_notification_log(log: &[Notification]) {
 pub fn clear_log_file() {
     let path = get_log_file_path();
     let _ = fs::remove_file(path);
+}
+
+pub fn format_relative_time(timestamp: DateTime<Utc>) -> String {
+    let now = Utc::now();
+    let diff = now.signed_duration_since(timestamp);
+
+    if diff.num_seconds() < 60 {
+        "just now".to_string()
+    } else if diff.num_minutes() < 60 {
+        let mins = diff.num_minutes();
+        format!("{}m ago", mins)
+    } else if diff.num_hours() < 24 {
+        let hours = diff.num_hours();
+        format!("{}h ago", hours)
+    } else if diff.num_days() < 7 {
+        let days = diff.num_days();
+        format!("{}d ago", days)
+    } else {
+        timestamp.format("%Y-%m-%d").to_string()
+    }
 }

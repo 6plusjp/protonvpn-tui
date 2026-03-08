@@ -853,21 +853,41 @@ impl AppState {
     }
 
     pub fn select_first(&mut self) {
+        let old_idx = self.selected_server;
         self.selected_server.move_first(self.get_selection_bounds());
+
+        if old_idx != self.selected_server {
+            self.switch_cities_to_selected();
+        }
     }
 
     pub fn select_last(&mut self) {
+        let old_idx = self.selected_server;
         self.selected_server.move_last(self.get_selection_bounds());
+
+        if old_idx != self.selected_server {
+            self.switch_cities_to_selected();
+        }
     }
 
     pub fn select_page_down(&mut self) {
+        let old_idx = self.selected_server;
         self.selected_server
             .move_page_down(self.get_selection_bounds());
+
+        if old_idx != self.selected_server {
+            self.switch_cities_to_selected();
+        }
     }
 
     pub fn select_page_up(&mut self) {
+        let old_idx = self.selected_server;
         self.selected_server
             .move_page_up(self.get_selection_bounds());
+
+        if old_idx != self.selected_server {
+            self.switch_cities_to_selected();
+        }
     }
 
     pub fn move_to_cities(&mut self) {

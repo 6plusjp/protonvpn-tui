@@ -522,9 +522,7 @@ impl TuiApp {
         };
 
         let input_display = if input_text.is_empty() {
-            if self.filter_mode {
-                format!("{} ", prompt)
-            } else if has_filter_active {
+            if self.filter_mode || has_filter_active {
                 format!("{} ", prompt)
             } else {
                 format!("{} [press / to search]", prompt)

@@ -120,12 +120,9 @@ fn render_cities_pane(
     area: Rect,
     theme: &Theme,
 ) {
-    let is_loading = state.pending_cities.contains_key(
-        state
-            .current_country_code
-            .as_deref()
-            .unwrap_or(&String::new()),
-    );
+    let is_loading = state
+        .pending_cities
+        .contains_key(state.current_country_code.as_deref().unwrap_or(""));
 
     let title = match (
         &state.current_country_code,

@@ -464,27 +464,31 @@ impl TuiApp {
                 .direction(Direction::Vertical)
                 .constraints([
                     Constraint::Length(3),
-                    Constraint::Min(0),
                     Constraint::Length(3),
+                    Constraint::Min(0),
+                    Constraint::Length(1),
                 ])
                 .split(f.size());
 
             self.render_header(f, chunks[0]);
-            self.render_main(f, chunks[1]);
-            self.render_filter_input(f, chunks[2]);
+            self.render_filter_input(f, chunks[1]);
+            self.render_main(f, chunks[2]);
+            self.render_footer(f, chunks[3]);
         } else if self.state.input_mode == InputMode::DnsInput {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
                     Constraint::Length(3),
-                    Constraint::Min(0),
                     Constraint::Length(3),
+                    Constraint::Min(0),
+                    Constraint::Length(1),
                 ])
                 .split(f.size());
 
             self.render_header(f, chunks[0]);
-            self.render_main(f, chunks[1]);
-            self.render_dns_input(f, chunks[2]);
+            self.render_dns_input(f, chunks[1]);
+            self.render_main(f, chunks[2]);
+            self.render_footer(f, chunks[3]);
         } else {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
@@ -728,71 +732,101 @@ impl TuiApp {
 
     fn render_footer(&self, f: &mut Frame<'_>, area: Rect) {
         let theme = self.get_theme();
-        let sort_label = self.state.sort.label();
-        let direction_label = self.state.sort_direction.label();
-        let _sort_display = format!("{} {}", sort_label, direction_label);
 
         let action_spans = self.get_footer_action_hints();
 
-        let mut text = Line::from(vec![
-            Span::raw("["),
-            Span::styled("?", Style::default().fg(theme.key_hint)),
-            Span::raw("] help "),
+        let mut text = Line::from(action_spans);
+
+        text.spans.push(Span::raw(" "));
+        text.spans.extend(vec![
             Span::raw("["),
             Span::styled("Tab", Style::default().fg(theme.key_hint)),
             Span::raw("] switch view "),
             Span::raw("["),
+            Span::styled("?", Style::default().fg(theme.key_hint)),
+            Span::raw("] help "),
+            Span::raw("["),
             Span::styled("q", Style::default().fg(theme.key_hint)),
             Span::raw("] quit"),
-            Span::raw(" "),
         ]);
-
-        text.spans.extend(action_spans);
 
         f.render_widget(Paragraph::new(text), area);
     }
 
     fn get_footer_action_hints(&self) -> Vec<Span<'_>> {
         let theme = self.get_theme();
+        let is_disconnected = self.state.connection.is_disconnected();
+
+        if self.filter_mode {
+            return vec![
+                Span::raw("["),
+                Span::styled("Enter", Style::default().fg(theme.key_hint)),
+                Span::raw("] apply "),
+                Span::raw("["),
+                Span::styled("Esc", Style::default().fg(theme.key_hint)),
+                Span::raw("] cancel"),
+            ];
+        }
 
         match (self.state.get_current_view(), self.state.get_pane_focus()) {
-            (AppView::Servers, Pane::Countries) => vec![
-                Span::raw("["),
-                Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                Span::raw("] navigate "),
-                Span::raw("["),
-                Span::styled("l/Enter", Style::default().fg(theme.key_hint)),
-                Span::raw("] cities "),
-                Span::raw("["),
-                Span::styled("c", Style::default().fg(theme.key_hint)),
-                Span::raw("] connect "),
-                Span::raw("["),
-                Span::styled("d", Style::default().fg(theme.key_hint)),
-                Span::raw("] disconnect "),
-                Span::raw("["),
-                Span::styled("r", Style::default().fg(theme.key_hint)),
-                Span::raw("] refresh "),
-                Span::raw("["),
-                Span::styled("s", Style::default().fg(theme.key_hint)),
-                Span::raw("] sort "),
-                Span::raw("["),
-                Span::styled("f", Style::default().fg(theme.key_hint)),
-                Span::raw("] field "),
-                Span::raw("["),
-                Span::styled("/", Style::default().fg(theme.key_hint)),
-                Span::raw("] filter"),
-            ],
-            (AppView::Servers, Pane::Cities) => vec![
-                Span::raw("["),
-                Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                Span::raw("] navigate "),
-                Span::raw("["),
-                Span::styled("c/Enter", Style::default().fg(theme.key_hint)),
-                Span::raw("] connect "),
-                Span::raw("["),
-                Span::styled("h/Backspace", Style::default().fg(theme.key_hint)),
-                Span::raw("] countries"),
-            ],
+            (AppView::Servers, Pane::Countries) => {
+                let mut hints = vec![
+                    Span::raw("["),
+                    Span::styled("j/k", Style::default().fg(theme.key_hint)),
+                    Span::raw("] navigate "),
+                    Span::raw("["),
+                    Span::styled("l/Enter", Style::default().fg(theme.key_hint)),
+                    Span::raw("] cities "),
+                    Span::raw("["),
+                    Span::styled("c", Style::default().fg(theme.key_hint)),
+                    Span::raw("] connect "),
+                ];
+                if !is_disconnected {
+                    hints.extend([
+                        Span::raw("["),
+                        Span::styled("d", Style::default().fg(theme.key_hint)),
+                        Span::raw("] disconnect "),
+                    ]);
+                }
+                hints.extend([
+                    Span::raw("["),
+                    Span::styled("r", Style::default().fg(theme.key_hint)),
+                    Span::raw("] refresh "),
+                    Span::raw("["),
+                    Span::styled("s", Style::default().fg(theme.key_hint)),
+                    Span::raw("] sort "),
+                    Span::raw("["),
+                    Span::styled("f", Style::default().fg(theme.key_hint)),
+                    Span::raw("] field "),
+                    Span::raw("["),
+                    Span::styled("/", Style::default().fg(theme.key_hint)),
+                    Span::raw("] filter"),
+                ]);
+                hints
+            }
+            (AppView::Servers, Pane::Cities) => {
+                let mut hints = vec![
+                    Span::raw("["),
+                    Span::styled("j/k", Style::default().fg(theme.key_hint)),
+                    Span::raw("] navigate "),
+                    Span::raw("["),
+                    Span::styled("c/Enter", Style::default().fg(theme.key_hint)),
+                    Span::raw("] connect "),
+                ];
+                if !is_disconnected {
+                    hints.extend([
+                        Span::raw("["),
+                        Span::styled("d", Style::default().fg(theme.key_hint)),
+                        Span::raw("] disconnect "),
+                    ]);
+                }
+                hints.extend([
+                    Span::raw("["),
+                    Span::styled("h/Backspace", Style::default().fg(theme.key_hint)),
+                    Span::raw("] countries"),
+                ]);
+                hints
+            }
             (AppView::Settings, _) => vec![
                 Span::raw("["),
                 Span::styled("j/k", Style::default().fg(theme.key_hint)),

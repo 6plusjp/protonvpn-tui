@@ -21,6 +21,7 @@ pub fn render_logs_view(
     let items: Vec<ListItem> = state
         .notification_log
         .iter()
+        .rev()
         .map(|n| {
             let (prefix, color) = match n.notification_type {
                 NotificationType::Info => ("  [INFO] ", theme.primary),

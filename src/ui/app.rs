@@ -303,10 +303,6 @@ impl TuiApp {
                 self.handle_page_up();
                 None
             }
-            KeyCode::Enter => {
-                self.copy_selected_log_to_clipboard();
-                None
-            }
             _ => None,
         }
     }
@@ -381,34 +377,6 @@ impl TuiApp {
             (AppView::Settings, _) => self.state.settings_select_last(),
             (AppView::Logs, _) => self.state.logs_select_last(),
             _ => {}
-        }
-    }
-
-    fn copy_selected_log_to_clipboard(&mut self) {
-        if let Some(idx) = self.state.logs_selected {
-            if let Some(log) = self.state.notification_log.get(idx) {
-                match arboard::Clipboard::new() {
-                    Ok(mut clipboard) => {
-                        if clipboard.set_text(&log.message).is_ok() {
-                            self.state.show_notification(
-                                "Copied to clipboard".to_string(),
-                                crate::state::NotificationType::Success,
-                            );
-                        } else {
-                            self.state.show_notification(
-                                "Failed to copy".to_string(),
-                                crate::state::NotificationType::Error,
-                            );
-                        }
-                    }
-                    Err(_) => {
-                        self.state.show_notification(
-                            "Clipboard unavailable".to_string(),
-                            crate::state::NotificationType::Error,
-                        );
-                    }
-                }
-            }
         }
     }
 

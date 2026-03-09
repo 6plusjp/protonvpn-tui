@@ -22,19 +22,28 @@ pub fn render_logs_view(
         .notification_log
         .iter()
         .rev()
-        .map(|n| {
+        .enumerate()
+        .map(|(idx, n)| {
+            let is_selected = idx == state.logs_selected.unwrap_or(0);
             let (prefix, color) = match n.notification_type {
                 NotificationType::Info => ("  [INFO] ", theme.primary),
                 NotificationType::Success => ("  [OK]   ", theme.success),
                 NotificationType::Error => ("  [ERR]  ", theme.error),
             };
             let relative_time = format_relative_time(n.timestamp);
+            let prefix_str = if is_selected { "> " } else { "  " };
             let line = Line::from(vec![
-                Span::raw(format!("{:<8}", relative_time)),
+                Span::raw(prefix_str),
+                Span::raw(format!("{:<6}", relative_time)),
                 Span::styled(prefix, Style::default().fg(color)),
                 Span::raw(&n.message),
             ]);
-            ListItem::new(line)
+            let item = ListItem::new(line);
+            if is_selected {
+                item.style(Style::default().fg(theme.foreground).bg(theme.selection))
+            } else {
+                item
+            }
         })
         .collect();
 

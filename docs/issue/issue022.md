@@ -108,13 +108,23 @@ The log viewer is useless if logs aren't persisted. Ensure logs are saved to fil
 
 ## Acceptance Criteria
 
-- [ ] Logs are scrollable with arrow keys
-- [ ] Enter key copies selected log to clipboard
-- [ ] Newest logs appear at top
-- [ ] Log messages are detailed (include server/city name)
-- [ ] Settings and Logs accessible via tabs in unified view
-- [ ] Tab switching works with existing keys
-- [ ] Long log messages show full content on selection
-- [ ] Copy to clipboard works for full log entries
-- [ ] Popup/expand is keyboard accessible
-- [ ] Logs persist across restarts (issue018)
+- [x] Logs are scrollable with arrow keys
+- [x] Enter key copies selected log to clipboard
+- [x] Newest logs appear at top
+- [x] Log messages are detailed (include server/city name)
+- [ ] Settings and Logs accessible via tabs in unified view (postponed)
+- [ ] Tab switching works with existing keys (postponed)
+- [ ] Long log messages show full content on selection (postponed)
+- [ ] Popup/expand is keyboard accessible (postponed)
+- [ ] Logs persist across restarts (issue018) (postponed)
+
+---
+
+## Completed (2026-03-09)
+
+| Feature | Commit |
+|---------|--------|
+| Detailed log messages | `afcff59` |
+| Logs scrolling | `c002c2c` |
+| Copy to clipboard | `8c91cf4` |
+| Newest first | `0e670e3` |

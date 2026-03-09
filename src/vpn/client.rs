@@ -266,9 +266,13 @@ impl VpnClient {
         // Exit code 0 = successfully disconnected
         // Exit code 1 = already disconnected or error
         if output.status.success() {
+            let server_info = self
+                .with_cache(|c| c.connected_server.clone())
+                .unwrap_or_default()
+                .unwrap_or_else(|| "VPN".to_string());
             self.with_cache(|c| c.set_disconnected())?;
             self.save_cache()?;
-            tracing::info!("Successfully disconnected from VPN");
+            tracing::info!("Disconnected from {}", server_info);
             return Ok(());
         }
 

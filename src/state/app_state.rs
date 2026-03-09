@@ -460,7 +460,7 @@ impl AppState {
                         self.current_cities = cities.clone();
                     }
                     self.show_notification(
-                        format!("Loaded {} cities", cities.len()),
+                        format!("Loaded {} cities for {}", cities.len(), country_code),
                         NotificationType::Success,
                     );
                     notification_shown = true;
@@ -609,10 +609,18 @@ impl AppState {
             return;
         }
 
-        tracing::info!("Disconnecting from VPN");
+        let server_info = match &self.connection {
+            ConnectionState::Connected { server, .. } => server.clone(),
+            _ => String::from("VPN"),
+        };
+
+        tracing::info!("Disconnecting from {}", server_info);
         self.previous_connection = Some(self.connection.clone());
         self.connection = ConnectionState::Disconnecting;
-        self.show_notification("Disconnecting...".to_string(), NotificationType::Info);
+        self.show_notification(
+            format!("Disconnecting from {}...", server_info),
+            NotificationType::Info,
+        );
 
         let (tx, rx) = create_channel();
         self.pending_disconnect = Some(rx);

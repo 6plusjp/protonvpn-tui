@@ -46,7 +46,7 @@ pub fn render_logs_view(
         return;
     }
 
-    let selected = list_state.selected().unwrap_or(0).min(items.len() - 1);
+    let selected = state.logs_selected.unwrap_or(0).min(items.len() - 1);
     list_state.select(Some(selected));
 
     let list = List::new(items)

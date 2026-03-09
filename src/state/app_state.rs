@@ -161,6 +161,7 @@ pub struct AppState {
     pub selected_city: Option<usize>,
     pub pane_focus: Pane,
     pub settings_selected: Option<usize>,
+    pub logs_selected: Option<usize>,
     pub search_query: String,
     pub filter: ServerFilter,
     pub sort: ServerSort,
@@ -200,6 +201,7 @@ impl AppState {
             selected_city: Some(0),
             pane_focus: Pane::Countries,
             settings_selected: Some(0),
+            logs_selected: Some(0),
             input_mode: InputMode::Normal,
             dns_input: String::new(),
             vpn_state: Arc::new(VpnState::new()),
@@ -407,14 +409,19 @@ impl AppState {
         if self.connection.is_disconnecting() {
             if let Some(rx) = self.pending_disconnect.as_mut() {
                 if let Ok(result) = rx.try_recv() {
+                    let server_info = match &self.connection {
+                        ConnectionState::Connecting => Some("unknown server".to_string()),
+                        ConnectionState::Connected { server, .. } => Some(server.clone()),
+                        _ => None,
+                    };
                     match result {
                         Ok(()) => {
                             self.connection = ConnectionState::Disconnected;
                             tracing::info!("Successfully disconnected from VPN");
-                            self.show_notification(
-                                "Disconnected".to_string(),
-                                NotificationType::Info,
-                            );
+                            let msg = server_info
+                                .map(|s| format!("Disconnected from {}", s))
+                                .unwrap_or_else(|| "Disconnected".to_string());
+                            self.show_notification(msg, NotificationType::Info);
                             notification_shown = true;
                             self.previous_connection = None;
                             self.pending_disconnect = None;
@@ -558,18 +565,23 @@ impl AppState {
         };
 
         let filtered = self.filtered_servers();
-        let server_id = match filtered.get(idx) {
-            Some(server) => server.id.clone(),
+        let server = match filtered.get(idx) {
+            Some(server) => server,
             None => {
                 self.show_notification("No server selected".to_string(), NotificationType::Error);
                 return;
             }
         };
+        let server_id = server.id.clone();
+        let server_country = server.country.clone();
 
         tracing::info!("Connecting to server: {}", server_id);
         self.previous_connection = Some(self.connection.clone());
         self.connection = ConnectionState::Connecting;
-        self.show_notification("Connecting...".to_string(), NotificationType::Info);
+        self.show_notification(
+            format!("Connecting to {}...", server_country),
+            NotificationType::Info,
+        );
 
         let (tx, rx) = create_channel();
         self.pending_connect = Some(rx);
@@ -1014,6 +1026,36 @@ impl AppState {
             .max(7)
             + 1;
         self.settings_selected.move_page_up(count);
+    }
+
+    pub fn logs_select_next(&mut self) {
+        let count = self.notification_log.len().max(7);
+        self.logs_selected.move_next(count);
+    }
+
+    pub fn logs_select_prev(&mut self) {
+        let count = self.notification_log.len().max(7);
+        self.logs_selected.move_prev(count);
+    }
+
+    pub fn logs_select_first(&mut self) {
+        let count = self.notification_log.len().max(7);
+        self.logs_selected.move_first(count);
+    }
+
+    pub fn logs_select_last(&mut self) {
+        let count = self.notification_log.len().max(7);
+        self.logs_selected.move_last(count);
+    }
+
+    pub fn logs_select_page_down(&mut self) {
+        let count = self.notification_log.len().max(7);
+        self.logs_selected.move_page_down(count);
+    }
+
+    pub fn logs_select_page_up(&mut self) {
+        let count = self.notification_log.len().max(7);
+        self.logs_selected.move_page_up(count);
     }
 
     pub fn toggle_settings(&mut self, index: usize) {

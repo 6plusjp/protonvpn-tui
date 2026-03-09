@@ -2,9 +2,28 @@
 
 ## Summary
 
-Integrate Settings and Logs views, and enhance the log viewer with full content display.
+Enhance Logs view with scroll support, copy-to-clipboard, and more detailed messages.
 
-## Part 1: Settings + Logs Integration
+## Updated Requirements (2026-03-09)
+
+### 1. Make logs scrollable
+- Currently logs list doesn't scroll when content exceeds viewport
+- Need to enable vertical scrolling with arrow keys
+
+### 2. Copy to clipboard on Enter
+- When cursor is on a log entry and Enter is pressed, copy full message to clipboard
+
+### 3. Sort by newest first
+- Logs should display with newest entries at the top (reverse chronological order)
+
+### 4. More detailed log messages
+- Replace generic messages with detailed ones:
+  - `"Connecting..."` → `"Connecting to Japan..."` (use actual server/city name)
+  - `"Disconnecting..."` → `"Disconnecting from Japan..."`
+
+---
+
+## Part 1: Settings + Logs Integration (Future)
 
 ### Problem
 
@@ -60,7 +79,7 @@ pub fn render_logs_view(...) {
 │  Logs                        [Esc]  │
 ├─────────────────────────────────────┤
 │  [INFO]  Connected to US-NY        │
-│  [ERR]   Connection failed: ...    │
+│  [ERR]   Connection failed: ...      │
 │  [OK]    Disconnected successfully │
 │  ...                                │
 ├─────────────────────────────────────┤
@@ -89,6 +108,10 @@ The log viewer is useless if logs aren't persisted. Ensure logs are saved to fil
 
 ## Acceptance Criteria
 
+- [ ] Logs are scrollable with arrow keys
+- [ ] Enter key copies selected log to clipboard
+- [ ] Newest logs appear at top
+- [ ] Log messages are detailed (include server/city name)
 - [ ] Settings and Logs accessible via tabs in unified view
 - [ ] Tab switching works with existing keys
 - [ ] Long log messages show full content on selection

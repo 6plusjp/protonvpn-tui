@@ -22,6 +22,7 @@ pub struct TuiApp {
     state: AppState,
     countries_list_state: ListState,
     cities_list_state: ListState,
+    logs_list_state: ListState,
     pending_g: bool,
     filter_mode: bool,
     filter_input: String,
@@ -42,6 +43,7 @@ impl TuiApp {
             state,
             countries_list_state: ListState::default(),
             cities_list_state: ListState::default(),
+            logs_list_state: ListState::default(),
             pending_g: false,
             filter_mode: false,
             filter_input: String::new(),
@@ -315,6 +317,7 @@ impl TuiApp {
             (AppView::Servers, Pane::Cities) => self.state.city_select_next(),
             (AppView::Servers, Pane::Countries) => self.state.select_next(),
             (AppView::Settings, _) => self.state.settings_select_next(),
+            (AppView::Logs, _) => self.state.logs_select_next(),
             _ => {}
         }
     }
@@ -325,6 +328,7 @@ impl TuiApp {
             (AppView::Servers, Pane::Cities) => self.state.city_select_prev(),
             (AppView::Servers, Pane::Countries) => self.state.select_prev(),
             (AppView::Settings, _) => self.state.settings_select_prev(),
+            (AppView::Logs, _) => self.state.logs_select_prev(),
             _ => {}
         }
     }
@@ -345,6 +349,7 @@ impl TuiApp {
             (AppView::Servers, Pane::Cities) => self.state.city_select_page_up(),
             (AppView::Servers, Pane::Countries) => self.state.select_page_up(),
             (AppView::Settings, _) => self.state.settings_select_page_up(),
+            (AppView::Logs, _) => self.state.logs_select_page_up(),
             _ => {}
         }
     }
@@ -355,6 +360,7 @@ impl TuiApp {
                 (AppView::Servers, Pane::Cities) => self.state.city_select_first(),
                 (AppView::Servers, Pane::Countries) => self.state.select_first(),
                 (AppView::Settings, _) => self.state.settings_select_first(),
+                (AppView::Logs, _) => self.state.logs_select_first(),
                 _ => {}
             }
             self.pending_g = false;
@@ -369,6 +375,7 @@ impl TuiApp {
             (AppView::Servers, Pane::Cities) => self.state.city_select_last(),
             (AppView::Servers, Pane::Countries) => self.state.select_last(),
             (AppView::Settings, _) => self.state.settings_select_last(),
+            (AppView::Logs, _) => self.state.logs_select_last(),
             _ => {}
         }
     }
@@ -737,12 +744,9 @@ impl TuiApp {
             AppView::Settings => {
                 views::settings_view::render_settings_view(&mut self.state, f, area)
             }
-            AppView::Logs => views::logs_view::render_logs_view(
-                &self.state,
-                &mut self.countries_list_state,
-                f,
-                area,
-            ),
+            AppView::Logs => {
+                views::logs_view::render_logs_view(&self.state, &mut self.logs_list_state, f, area)
+            }
             AppView::Help => views::help_view::render_help_view(&self.state, f, area),
         }
     }

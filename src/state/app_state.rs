@@ -18,7 +18,7 @@ use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::mpsc;
 use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::RwLock;
 
 /// Input mode for text input
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -150,7 +150,7 @@ pub struct AppState {
 
     // === Server Data ===
     pub(crate) servers: Vec<Server>,
-    filtered_servers_cache: Mutex<Option<(Vec<Server>, u64)>>,
+    filtered_servers_cache: RwLock<Option<(Vec<Server>, u64)>>,
     filtered_servers_version: u64,
     pub(crate) current_cities: Vec<crate::vpn::City>,
     pub(crate) current_country_code: Option<String>,
@@ -163,6 +163,7 @@ pub struct AppState {
     pub settings_selected: Option<usize>,
     pub logs_selected: Option<usize>,
     pub search_query: String,
+    search_query_lower: String,
     pub filter: ServerFilter,
     pub sort: ServerSort,
     pub sort_direction: SortDirection,
@@ -190,6 +191,7 @@ impl AppState {
             connection: ConnectionState::Disconnected,
             current_view: crate::state::AppView::Servers,
             search_query: String::new(),
+            search_query_lower: String::new(),
             filter: ServerFilter::default(),
             sort: ServerSort::default(),
             sort_direction: SortDirection::default(),
@@ -215,7 +217,7 @@ impl AppState {
             pending_cities: HashMap::new(),
             pending_connect_city: None,
             proton_settings_cache: ProtonSettings::load(),
-            filtered_servers_cache: Mutex::new(None),
+            filtered_servers_cache: RwLock::new(None),
             filtered_servers_version: 0,
         }
     }
@@ -257,6 +259,7 @@ impl AppState {
     }
 
     pub fn set_search_query(&mut self, query: String) {
+        self.search_query_lower = query.to_lowercase();
         self.search_query = query;
         self.invalidate_filtered_cache();
     }
@@ -682,22 +685,24 @@ impl AppState {
     /// Get filtered and sorted server list
     pub fn filtered_servers(&self) -> Vec<Server> {
         let version = self.filtered_servers_version;
-        let cached = match self.filtered_servers_cache.lock() {
-            Ok(c) => c,
-            Err(e) => {
-                tracing::warn!("Failed to lock filtered_servers_cache: {}", e);
-                return self.compute_filtered_servers();
-            }
-        };
-        if let Some((ref cached_result, cached_version)) = *cached {
-            if cached_version == version {
-                return cached_result.clone();
+
+        {
+            let cached = match self.filtered_servers_cache.read() {
+                Ok(c) => c,
+                Err(e) => {
+                    tracing::warn!("Failed to lock filtered_servers_cache for read: {}", e);
+                    return self.compute_filtered_servers();
+                }
+            };
+            if let Some((ref cached_result, cached_version)) = *cached {
+                if cached_version == version {
+                    return cached_result.clone();
+                }
             }
         }
-        drop(cached);
 
         let result = self.compute_filtered_servers();
-        let mut cache = match self.filtered_servers_cache.lock() {
+        let mut cache = match self.filtered_servers_cache.write() {
             Ok(c) => c,
             Err(e) => {
                 tracing::warn!("Failed to lock filtered_servers_cache for write: {}", e);
@@ -709,7 +714,7 @@ impl AppState {
     }
 
     pub(crate) fn compute_filtered_servers(&self) -> Vec<Server> {
-        let query = self.search_query.to_lowercase();
+        let query = &self.search_query_lower;
 
         let connected_server_id = match &self.connection {
             ConnectionState::Connected { server, .. } => Some(server.clone()),
@@ -724,13 +729,14 @@ impl AppState {
             servers
                 .iter()
                 .filter(|server| {
-                    let matches_id = server.id.to_lowercase().contains(&query);
-                    let matches_country = server.country.to_lowercase().contains(&query);
+                    let q = query.as_str();
+                    let matches_id = server.id.to_lowercase().contains(q);
+                    let matches_country = server.country.to_lowercase().contains(q);
                     let matches_city = server
                         .cities
                         .iter()
-                        .any(|c| c.name.to_lowercase().contains(&query));
-                    let matches_fuzzy = self.fuzzy_match(&servers, &server.country, &query);
+                        .any(|c| c.name.to_lowercase().contains(q));
+                    let matches_fuzzy = self.fuzzy_match(&servers, &server.country, q);
 
                     match self.filter {
                         ServerFilter::Id => matches_id || matches_fuzzy,
@@ -1277,6 +1283,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
         state.search_query = String::new();
+        state.search_query_lower = String::new();
 
         let result = state.filtered_servers();
 
@@ -1289,6 +1296,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
         state.search_query = "jp".to_string();
+        state.search_query_lower = "jp".to_string();
         state.filter = ServerFilter::Id;
 
         let result = state.filtered_servers();
@@ -1302,6 +1310,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
         state.search_query = "japan".to_string();
+        state.search_query_lower = "japan".to_string();
         state.filter = ServerFilter::Country;
 
         let result = state.filtered_servers();
@@ -1315,6 +1324,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
         state.search_query = "JP".to_string();
+        state.search_query_lower = "jp".to_string();
         state.filter = ServerFilter::Country;
 
         let result = state.filtered_servers();
@@ -1328,6 +1338,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
         state.search_query = "tokyo".to_string();
+        state.search_query_lower = "tokyo".to_string();
         state.filter = ServerFilter::City;
 
         let result = state.filtered_servers();
@@ -1341,6 +1352,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
         state.search_query = "JAPAN".to_string();
+        state.search_query_lower = "japan".to_string();
         state.filter = ServerFilter::Country;
 
         let result = state.filtered_servers();
@@ -1354,6 +1366,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
         state.search_query = String::new();
+        state.search_query_lower = String::new();
         state.sort = ServerSort::Id;
         state.sort_direction = SortDirection::Asc;
 
@@ -1368,6 +1381,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
         state.search_query = String::new();
+        state.search_query_lower = String::new();
         state.sort = ServerSort::Id;
         state.sort_direction = SortDirection::Desc;
 
@@ -1382,6 +1396,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
         state.search_query = String::new();
+        state.search_query_lower = String::new();
         state.sort = ServerSort::Country;
         state.sort_direction = SortDirection::Asc;
 
@@ -1396,6 +1411,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
         state.search_query = String::new();
+        state.search_query_lower = String::new();
         state.sort = ServerSort::Country;
         state.sort_direction = SortDirection::Desc;
 
@@ -1410,6 +1426,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
         state.search_query = "u".to_string();
+        state.search_query_lower = "u".to_string();
         state.filter = ServerFilter::Country;
 
         let result = state.filtered_servers();

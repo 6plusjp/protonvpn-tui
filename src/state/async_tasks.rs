@@ -8,6 +8,7 @@ use crate::vpn::{City, VpnState};
 use std::collections::VecDeque;
 use std::sync::mpsc;
 use std::sync::Arc;
+use std::sync::Condvar;
 use std::sync::Mutex;
 use std::thread::{self, JoinHandle};
 
@@ -56,48 +57,39 @@ enum Job {
 pub struct ThreadPool {
     workers: Vec<JoinHandle<()>>,
     job_queue: Arc<Mutex<VecDeque<Job>>>,
+    not_empty: Arc<Condvar>,
     shutdown: Arc<Mutex<bool>>,
 }
 
 impl ThreadPool {
-    /// Create a new thread pool with the specified number of workers.
     pub fn new(num_workers: usize) -> Self {
         let job_queue = Arc::new(Mutex::new(VecDeque::new()));
+        let not_empty = Arc::new(Condvar::new());
         let shutdown = Arc::new(Mutex::new(false));
 
         let mut workers = Vec::with_capacity(num_workers);
 
         for _ in 0..num_workers {
             let job_queue = Arc::clone(&job_queue);
+            let not_empty = Arc::clone(&not_empty);
             let shutdown = Arc::clone(&shutdown);
 
             let worker = thread::spawn(move || loop {
-                // Check shutdown flag with proper error handling
-                let should_shutdown = shutdown.lock().map(|guard| *guard).unwrap_or_else(|e| {
-                    tracing::warn!("ThreadPool shutdown lock poisoned: {}", e);
-                    true // Treat poison as shutdown signal
-                });
-                if should_shutdown {
-                    break;
+                let mut queue = job_queue.lock().unwrap();
+                while queue.is_empty() {
+                    if *shutdown.lock().unwrap() {
+                        return;
+                    }
+                    queue = not_empty.wait(queue).unwrap();
                 }
+                if *shutdown.lock().unwrap() {
+                    return;
+                }
+                let job = queue.pop_front();
+                drop(queue);
 
-                let job = {
-                    let queue_guard = job_queue.lock().map_err(|e| {
-                        tracing::warn!("ThreadPool queue lock poisoned: {}", e);
-                    });
-                    match queue_guard {
-                        Ok(mut queue) => queue.pop_front(),
-                        Err(_) => None,
-                    }
-                };
-
-                match job {
-                    Some(job) => {
-                        Self::execute_job(job);
-                    }
-                    None => {
-                        thread::sleep(std::time::Duration::from_millis(10));
-                    }
+                if let Some(job) = job {
+                    Self::execute_job(job);
                 }
             });
 
@@ -107,6 +99,7 @@ impl ThreadPool {
         Self {
             workers,
             job_queue,
+            not_empty,
             shutdown,
         }
     }
@@ -165,10 +158,10 @@ impl ThreadPool {
         }
     }
 
-    /// Submit a job to the thread pool
     fn submit(&self, job: Job) {
         if let Ok(mut queue) = self.job_queue.lock() {
             queue.push_back(job);
+            self.not_empty.notify_one();
         } else {
             tracing::error!("Failed to lock job queue for submission");
         }
@@ -180,6 +173,7 @@ impl Drop for ThreadPool {
         if let Ok(mut guard) = self.shutdown.lock() {
             *guard = true;
         }
+        self.not_empty.notify_all();
 
         for worker in self.workers.drain(..) {
             let _ = worker.join();

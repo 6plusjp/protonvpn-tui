@@ -72,13 +72,23 @@ impl ThreadPool {
             let shutdown = Arc::clone(&shutdown);
 
             let worker = thread::spawn(move || loop {
-                if *shutdown.lock().unwrap() {
+                // Check shutdown flag with proper error handling
+                let should_shutdown = shutdown.lock().map(|guard| *guard).unwrap_or_else(|e| {
+                    tracing::warn!("ThreadPool shutdown lock poisoned: {}", e);
+                    true // Treat poison as shutdown signal
+                });
+                if should_shutdown {
                     break;
                 }
 
                 let job = {
-                    let mut queue = job_queue.lock().unwrap();
-                    queue.pop_front()
+                    let queue_guard = job_queue.lock().map_err(|e| {
+                        tracing::warn!("ThreadPool queue lock poisoned: {}", e);
+                    });
+                    match queue_guard {
+                        Ok(mut queue) => queue.pop_front(),
+                        Err(_) => None,
+                    }
                 };
 
                 match job {
@@ -86,7 +96,7 @@ impl ThreadPool {
                         Self::execute_job(job);
                     }
                     None => {
-                        thread::yield_now();
+                        thread::sleep(std::time::Duration::from_millis(10));
                     }
                 }
             });
@@ -145,14 +155,19 @@ impl ThreadPool {
 
     /// Submit a job to the thread pool
     fn submit(&self, job: Job) {
-        let mut queue = self.job_queue.lock().unwrap();
-        queue.push_back(job);
+        if let Ok(mut queue) = self.job_queue.lock() {
+            queue.push_back(job);
+        } else {
+            tracing::error!("Failed to lock job queue for submission");
+        }
     }
 }
 
 impl Drop for ThreadPool {
     fn drop(&mut self) {
-        *self.shutdown.lock().unwrap() = true;
+        if let Ok(mut guard) = self.shutdown.lock() {
+            *guard = true;
+        }
 
         for worker in self.workers.drain(..) {
             let _ = worker.join();

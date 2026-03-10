@@ -2,6 +2,41 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Settings key for UI rendering and toggle operations
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum SettingKey {
+    Killswitch,
+    Ipv6,
+    Dns,
+    NetShield,
+    ModerateNat,
+    VpnAccelerator,
+    PortForwarding,
+    Theme,
+}
+
+impl SettingKey {
+    /// All settings in display order (indices match UI)
+    pub const ALL: [SettingKey; 8] = [
+        SettingKey::Killswitch,
+        SettingKey::Ipv6,
+        SettingKey::Dns,
+        SettingKey::NetShield,
+        SettingKey::ModerateNat,
+        SettingKey::VpnAccelerator,
+        SettingKey::PortForwarding,
+        SettingKey::Theme,
+    ];
+
+    pub fn from_index(index: usize) -> Option<SettingKey> {
+        Self::ALL.get(index).copied()
+    }
+
+    pub fn index(&self) -> usize {
+        Self::ALL.iter().position(|k| k == self).unwrap_or(0)
+    }
+}
+
 /// Proton VPN settings (from ~/.config/Proton/VPN/settings.json)
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ProtonSettings {

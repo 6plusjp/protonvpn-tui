@@ -1,6 +1,6 @@
 //! Application state management
 
-use crate::config::ProtonSettings;
+use crate::config::{ProtonSettings, SettingKey};
 use crate::constants::state::MAX_NOTIFICATION_LOG;
 use crate::constants::state::PAGE_SIZE;
 use crate::constants::ui::{MAX_VISIBLE_NOTIFICATIONS, NOTIFICATION_TIMER_DEFAULT};
@@ -983,100 +983,90 @@ impl AppState {
     }
 
     pub fn settings_select_next(&mut self) {
-        let count = self
-            .get_proton_settings()
-            .map(|ps| ps.settings_count())
-            .unwrap_or(0)
-            .max(7)
-            + 1;
+        let count = SettingKey::ALL.len();
         self.settings_selected.move_next(count);
     }
 
     pub fn settings_select_prev(&mut self) {
-        let count = self
-            .get_proton_settings()
-            .map(|ps| ps.settings_count())
-            .unwrap_or(0)
-            .max(7)
-            + 1;
+        let count = SettingKey::ALL.len();
         self.settings_selected.move_prev(count);
     }
 
     pub fn settings_select_first(&mut self) {
-        let count = self
-            .get_proton_settings()
-            .map(|ps| ps.settings_count())
-            .unwrap_or(0)
-            .max(7)
-            + 1;
+        let count = SettingKey::ALL.len();
         self.settings_selected.move_first(count);
     }
 
     pub fn settings_select_last(&mut self) {
-        let count = self
-            .get_proton_settings()
-            .map(|ps| ps.settings_count())
-            .unwrap_or(0)
-            .max(7)
-            + 1;
+        let count = SettingKey::ALL.len();
         self.settings_selected.move_last(count);
     }
 
     pub fn settings_select_page_down(&mut self) {
-        let count = self
-            .get_proton_settings()
-            .map(|ps| ps.settings_count())
-            .unwrap_or(0)
-            .max(7)
-            + 1;
+        let count = SettingKey::ALL.len();
         self.settings_selected.move_page_down(count);
     }
 
     pub fn settings_select_page_up(&mut self) {
-        let count = self
-            .get_proton_settings()
-            .map(|ps| ps.settings_count())
-            .unwrap_or(0)
-            .max(7)
-            + 1;
+        let count = SettingKey::ALL.len();
         self.settings_selected.move_page_up(count);
     }
 
     pub fn logs_select_next(&mut self) {
-        let count = self.notification_log.len().max(7);
-        self.logs_selected.move_next(count);
+        let bounds = self.notification_log.len();
+        if bounds > 0 {
+            self.logs_selected.move_next(bounds);
+        }
     }
 
     pub fn logs_select_prev(&mut self) {
-        let count = self.notification_log.len().max(7);
-        self.logs_selected.move_prev(count);
+        let bounds = self.notification_log.len();
+        if bounds > 0 {
+            self.logs_selected.move_prev(bounds);
+        }
     }
 
     pub fn logs_select_first(&mut self) {
-        let count = self.notification_log.len().max(7);
-        self.logs_selected.move_first(count);
+        let bounds = self.notification_log.len();
+        if bounds > 0 {
+            self.logs_selected.move_first(bounds);
+        }
     }
 
     pub fn logs_select_last(&mut self) {
-        let count = self.notification_log.len().max(7);
-        self.logs_selected.move_last(count);
+        let bounds = self.notification_log.len();
+        if bounds > 0 {
+            self.logs_selected.move_last(bounds);
+        }
     }
 
     pub fn logs_select_page_down(&mut self) {
-        let count = self.notification_log.len().max(7);
-        self.logs_selected.move_page_down(count);
+        let bounds = self.notification_log.len();
+        if bounds > 0 {
+            self.logs_selected.move_page_down(bounds);
+        }
     }
 
     pub fn logs_select_page_up(&mut self) {
-        let count = self.notification_log.len().max(7);
-        self.logs_selected.move_page_up(count);
+        let bounds = self.notification_log.len();
+        if bounds > 0 {
+            self.logs_selected.move_page_up(bounds);
+        }
     }
 
     pub fn toggle_settings(&mut self, index: usize) {
-        let ps = self.get_proton_settings();
+        let key = match SettingKey::from_index(index) {
+            Some(k) => k,
+            None => {
+                self.show_notification(
+                    "Invalid setting selection".to_string(),
+                    NotificationType::Error,
+                );
+                return;
+            }
+        };
 
-        // For DNS (index 2), Enter always shows input prompt
-        if index == 2 {
+        if key == SettingKey::Dns {
             self.input_mode = InputMode::DnsInput;
             self.dns_input = String::new();
             self.show_notification(
@@ -1086,65 +1076,59 @@ impl AppState {
             return;
         }
 
-        let result = match index {
-            0 => {
+        if key == SettingKey::Theme {
+            self.is_dark_theme = !self.is_dark_theme;
+            tracing::info!(
+                "Theme changed to {}",
+                if self.is_dark_theme { "Dark" } else { "Light" }
+            );
+            self.show_notification(
+                format!(
+                    "Theme changed to {}",
+                    if self.is_dark_theme { "Dark" } else { "Light" }
+                ),
+                NotificationType::Info,
+            );
+            return;
+        }
+
+        let ps = self.get_proton_settings();
+        let result = match key {
+            SettingKey::Killswitch => {
                 let current = ps.and_then(|p| p.killswitch);
                 self.vpn_state.toggle_killswitch(current)
             }
-            1 => {
+            SettingKey::Ipv6 => {
                 let current = ps.and_then(|p| p.ipv6);
                 self.vpn_state.toggle_ipv6(current)
             }
-            2 => {
-                unreachable!("DNS handled before match")
-            }
-            3 => {
+            SettingKey::Dns => unreachable!(),
+            SettingKey::NetShield => {
                 let current = ps
                     .and_then(|p| p.features.as_ref())
                     .and_then(|f| f.netshield);
                 let next = 0;
                 self.vpn_state.set_netshield(current, next)
             }
-            4 => {
+            SettingKey::ModerateNat => {
                 let current = ps
                     .and_then(|p| p.features.as_ref())
                     .and_then(|f| f.moderate_nat);
                 self.vpn_state.toggle_moderate_nat(current)
             }
-            5 => {
+            SettingKey::VpnAccelerator => {
                 let current = ps
                     .and_then(|p| p.features.as_ref())
                     .and_then(|f| f.vpn_accelerator);
                 self.vpn_state.toggle_vpn_accelerator(current)
             }
-            6 => {
+            SettingKey::PortForwarding => {
                 let current = ps
                     .and_then(|p| p.features.as_ref())
                     .and_then(|f| f.port_forwarding);
                 self.vpn_state.toggle_port_forwarding(current)
             }
-            7 => {
-                self.is_dark_theme = !self.is_dark_theme;
-                tracing::info!(
-                    "Theme changed to {}",
-                    if self.is_dark_theme { "Dark" } else { "Light" }
-                );
-                self.show_notification(
-                    format!(
-                        "Theme changed to {}",
-                        if self.is_dark_theme { "Dark" } else { "Light" }
-                    ),
-                    NotificationType::Info,
-                );
-                return;
-            }
-            _ => {
-                self.show_notification(
-                    "Invalid setting selection".to_string(),
-                    NotificationType::Error,
-                );
-                return;
-            }
+            SettingKey::Theme => unreachable!(),
         };
 
         match result {
@@ -1167,10 +1151,13 @@ impl AppState {
     }
 
     pub fn toggle_settings_off(&mut self, index: usize) {
-        let ps = self.get_proton_settings();
+        let key = match SettingKey::from_index(index) {
+            Some(k) => k,
+            None => return,
+        };
 
-        // For DNS (index 2), Space turns off directly
-        if index == 2 {
+        if key == SettingKey::Dns {
+            let ps = self.get_proton_settings();
             let dns_enabled = ps.map(|p| p.custom_dns.enabled).unwrap_or(false);
             if dns_enabled {
                 match self.vpn_state.disable_custom_dns() {
@@ -1194,7 +1181,6 @@ impl AppState {
             return;
         }
 
-        // For other settings, use regular toggle
         self.toggle_settings(index);
     }
 

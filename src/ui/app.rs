@@ -339,6 +339,7 @@ impl TuiApp {
             (AppView::Servers, Pane::Cities) => self.state.city_select_page_down(),
             (AppView::Servers, Pane::Countries) => self.state.select_page_down(),
             (AppView::Settings, _) => self.state.settings_select_page_down(),
+            (AppView::Logs, _) => self.state.logs_select_page_down(),
             _ => {}
         }
     }

@@ -161,6 +161,8 @@ pub struct AppState {
     pub selected_city: Option<usize>,
     pub pane_focus: Pane,
     pub settings_selected: Option<usize>,
+    pub settings_expanded: bool,
+    pub settings_option_selected: usize,
     pub logs_selected: Option<usize>,
     pub search_query: String,
     pub filter: ServerFilter,
@@ -201,6 +203,8 @@ impl AppState {
             selected_city: Some(0),
             pane_focus: Pane::Countries,
             settings_selected: Some(0),
+            settings_expanded: false,
+            settings_option_selected: 0,
             logs_selected: Some(0),
             input_mode: InputMode::Normal,
             dns_input: String::new(),
@@ -1225,6 +1229,16 @@ impl AppState {
                 );
             }
         }
+    }
+
+    pub fn apply_setting(&mut self, key: &str, value: &str) -> Result<String, String> {
+        self.vpn_state
+            .config_set(key, value)
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn clear_settings_cache(&mut self) {
+        self.proton_settings_cache = None;
     }
 }
 

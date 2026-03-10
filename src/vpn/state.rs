@@ -124,6 +124,10 @@ impl VpnState {
     pub fn disable_custom_dns(&self) -> AppResult<String> {
         self.client.disable_custom_dns()
     }
+
+    pub fn config_set(&self, key: &str, value: &str) -> AppResult<String> {
+        self.client.config_set(key, value)
+    }
 }
 
 #[cfg(test)]

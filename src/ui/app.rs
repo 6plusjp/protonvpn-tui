@@ -1,3 +1,4 @@
+use crate::config::SettingKey;
 use crate::constants::ui::{NOTIFICATION_MSG_MAX_LEN, POPUP_WIDTH_MAX, POPUP_WIDTH_MIN};
 use crate::state::{AppState, AppView, InputMode, Pane};
 use crate::ui::styles::Theme;
@@ -222,57 +223,130 @@ impl TuiApp {
     }
 
     fn handle_settings_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
-        match key_event.code {
-            KeyCode::Char(' ') => {
-                if let Some(idx) = self.state.settings_selected {
-                    self.state.toggle_settings_off(idx);
-                } else {
-                    self.state.show_notification(
-                        "No setting selected".to_string(),
-                        crate::state::NotificationType::Info,
-                    );
-                }
+        let expanded = self.state.settings_expanded;
+
+        match (expanded, key_event.code) {
+            (false, KeyCode::Enter) => {
+                self.state.settings_expanded = true;
+                self.state.settings_option_selected = 0;
                 None
             }
-            KeyCode::Enter => {
+            (false, KeyCode::Char(' ') | KeyCode::Char('t')) => {
                 if let Some(idx) = self.state.settings_selected {
                     self.state.toggle_settings(idx);
-                } else {
-                    self.state.show_notification(
-                        "No setting selected".to_string(),
-                        crate::state::NotificationType::Info,
-                    );
                 }
                 None
             }
-            KeyCode::Char('c') => {
+            (false, KeyCode::Char('c')) => {
                 self.handle_connect();
                 None
             }
-            KeyCode::Char('j') | KeyCode::Down => {
+            (false, KeyCode::Char('j') | KeyCode::Down) => {
                 self.handle_navigation_down();
                 None
             }
-            KeyCode::Char('k') | KeyCode::Up => {
+            (false, KeyCode::Char('k') | KeyCode::Up) => {
                 self.handle_navigation_up();
                 None
             }
-            KeyCode::Char('d') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+            (false, KeyCode::Char('d')) if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.handle_page_down();
                 None
             }
-            KeyCode::Char('g') => {
+            (false, KeyCode::Char('g')) => {
                 self.handle_go_to_first();
                 None
             }
-            KeyCode::Char('G') => {
+            (false, KeyCode::Char('G')) => {
                 self.handle_go_to_last();
                 None
             }
-            KeyCode::Char('u') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+            (false, KeyCode::Char('u')) if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.handle_page_up();
                 None
             }
+
+            (true, KeyCode::Enter) => {
+                if let Some(idx) = self.state.settings_selected {
+                    let key = match SettingKey::from_index(idx) {
+                        Some(k) => k,
+                        None => {
+                            self.state.settings_expanded = false;
+                            return None;
+                        }
+                    };
+
+                    if key == SettingKey::Dns {
+                        self.state.settings_expanded = false;
+                        self.state.input_mode = InputMode::DnsInput;
+                        self.state.dns_input = String::new();
+                        self.state.show_notification(
+                            "Enter DNS IPs (e.g., 1.1.1.1,9.9.9.9)".to_string(),
+                            crate::state::NotificationType::Info,
+                        );
+                        return None;
+                    }
+
+                    if key == SettingKey::Theme {
+                        self.state.settings_expanded = false;
+                        self.state.is_dark_theme = !self.state.is_dark_theme;
+                        self.state.show_notification(
+                            format!(
+                                "Theme changed to {}",
+                                if self.state.is_dark_theme {
+                                    "Dark"
+                                } else {
+                                    "Light"
+                                }
+                            ),
+                            crate::state::NotificationType::Info,
+                        );
+                        return None;
+                    }
+
+                    let option_idx = self.state.settings_option_selected;
+                    if let Some((config_key, value)) = key.get_option_command(option_idx) {
+                        let result = self.state.vpn_state.config_set(&config_key, &value);
+                        match result {
+                            Ok(msg) => {
+                                self.state.show_notification(
+                                    format!("Setting updated: {}", msg),
+                                    crate::state::NotificationType::Success,
+                                );
+                                self.state.clear_settings_cache();
+                            }
+                            Err(e) => {
+                                self.state.show_notification(
+                                    format!("Failed to update setting: {}", e),
+                                    crate::state::NotificationType::Error,
+                                );
+                            }
+                        }
+                    }
+                }
+                self.state.settings_expanded = false;
+                None
+            }
+            (true, KeyCode::Esc) => {
+                self.state.settings_expanded = false;
+                None
+            }
+            (true, KeyCode::Char('j') | KeyCode::Down) => {
+                if let Some(idx) = self.state.settings_selected {
+                    if let Some(key) = SettingKey::from_index(idx) {
+                        let opt_count = key.option_count();
+                        self.state.settings_option_selected =
+                            (self.state.settings_option_selected + 1).min(opt_count - 1);
+                    }
+                }
+                None
+            }
+            (true, KeyCode::Char('k') | KeyCode::Up) => {
+                self.state.settings_option_selected =
+                    self.state.settings_option_selected.saturating_sub(1);
+                None
+            }
+
             _ => None,
         }
     }

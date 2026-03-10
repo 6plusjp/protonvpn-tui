@@ -35,6 +35,50 @@ impl SettingKey {
     pub fn index(&self) -> usize {
         Self::ALL.iter().position(|k| k == self).unwrap_or(0)
     }
+
+    // Return all possible option strings for this setting.
+    pub fn options(&self) -> Vec<&'static str> {
+        match self {
+            SettingKey::Killswitch => vec!["off", "on", "unknown"],
+            SettingKey::Ipv6 => vec!["disabled", "enabled", "unknown"],
+            SettingKey::Dns => vec!["default", "custom", "unknown"],
+            SettingKey::NetShield => vec!["off", "malware-only", "malware-ads-trackers", "unknown"],
+            SettingKey::ModerateNat => vec!["off", "on", "unknown"],
+            SettingKey::VpnAccelerator => vec!["off", "on", "unknown"],
+            SettingKey::PortForwarding => vec!["off", "on", "unknown"],
+            SettingKey::Theme => vec!["Dark", "Light"],
+        }
+    }
+
+    // Convenience: number of options for this key
+    pub fn option_count(&self) -> usize {
+        self.options().len()
+    }
+
+    // Given an option index, return the (config_key, value) pair to apply
+    // or None if the index is out of range.
+    pub fn get_option_command(&self, option_index: usize) -> Option<(String, String)> {
+        let opts = self.options();
+        if option_index >= opts.len() {
+            return None;
+        }
+        let value = opts[option_index];
+        Some((self.config_key().to_string(), value.to_string()))
+    }
+
+    // The CLI config key name corresponding to this setting.
+    pub fn config_key(&self) -> &'static str {
+        match self {
+            SettingKey::Killswitch => "killswitch",
+            SettingKey::Ipv6 => "ipv6",
+            SettingKey::Dns => "dns",
+            SettingKey::NetShield => "net_shield",
+            SettingKey::ModerateNat => "moderate_nat",
+            SettingKey::VpnAccelerator => "vpn_accelerator",
+            SettingKey::PortForwarding => "port_forwarding",
+            SettingKey::Theme => "theme",
+        }
+    }
 }
 
 /// Proton VPN settings (from ~/.config/Proton/VPN/settings.json)

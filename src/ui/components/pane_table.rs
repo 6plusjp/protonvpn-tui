@@ -142,7 +142,11 @@ impl PaneTable {
             .map(|(i, col)| {
                 if col.width == 0 {
                     let w = dynamic_widths.get(i).copied().unwrap_or(10);
-                    Constraint::Min(w as u16)
+                    if i == self.columns.len() - 1 {
+                        Constraint::Fill(1)
+                    } else {
+                        Constraint::Length(w as u16)
+                    }
                 } else {
                     Constraint::Length(col.width)
                 }

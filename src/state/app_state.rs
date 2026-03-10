@@ -456,11 +456,13 @@ impl AppState {
         for (country_code, result) in results_to_process {
             match result {
                 Ok(cities) => {
+                    let city_count = cities.len();
                     if self.current_country_code.as_deref() == Some(&country_code) {
-                        self.current_cities = cities.clone();
+                        self.current_cities.clear();
+                        self.current_cities = cities;
                     }
                     self.show_notification(
-                        format!("Loaded {} cities for {}", cities.len(), country_code),
+                        format!("Loaded {} cities for {}", city_count, country_code),
                         NotificationType::Success,
                     );
                     notification_shown = true;
@@ -631,9 +633,11 @@ impl AppState {
     pub fn fetch_cities(&mut self, country_code: &str) {
         let country_code = country_code.to_string();
 
+        self.current_cities.clear();
+        self.current_country_code = Some(country_code.clone());
+
         if let Ok(cities) = self.vpn_state.list_cities_with_features(&country_code) {
-            self.current_cities = cities.clone();
-            self.current_country_code = Some(country_code.clone());
+            self.current_cities = cities;
         }
 
         self.invalidate_filtered_cache();
@@ -650,6 +654,7 @@ impl AppState {
     }
 
     pub fn set_cities(&mut self, cities: Vec<crate::vpn::City>, country_code: String) {
+        self.current_cities.clear();
         self.current_cities = cities;
         self.current_country_code = Some(country_code);
     }

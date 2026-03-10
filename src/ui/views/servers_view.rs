@@ -64,7 +64,11 @@ fn render_countries_pane(
         .max()
         .unwrap_or(1);
 
-    let dynamic_widths = [4, max_country_len.max(8) + 2, max_cities_len.max(8) + 2];
+    let dynamic_widths = [
+        4,
+        max_country_len.max(8).min(15) + 2,
+        max_cities_len.max(8).min(30) + 2,
+    ];
 
     let header_row = countries_table.header_row(&dynamic_widths);
     let widths = countries_table.column_widths(&dynamic_widths);
@@ -195,7 +199,7 @@ fn render_cities_pane(
         .max()
         .unwrap_or(0)
         .max(10);
-    let dynamic_widths = [max_city_len + 2, max_features_len + 2];
+    let dynamic_widths = [max_city_len + 2, max_features_len.min(30) + 2];
 
     let header_row = cities_table.header_row(&dynamic_widths);
     let widths = cities_table.column_widths(&dynamic_widths);

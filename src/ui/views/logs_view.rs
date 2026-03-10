@@ -18,8 +18,22 @@ pub fn render_logs_view(
     let theme = state.get_theme();
     let block = centered_block("Logs", &theme);
 
-    let items: Vec<ListItem> = state
-        .notification_log
+    let logs = &state.notification_log;
+    if logs.is_empty() {
+        let empty_list = List::new(vec![ListItem::new("No logs yet")])
+            .block(block)
+            .style(Style::default().fg(theme.secondary));
+        f.render_widget(empty_list, area);
+        return;
+    }
+
+    let max_time_len = logs
+        .iter()
+        .map(|n| format_relative_time(n.timestamp).len())
+        .max()
+        .unwrap_or(6);
+
+    let items: Vec<ListItem> = logs
         .iter()
         .rev()
         .enumerate()
@@ -33,9 +47,10 @@ pub fn render_logs_view(
             };
             let relative_time = format_relative_time(n.timestamp);
             let prefix_str = if is_selected { "> " } else { "  " };
+            let time_str = format!("{:<width$}", relative_time, width = max_time_len);
             let line = Line::from(vec![
                 Span::raw(prefix_str),
-                Span::raw(format!("{:<6}", relative_time)),
+                Span::raw(time_str),
                 Span::styled(prefix, Style::default().fg(color)),
                 Span::raw(&n.message),
             ]);
@@ -47,14 +62,6 @@ pub fn render_logs_view(
             }
         })
         .collect();
-
-    if items.is_empty() {
-        let empty_list = List::new(vec![ListItem::new("No logs yet")])
-            .block(block)
-            .style(Style::default().fg(theme.secondary));
-        f.render_widget(empty_list, area);
-        return;
-    }
 
     let selected = state
         .logs_selected

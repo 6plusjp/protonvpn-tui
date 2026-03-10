@@ -1,5 +1,7 @@
 use crate::state::{ConnectionState, Pane};
-use crate::ui::components::{centered_block, connected_list_item, styled_list_item};
+use crate::ui::components::{
+    centered_block, connected_list_item, styled_list_item, CitiesTable, CountriesTable,
+};
 use crate::ui::styles::Theme;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -36,12 +38,9 @@ fn render_countries_pane(
     area: Rect,
     theme: &Theme,
 ) {
-    let title = if state.pane_focus == Pane::Countries {
-        "> Countries"
-    } else {
-        "  Countries"
-    };
-    let block = centered_block(title, theme);
+    let countries_table = CountriesTable::table();
+    let title = countries_table.title_with_indicator(state.pane_focus == Pane::Countries);
+    let block = centered_block(&title, theme);
 
     let servers = state.filtered_servers();
 
@@ -62,7 +61,19 @@ fn render_countries_pane(
         .max()
         .unwrap_or(0)
         .max(8);
-    let country_width = max_country_len + 2;
+    let max_cities_len = servers
+        .iter()
+        .map(|s| {
+            if s.cities.is_empty() {
+                1
+            } else {
+                s.cities.iter().map(|c| c.name.len()).sum::<usize>() + s.cities.len() * 2
+            }
+        })
+        .max()
+        .unwrap_or(1);
+
+    let dynamic_widths = [4, max_country_len + 2, max_cities_len + 2];
 
     let items: Vec<ListItem> = servers
         .iter()
@@ -88,12 +99,9 @@ fn render_countries_pane(
                     .collect::<Vec<_>>()
                     .join(", ")
             };
-            let row = format!(
-                "{:<4} {:<width$} {}",
-                server.id,
-                server.country,
-                cities_str,
-                width = country_width
+            let row = countries_table.format_row_with_widths(
+                &[&server.id, &server.country, &cities_str],
+                &dynamic_widths,
             );
 
             if is_selected {
@@ -120,6 +128,9 @@ fn render_cities_pane(
     area: Rect,
     theme: &Theme,
 ) {
+    let cities_table = CitiesTable::table();
+    let is_focused = state.pane_focus == Pane::Cities;
+
     let is_loading = state
         .pending_cities
         .contains_key(state.current_country_code.as_deref().unwrap_or(""));
@@ -129,34 +140,20 @@ fn render_cities_pane(
         state.current_cities.is_empty(),
         is_loading,
     ) {
-        (None, _, _) => {
-            if state.pane_focus == Pane::Cities {
-                "> Select country".to_string()
-            } else {
-                "  Select country".to_string()
-            }
+        (None, _, _) => cities_table.title_with_indicator(is_focused),
+        (Some(_), _, true) => {
+            format!(
+                "{} - Loading...",
+                cities_table.title_with_indicator(is_focused)
+            )
         }
-        (Some(code), _, true) => {
-            if state.pane_focus == Pane::Cities {
-                format!("> {} - Loading...", code)
-            } else {
-                format!("  {} - Loading...", code)
-            }
+        (Some(_), true, false) => {
+            format!(
+                "{} - No cities",
+                cities_table.title_with_indicator(is_focused)
+            )
         }
-        (Some(code), true, false) => {
-            if state.pane_focus == Pane::Cities {
-                format!("> {} - No cities", code)
-            } else {
-                format!("  {} - No cities", code)
-            }
-        }
-        (Some(code), false, false) => {
-            if state.pane_focus == Pane::Cities {
-                format!("> {} - Cities", code)
-            } else {
-                format!("  {} - Cities", code)
-            }
-        }
+        (Some(_), false, false) => cities_table.title_with_indicator(is_focused),
     };
     let block = centered_block(&title, theme);
 
@@ -184,6 +181,27 @@ fn render_cities_pane(
 
     let is_focused = state.pane_focus == Pane::Cities;
 
+    let max_city_len = state
+        .current_cities
+        .iter()
+        .map(|c| c.name.len())
+        .max()
+        .unwrap_or(0)
+        .max(8);
+    let max_features_len = state
+        .current_cities
+        .iter()
+        .map(|c| {
+            if c.features.is_empty() {
+                0
+            } else {
+                c.features.join(", ").len()
+            }
+        })
+        .max()
+        .unwrap_or(0);
+    let dynamic_widths = [max_city_len + 2, max_features_len + 2];
+
     let selected = if cities.is_empty() {
         None
     } else {
@@ -199,9 +217,9 @@ fn render_cities_pane(
             let is_selected = state.selected_city == Some(idx);
 
             let row = if features.is_empty() {
-                city_name.clone()
+                cities_table.format_row_with_widths(&[city_name], &[dynamic_widths[0], 0])
             } else {
-                format!("{:<15} {}", city_name, features)
+                cities_table.format_row_with_widths(&[city_name, features], &dynamic_widths)
             };
 
             styled_list_item(&row, is_selected, is_focused, theme)

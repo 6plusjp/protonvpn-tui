@@ -12,7 +12,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, ListState, Paragraph},
+    widgets::{Block, Borders, Clear, ListState, Paragraph, TableState},
     Frame, Terminal,
 };
 use std::io;
@@ -20,8 +20,8 @@ use std::panic;
 
 pub struct TuiApp {
     state: AppState,
-    countries_list_state: ListState,
-    cities_list_state: ListState,
+    countries_list_state: TableState,
+    cities_list_state: TableState,
     logs_list_state: ListState,
     pending_g: bool,
     filter_mode: bool,
@@ -41,8 +41,8 @@ impl TuiApp {
 
         Ok(Self {
             state,
-            countries_list_state: ListState::default(),
-            cities_list_state: ListState::default(),
+            countries_list_state: TableState::default(),
+            cities_list_state: TableState::default(),
             logs_list_state: ListState::default(),
             pending_g: false,
             filter_mode: false,

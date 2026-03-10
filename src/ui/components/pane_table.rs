@@ -1,3 +1,7 @@
+use ratatui::layout::Constraint;
+use ratatui::style::{Style, Stylize};
+use ratatui::widgets::Row;
+
 #[derive(Clone, Copy)]
 pub enum ColumnAlign {
     Left,
@@ -129,6 +133,56 @@ impl PaneTable {
         let dynamic_widths: Vec<usize> = values.iter().map(|v| v.len()).collect();
         self.format_row_with_widths(values, &dynamic_widths)
     }
+
+    /// Returns Constraints for ratatui Table column widths
+    pub fn column_widths(&self, dynamic_widths: &[usize]) -> Vec<Constraint> {
+        self.columns
+            .iter()
+            .enumerate()
+            .map(|(i, col)| {
+                if col.width == 0 {
+                    let w = dynamic_widths.get(i).copied().unwrap_or(10);
+                    Constraint::Min(w as u16)
+                } else {
+                    Constraint::Length(col.width)
+                }
+            })
+            .collect()
+    }
+
+    /// Returns a Row for ratatui Table header
+    pub fn header_row(&self, dynamic_widths: &[usize]) -> Row<'static> {
+        let cells: Vec<ratatui::widgets::Cell> = self
+            .columns
+            .iter()
+            .enumerate()
+            .map(|(i, col)| {
+                let content = col.name;
+                let width = if col.width == 0 {
+                    *dynamic_widths.get(i).unwrap_or(&content.len())
+                } else {
+                    col.width as usize
+                };
+                let text = match col.align {
+                    ColumnAlign::Left => format!("{:<width$}", content, width = width),
+                    ColumnAlign::Center => {
+                        let len = content.len();
+                        if len >= width {
+                            content.to_string()
+                        } else {
+                            let pad = (width - len) / 2;
+                            format!("{}{:width$}", " ".repeat(pad), content, width = width)
+                        }
+                    }
+                    ColumnAlign::Right => {
+                        format!("{:>width$}", content, width = width)
+                    }
+                };
+                ratatui::widgets::Cell::from(text).style(Style::new().bold())
+            })
+            .collect();
+        Row::new(cells).height(1)
+    }
 }
 
 pub struct CountriesTable;
@@ -148,6 +202,6 @@ pub struct CitiesTable;
 impl CitiesTable {
     pub fn table() -> PaneTable {
         PaneTable::new("Cities")
-            .with_columns(vec![Column::left("City", 15), Column::left("Server", 0)])
+            .with_columns(vec![Column::left("City", 15), Column::left("Features", 0)])
     }
 }

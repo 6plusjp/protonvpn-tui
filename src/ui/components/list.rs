@@ -27,7 +27,7 @@ pub fn styled_list_item(
 
     let text_owned = text.to_string();
     ListItem::new(Line::from(vec![
-        Span::raw(prefix),
+        Span::styled(prefix, style),
         Span::styled(text_owned, style),
     ]))
 }

@@ -1,253 +1,285 @@
-# issue026: Countries pane spinner visibility issue
-
-## Status: ✅ FIXED (2026-03-08)
+# issue026: Feature - Pane Entity for Table Headers ✅ IMPLEMENTED
 
 ## Summary
 
-The loading spinner (`◐`) in the countries pane only displays when a country is explicitly selected (via Enter/l key), but it should also display when navigating with cursor keys (j/k) without pressing Enter/l.
+Create unified `PaneTable` entities for the two panes in Servers view, then apply the pattern to all other table-based views.
+
+## Status: DONE ✅
+
+Implemented:
+- `ColumnAlign`, `Column`, `PaneTable` structs in `src/ui/components/pane_table.rs`
+- `CountriesTable::table()`, `CitiesTable::table()` helpers
+- `format_row_with_widths()` for dynamic column alignment
+- Used in `servers_view.rs`
+- **Table widget migration**: Changed from List to Table for fixed header support
+- `header_row()` and `column_widths()` methods for Table widget integration
 
 ## Problem
 
-According to issue024 specification, when the user moves the cursor to a new country using j/k keys:
-1. The cities should be fetched automatically
-2. A spinner should be displayed in the countries pane to indicate loading
+Currently, table headers are handled inconsistently across different views. Each view may have its own way of defining and rendering column headers, making it difficult to:
 
-However, the spinner only appears when the country is "selected" (i.e., after pressing Enter/l), not when simply moving the cursor.
-
-## Expected Behavior
-
-```
-┌─────────────────────────────────────────────────┐
-│ Countries         │ Cities                     │
-├────────────────────┼───────────────────────────┤
-│   Japan           │                            │  ← Cursor on Japan, loading
-│ ◐ United States   │                            │  ← Spinner should show!
-│   Germany         │                            │
-└────────────────────┴───────────────────────────┘
-```
-
-The spinner should appear for ANY country that is currently loading cities, regardless of whether it is selected.
+- Maintain consistent header styling
+- Reuse header logic across views
+- Easily add/remove columns
 
 ---
 
-## Deep Code Analysis
+## Servers View - Two Panes
 
-### Render Logic (servers_view.rs:77-94)
+The Servers view has a horizontal split with 2 panes:
 
-```rust
-let is_loading_this = state
-    .pending_cities_country
-    .as_deref()
-    .map(|c| c == &server.id)
-    .unwrap_or(false);
+### 1. Countries Pane (Left - 60%)
 
-let cities_str = if is_loading_this {
-    "◐".to_string()
-} else if server.cities.is_empty() {
-    "-".to_string()
-} else {
-    server.cities.iter().map(|c| c.name.clone()).collect::<Vec<_>>().join(", ")
-};
+**Current display:**
+
+```
+ID   Country      Cities
+JPN  Japan        Tokyo, Osaka, Kyoto
+USA  United States New York, Los Angeles, San Francisco
+...
 ```
 
-**Key observation**: The spinner logic (`is_loading_this`) is INDEPENDENT of `is_selected`. It only checks if `pending_cities_country == server.id`.
+**Proposed Table Entity:**
 
-### j/k Navigation Flow (app_state.rs:804-839)
-
-1. User presses j/k → `handle_navigation_down/up()` → `select_next/prev()`
-2. `select_next()` → updates `selected_server` → calls `switch_cities_to_selected()`
-3. `switch_cities_to_selected()`:
-   ```rust
-   if self.current_country_code.as_deref() != Some(country_code) {
-       self.current_cities.clear();
-       self.current_country_code = Some(country_code.clone());
-       if let Some(cities) = self.vpn_state.get_cached_cities(country_code) {
-           self.current_cities = cities;
-       } else {
-           self.load_cities_async(country_code);  // Sets pending_cities_country
-       }
-   }
-   ```
-
-4. `load_cities_async()` (app_state.rs:841-855):
-   ```rust
-   fn load_cities_async(&mut self, country_code: &str) {
-       let country_code = country_code.to_string();
-       self.pending_cities_country = Some(country_code.clone());
-       // ... spawn async task
-   }
-   ```
-
-### Server Cities Population (client.rs:546-563)
-
-When servers are loaded, each `Server` gets cities from cache:
 ```rust
-fn countries_to_servers(&self, countries: &HashMap<String, String>) -> Vec<Server> {
-    let cities_map = /* get from cache */;
-    servers.iter().map(|(code, name)| Server {
-        id: code.clone(),
-        country: name.clone(),
-        cities: cities_map.get(code).cloned().unwrap_or_default(),  // May be empty!
-    }).collect()
+struct CountriesTable {
+    title: "Countries",
+    columns: [
+        Column { name: "ID", width: 4, align: Left },
+        Column { name: "Country", width: dynamic, align: Left },
+        Column { name: "Cities", width: dynamic, align: Left },
+    ],
 }
 ```
 
-**Critical**: `server.cities` is populated from cache. If never loaded, it's empty (`Vec::default()`).
+### 2. Cities Pane (Right - 40%)
 
----
+**Current display:**
 
-## CONFIRMED Root Causes (2026-03-08)
-
-> **UPDATE (2026-03-08)**: After discussion with user, Bug #1 is NOT a bug - it's expected behavior.
-
-### Bug #1: j/k to Cached Country - No Spinner At All
-**Status**: ❌ NOT A BUG - This is expected behavior.
-
-**Reason**: If cities are already cached, no loading is needed when cursor moves. The spinner should NOT appear.
-
-**Confirmed**: 
-- `Enter/l` key → `move_to_cities()` → `fetch_cities()` → always reloads and shows spinner ✅
-- `j/k` cursor → cached: no spinner needed (correct)
-
-### Bug #2: Spinner disappears when cursor moves away from loading country
-
-**Root Cause**: `pending_cities_country` only stores ONE country at a time.
-
-When user navigates from Country A (loading) to Country B:
-1. `switch_cities_to_selected()` is called for Country B
-2. `pending_cities_country` is updated to Country B
-3. Country A's spinner condition (`pending_cities_country == "A"`) becomes false
-4. Spinner disappears immediately, even though Country A is still loading
-
-**Timeline**:
-1. j → Country A (uncached) → `pending_cities_country = "A"` → spinner shows ✅
-2. j → Country B → `pending_cities_country = "B"` → Country A spinner disappears ❌
-3. Country B's async may start, spinner for B may show
-
-**Debug Evidence** (from user log):
 ```
-Loading cities for AR...  → OK: Loaded 1 cities ✅
-Loading cities for AU...  → OK: Loaded 5 cities ✅
-Loading cities for BT...  (started)
-Loading cities for BY...  (started)
+Tokyo             TOR, Standard
+Osaka             #105, Secure Core
 ...
-Loaded 1 cities           ← Only 1 success notification!
 ```
 
-Multiple async tasks are spawned, but only the latest one's result is processed. Previous loading countries lose their spinner when cursor moves.
+**Proposed Table Entity:**
 
----
-
-## Possible Root Causes (DEPRECATED - See Above)
-
-> The following hypotheses have been confirmed or refuted. See "CONFIRMED Root Causes" above.
-
-### Hypothesis 1: Code is Correct - User Perception Issue
-**Status**: ❌ REFUTED - There are actual bugs.
-
-### Hypothesis 2: Cache State Affects Behavior
-**Status**: ✅ CONFIRMED - This is Bug #1.
-
-### Hypothesis 3: Initial Load Timing
-**Status**: ✅ CONFIRMED - Related to Bug #1.
-
-### Hypothesis 4: Missing Call to switch_cities_to_selected
-**Status**: ❌ REFUTED - Function is called correctly.
-
----
-
-## Summary Table
-
-| Scenario | Cache Status | Spinner While Cursor On | Spinner When Cursor Moves Away | Issue? |
-|----------|--------------|------------------------|-------------------------------|--------|
-| j/k to cached country | Cached | No (expected) | N/A | ❌ |
-| j/k to uncached country | Not Cached | Yes ✅ | **No - disappears** ❌ | ✅ #2 |
-| Enter/l select | Any | Yes | Yes (stays until loaded) | ❌ |
-
-**Actual Issue**: When cursor moves away from a loading country, the spinner disappears because `pending_cities_country` only holds one country.
-
----
-
-## Fix Suggestions
-
-### Fix for Bug #2 (Spinner disappears when cursor moves away)
-
-The spinner shows correctly while cursor is on a loading country. The issue is that when cursor moves to another country, the previous country's spinner disappears.
-
-**Root Cause**: `pending_cities_country` is a single `Option<String>`, only tracking one country.
-
-**Suggested Fixes**:
-1. **Track multiple loading countries**: Change `pending_cities_country` to `Option<HashSet<String>>` to track all countries currently loading
-2. **Or track pending countries separately**: Add a new field to track which countries have pending loads, independent of current selection
-3. **Or simplify (if acceptable)**: Accept that spinner only shows for current cursor position - this is actually consistent with showing spinner only for selected country
-
----
-
-## Files Involved
-
-| File | Function | Purpose |
-|------|----------|---------|
-| `src/state/app_state.rs` | `select_next()` (804) | Cursor down - calls switch_cities_to_selected |
-| `src/state/app_state.rs` | `select_prev()` (813) | Cursor up - calls switch_cities_to_selected |
-| `src/state/app_state.rs` | `switch_cities_to_selected()` (822) | Checks cache, calls load_cities_async |
-| `src/state/app_state.rs` | `load_cities_async()` (841) | Sets pending_cities_country |
-| `src/ui/views/servers_view.rs` | `render_countries_pane()` (32) | Renders spinner based on pending_cities_country |
-| `src/vpn/client.rs` | `countries_to_servers()` (546) | Populates server.cities from cache |
-
----
-
-## Debug Evidence (2026-03-08)
-
-User provided debug log showing race condition:
-
-```
-│1m ago    [INFO] Refreshing servers...                                                                                                                                                                                                                                    │
-│1m ago    [OK]   Refreshed 129 servers                                                                                                                                                                                                                                    │
-│1m ago    [INFO] Loading cities for AR...                                                                                                                                                                                                                                 │
-│1m ago    [OK]   Loaded 1 cities                                                                                                                                                                                                                                          │
-│just now  [INFO] Loading cities for AU...                                                                                                                                                                                                                                 │
-│just now  [OK]   Loaded 5 cities                                                                                                                                                                                                                                          │
-│just now  [INFO] Loading cities for BT...                                                                                                                                                                                                                                 │
-│just now  [INFO] Loading cities for BY...                                                                                                                                                                                                                                 │
-│just now  [INFO] Loading cities for CA...                                                                                                                                                                                                                                 │
-│just now  [INFO] Loading cities for CH...                                                                                                                                                                                                                                 │
-│just now  [INFO] Loading cities for CI...                                                                                                                                                                                                                                 │
-│just now  [OK]   Loaded 1 cities                                                                                                                                                                                                                                            │
+```rust
+struct CitiesTable {
+    title: "{Country Code} - Cities",
+    columns: [
+        Column { name: "City", width: 15, align: Left },
+        Column { name: "Server", width: dynamic, align: Left },
+    ],
+}
 ```
 
-**Observation**: Only ONE "OK" (success) notification for multiple "Loading" events. This confirms:
-1. Multiple async tasks are spawned (expected)
-2. Most complete but are discarded (race condition)
-3. Only the last one's result is processed
+---
+
+## Scope
+
+### Phase 1: Servers View (This Issue)
+
+- [ ] Create `CountriesTable` entity
+- [ ] Create `CitiesTable` entity
+- [ ] Implement header rendering with column definitions
+
+### Phase 2: Other Views (Future Issues)
+
+- Stats view table
+- Logs view table
+- Settings view (if applicable)
+
+---
+
+## Data Structure (Refined)
+
+```rust
+use ratatui::style::Style;
+
+/// Column alignment
+#[derive(Clone, Copy)]
+pub enum ColumnAlign {
+    Left,
+    Center,
+    Right,
+}
+
+/// Column definition
+pub struct Column {
+    pub name: &'static str,
+    pub width: u16,
+    pub align: ColumnAlign,
+}
+
+/// Table pane with header
+pub struct PaneTable {
+    pub title: String,
+    pub columns: Vec<Column>,
+    pub header_style: Style,
+    pub row_style: Style,
+}
+
+impl PaneTable {
+    /// Render header row
+    pub fn header(&self) -> String { ... }
+}
+```
 
 ---
 
 ## Acceptance Criteria
 
-- [x] Spinner appears in countries pane when cursor is on a loading country (j/k for uncached countries)
-- [x] Spinner appears for Enter/l selection (always)
-- [x] Spinner clears when cities are loaded
-- [x] **Spinner remains visible even after cursor moves away** - should track all loading countries, not just current
+### Servers View
+
+- [x] `CountriesTable` struct defined with ID, Country, Cities columns
+- [x] `CitiesTable` struct defined with City, Features columns  
+- [x] Headers render correctly with proper alignment (via block title)
+- [x] Column widths are configurable
+- [x] Focused pane indicator works (">" prefix)
+- [x] **Table widget (ratatui)** - ✅ IMPLEMENTED using Table with header()
+- [x] **Fixed Header in List** - Not needed - Table has built-in header
+
+### Fixed Header Implementation (ratatui)
+
+ratatuiのWidget別の固定ヘッダー対応:
+
+| Widget | 組み込み固定ヘッダー | 実装方法 |
+|--------|---------------------|----------|
+| **Table** | ✅ あり | `.header(Row::new(...))` |
+| **List** | ❌ なし | `Layout::vertical` で領域分割 |
+
+#### Table の場合（推奨）
+
+```rust
+use ratatui::widgets::{Table, Row, Cell, Block};
+
+let table = Table::new(rows, widths)
+    .header(
+        Row::new(vec!["ID", "Country", "Cities"])
+            .style(Style::new().bold())
+            .bottom_margin(1),  // ヘッダーとデータの間の余白
+    )
+    .block(Block::new().title("Countries"));
+```
+
+#### List の場合（手動レイアウト分割が必要）
+
+```rust
+use ratatui::{
+    layout::{Constraint, Layout},
+    widgets::{Block, List, Paragraph},
+};
+
+// 領域を分割: ヘッダー(固定) + リスト(残り)
+let [header_area, list_area] = Layout::vertical([
+    Constraint::Length(1),  // ヘッダー: 1行
+    Constraint::Fill(1),   // リスト: 残り全部
+])
+.areas(area);
+
+// ヘッダーを先にレンダリング（スクロール해도 固定）
+let header = Paragraph::new("ID   Country      Cities")
+    .block(Block::bordered().title("Countries"));
+frame.render_widget(header, header_area);
+
+// リストはヘッダーの下の領域に表示
+let list = List::new(items).block(block);
+frame.render_stateful_widget(list, list_area, list_state);
+```
+
+**参考:**
+- [ratatui Table docs](https://docs.rs/ratatui/latest/ratatui/widgets/struct.Table.html#method.header)
+- [GitHub Discussion #1924](https://github.com/ratatui/ratatui/discussions/1924)
+
+### General
+
+- [ ] Pattern can be reused in Stats, Logs views
+- [ ] Consistent styling across all table headers
+- [ ] Easy to add new columns without changing multiple files
 
 ---
 
-## Fix Implemented (2026-03-08)
+## Vision - Before & After Example
 
-### Changes Made
+### Current (Before)
 
-1. **`pending_cities`**: Changed from `Option<CitiesReceiver>` to `HashMap<String, CitiesReceiver>` to handle multiple async tasks simultaneously
+```
+┌─────────────────────────────────────────────┬────────────────────────────┐
+│ > Countries                                 │   Cities                   │
+├─────────────────────────────────────────────┼────────────────────────────┤
+│ JP  Japan          Tokyo, Osaka, Kyoto      │   (no country selected)    │
+│ US  United States  New York, Los Angeles    │                            │
+│ DE  Germany        Frankfurt, Berlin        │                            │
+│ GB  United Kingdom London, Manchester       │                            │
+└─────────────────────────────────────────────┴────────────────────────────┘
+```
 
-2. **`pending_cities_country`** (removed): No longer needed - `pending_cities` keys now track loading countries
+**Problems:**
 
-3. **`sync_connection_state()`**: Updated to process all pending results at once, removing completed countries from the HashMap
+- Column headers are hardcoded in rendering logic
+- Can't easily change column order or add new columns
+- No consistent styling API
+- Width calculations are inline and duplicated
 
-4. **`load_cities_async()` and `fetch_cities()`**: Updated to insert receivers into HashMap
+### After (With PaneTable Entity)
 
-5. **Render logic**: Updated to check `pending_cities.contains_key(&server.id)` instead of `pending_cities_country`
+```
+┌─────────────────────────────────────────────┼────────────────────────────┐
+│ > Countries                          [▼]    │  Cities              [▼]   │
+├─────────────────────────────────────────────┼────────────────────────────┤
+│ ID   Country      Cities                    │  City       Features       │
+├─────────────────────────────────────────────┼────────────────────────────┤
+│ JP   Japan        Tokyo, Osaka, Kyoto       │  Tokyo      TOR, Standard  │
+│ US   United States New York, Los Angeles    │  Osaka      P2P, Secure    │
+│ DE   Germany      Frankfurt, Berlin         │                            │
+└─────────────────────────────────────────────┴────────────────────────────┘
+```
 
-### How It Works Now
+**Benefits:**
 
-- When user j/k navigates to uncached countries, each country's async task is tracked in the HashMap
-- Spinner remains visible for all loading countries (keys in `pending_cities`)
-- When async completes, the country is removed from HashMap and spinner disappears
-- Multiple async tasks can complete and all are processed correctly
+- Headers defined as data (`PaneTable` struct)
+- Easy to add/remove columns
+- Consistent styling across all panes
+- Reusable in Stats, Logs, Settings views
+- Column widths are configurable and consistent
+
+---
+
+## Future Expansion - Other Views
+
+Once `PaneTable` is established, applying to other views becomes trivial:
+
+### Stats View Example
+
+```rust
+struct StatsTable {
+    title: "Connection Statistics",
+    columns: [
+        Column { name: "Metric", width: 15, align: Left },
+        Column { name: "Value", width: 20, align: Left },
+        Column { name: "Status", width: 10, align: Center },
+    ],
+}
+```
+
+### Logs View Example
+
+```rust
+struct LogsTable {
+    title: "Logs",
+    columns: [
+        Column { name: "Time", width: 8, align: Left },
+        Column { name: "Event", width: 20, align: Left },
+        Column { name: "Details", width: dynamic, align: Left },
+    ],
+}
+```
+
+---
+
+## Notes
+
+- Related to: issue022 (Logs view)
+- The `Pane` enum already exists in `src/state/app_view.rs`
+- Consider integration with existing styling system (`Theme`)

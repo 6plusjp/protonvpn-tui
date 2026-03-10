@@ -27,6 +27,7 @@ pub struct TuiApp {
     pending_g: bool,
     filter_mode: bool,
     filter_input: String,
+    last_render_hash: u64,
 }
 
 impl TuiApp {
@@ -48,6 +49,7 @@ impl TuiApp {
             pending_g: false,
             filter_mode: false,
             filter_input: String::new(),
+            last_render_hash: 0,
         })
     }
 
@@ -67,7 +69,14 @@ impl TuiApp {
         let mut terminal = Terminal::new(backend)?;
 
         loop {
-            terminal.draw(|f| self.render(f))?;
+            // Compute state hash to detect changes
+            let current_hash = self.compute_render_hash();
+
+            // Only redraw if state changed
+            if current_hash != self.last_render_hash {
+                terminal.draw(|f| self.render(f))?;
+                self.last_render_hash = current_hash;
+            }
 
             // Sync connection state (checks for background connection completion)
             let _notification_shown = self.state.sync_connection_state();
@@ -100,6 +109,29 @@ impl TuiApp {
         execute!(io::stdout(), LeaveAlternateScreen)?;
         disable_raw_mode()?;
         Ok(())
+    }
+
+    fn compute_render_hash(&self) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut hasher = DefaultHasher::new();
+
+        // Hash key state fields that affect rendering
+        format!("{:?}", self.state.connection).hash(&mut hasher);
+        self.state.current_view.hash(&mut hasher);
+        self.state.search_query.hash(&mut hasher);
+        self.state.selected_server.hash(&mut hasher);
+        self.state.selected_city.hash(&mut hasher);
+        self.state.pane_focus.hash(&mut hasher);
+        self.state.is_dark_theme.hash(&mut hasher);
+        format!("{:?}", self.state.input_mode).hash(&mut hasher);
+        self.state.notifications.len().hash(&mut hasher);
+        self.state.filter.hash(&mut hasher);
+        self.state.sort.hash(&mut hasher);
+        self.state.sort_direction.hash(&mut hasher);
+
+        hasher.finish()
     }
 
     fn handle_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {

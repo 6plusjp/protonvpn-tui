@@ -719,13 +719,19 @@ impl AppState {
             servers
                 .iter()
                 .filter(|server| {
-                    server.id.to_lowercase().contains(&query)
-                        || server.country.to_lowercase().contains(&query)
-                        || server
-                            .cities
-                            .iter()
-                            .any(|c| c.name.to_lowercase().contains(&query))
-                        || self.fuzzy_match(&servers, &server.country, &query)
+                    let matches_id = server.id.to_lowercase().contains(&query);
+                    let matches_country = server.country.to_lowercase().contains(&query);
+                    let matches_city = server
+                        .cities
+                        .iter()
+                        .any(|c| c.name.to_lowercase().contains(&query));
+                    let matches_fuzzy = self.fuzzy_match(&servers, &server.country, &query);
+
+                    match self.filter {
+                        ServerFilter::Id => matches_id || matches_fuzzy,
+                        ServerFilter::Country => matches_country || matches_fuzzy,
+                        ServerFilter::City => matches_city || matches_fuzzy,
+                    }
                 })
                 .cloned()
                 .collect()
@@ -1203,6 +1209,16 @@ impl AppState {
             return;
         }
 
+        for ip in &ips {
+            if !is_valid_ip(ip) {
+                self.show_notification(
+                    format!("Invalid IP address: {}", ip),
+                    NotificationType::Error,
+                );
+                return;
+            }
+        }
+
         let dns_list = ips.join(",");
         let result = self.vpn_state.set_custom_dns(&dns_list);
 
@@ -1501,4 +1517,14 @@ mod notification_tests {
         assert!(state.notifications.is_empty());
         assert_eq!(state.notification_log.len(), 2);
     }
+}
+
+fn is_valid_ip(ip: &str) -> bool {
+    let parts: Vec<&str> = ip.split('.').collect();
+    if parts.len() != 4 {
+        return false;
+    }
+    parts
+        .iter()
+        .all(|p| p.chars().all(|c| c.is_ascii_digit()) && p.parse::<u8>().is_ok())
 }

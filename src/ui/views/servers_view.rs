@@ -182,14 +182,15 @@ fn render_cities_pane(
         return;
     }
 
-    if cities.is_empty() {
-        list_state.select(None);
-    } else {
-        let selected_idx = state.selected_city.unwrap_or(0);
-        list_state.select(Some(selected_idx.min(cities.len() - 1)));
-    }
-
     let is_focused = state.pane_focus == Pane::Cities;
+
+    let selected = if cities.is_empty() {
+        None
+    } else {
+        let idx = state.selected_city.unwrap_or(0);
+        Some(idx.min(cities.len() - 1))
+    };
+    list_state.select(selected);
 
     let items: Vec<ListItem> = cities
         .iter()

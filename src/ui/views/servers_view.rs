@@ -39,14 +39,10 @@ fn render_countries_pane(
     theme: &Theme,
 ) {
     let countries_table = CountriesTable::table();
-    let title = countries_table.title_with_indicator(state.pane_focus == Pane::Countries);
-    let block = centered_block(&title, theme);
 
     let servers = state.filtered_servers();
 
-    if let Some(idx) = state.selected_server {
-        list_state.select(Some(idx));
-    }
+    list_state.select(state.selected_server);
 
     let connected_server_id = match &state.connection {
         ConnectionState::Connected { server, .. } => Some(server.clone()),
@@ -74,6 +70,14 @@ fn render_countries_pane(
         .unwrap_or(1);
 
     let dynamic_widths = [4, max_country_len + 2, max_cities_len + 2];
+
+    let header = countries_table.header_with_widths(&dynamic_widths);
+    let title = format!(
+        "{}\n{}",
+        countries_table.title_with_indicator(is_focused),
+        header
+    );
+    let block = centered_block(&title, theme);
 
     let items: Vec<ListItem> = servers
         .iter()
@@ -155,7 +159,31 @@ fn render_cities_pane(
         }
         (Some(_), false, false) => cities_table.title_with_indicator(is_focused),
     };
-    let block = centered_block(&title, theme);
+
+    let max_city_len = state
+        .current_cities
+        .iter()
+        .map(|c| c.name.len())
+        .max()
+        .unwrap_or(0)
+        .max(8);
+    let max_features_len = state
+        .current_cities
+        .iter()
+        .map(|c| {
+            if c.features.is_empty() {
+                0
+            } else {
+                c.features.join(", ").len()
+            }
+        })
+        .max()
+        .unwrap_or(0);
+    let dynamic_widths = [max_city_len + 2, max_features_len + 2];
+
+    let header_row = cities_table.header_with_widths(&dynamic_widths);
+    let title_with_header = format!("{}\n{}", title, header_row);
+    let block = centered_block(&title_with_header, theme);
 
     let cities: Vec<(String, String)> = state
         .current_cities
@@ -181,36 +209,10 @@ fn render_cities_pane(
 
     let is_focused = state.pane_focus == Pane::Cities;
 
-    let max_city_len = state
-        .current_cities
-        .iter()
-        .map(|c| c.name.len())
-        .max()
-        .unwrap_or(0)
-        .max(8);
-    let max_features_len = state
-        .current_cities
-        .iter()
-        .map(|c| {
-            if c.features.is_empty() {
-                0
-            } else {
-                c.features.join(", ").len()
-            }
-        })
-        .max()
-        .unwrap_or(0);
-    let dynamic_widths = [max_city_len + 2, max_features_len + 2];
-
-    let selected = if cities.is_empty() {
-        None
-    } else {
-        let idx = state.selected_city.unwrap_or(0);
-        Some(idx.min(cities.len() - 1))
-    };
+    let selected = state.selected_city;
     list_state.select(selected);
 
-    let items: Vec<ListItem> = cities
+    let city_items: Vec<ListItem> = cities
         .iter()
         .enumerate()
         .map(|(idx, (city_name, features))| {
@@ -226,7 +228,7 @@ fn render_cities_pane(
         })
         .collect();
 
-    let list = List::new(items)
+    let list = List::new(city_items)
         .block(block)
         .style(Style::default().fg(theme.foreground));
 

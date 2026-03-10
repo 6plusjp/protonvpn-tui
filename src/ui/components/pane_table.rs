@@ -50,28 +50,33 @@ impl PaneTable {
     }
 
     pub fn header(&self) -> String {
+        self.header_with_widths(&[])
+    }
+
+    pub fn header_with_widths(&self, dynamic_widths: &[usize]) -> String {
         self.columns
             .iter()
-            .map(|col| {
+            .enumerate()
+            .map(|(i, col)| {
                 let content = col.name;
+                let width = if col.width == 0 {
+                    *dynamic_widths.get(i).unwrap_or(&content.len())
+                } else {
+                    col.width as usize
+                };
                 match col.align {
-                    ColumnAlign::Left => format!("{:<width$}", content, width = col.width as usize),
+                    ColumnAlign::Left => format!("{:<width$}", content, width = width),
                     ColumnAlign::Center => {
                         let len = content.len();
-                        if len >= col.width as usize {
+                        if len >= width {
                             content.to_string()
                         } else {
-                            let pad = (col.width as usize - len) / 2;
-                            format!(
-                                "{}{:width$}",
-                                " ".repeat(pad),
-                                content,
-                                width = col.width as usize
-                            )
+                            let pad = (width - len) / 2;
+                            format!("{}{:width$}", " ".repeat(pad), content, width = width)
                         }
                     }
                     ColumnAlign::Right => {
-                        format!("{:>width$}", content, width = col.width as usize)
+                        format!("{:>width$}", content, width = width)
                     }
                 }
             })

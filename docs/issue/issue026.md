@@ -1,8 +1,16 @@
-# issue026: Feature - Pane Entity for Table Headers
+# issue026: Feature - Pane Entity for Table Headers ✅ IMPLEMENTED
 
 ## Summary
 
 Create unified `PaneTable` entities for the two panes in Servers view, then apply the pattern to all other table-based views.
+
+## Status: DONE ✅
+
+Implemented:
+- `ColumnAlign`, `Column`, `PaneTable` structs in `src/ui/components/pane_table.rs`
+- `CountriesTable::table()`, `CitiesTable::table()` helpers
+- `format_row_with_widths()` for dynamic column alignment
+- Used in `servers_view.rs`
 
 ## Problem
 
@@ -122,11 +130,12 @@ impl PaneTable {
 
 ### Servers View
 
-- [ ] `CountriesTable` struct defined with ID, Country, Cities columns
-- [ ] `CitiesTable` struct defined with City, Server columns
-- [ ] Headers render correctly with proper alignment
-- [ ] Column widths are configurable
-- [ ] Focused pane indicator works (">" prefix)
+- [x] `CountriesTable` struct defined with ID, Country, Cities columns
+- [x] `CitiesTable` struct defined with City, Server columns  
+- [x] Headers render correctly with proper alignment (via block title)
+- [x] Column widths are configurable
+- [x] Focused pane indicator works (">" prefix)
+- [ ] **Table widget (ratatui)** - NOT IMPLEMENTED (requires TableState changes)
 
 ### General
 

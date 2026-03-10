@@ -66,8 +66,8 @@ fn render_countries_pane(
 
     let dynamic_widths = [
         4,
-        max_country_len.max(8).min(15) + 2,
-        max_cities_len.max(8).min(30) + 2,
+        max_country_len.clamp(8, 15) + 2,
+        max_cities_len.clamp(8, 30) + 2,
     ];
 
     let header_row = countries_table.header_row(&dynamic_widths);

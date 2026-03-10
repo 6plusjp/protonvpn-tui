@@ -24,6 +24,7 @@ pub struct TuiApp {
     countries_list_state: TableState,
     cities_list_state: TableState,
     logs_list_state: ListState,
+    settings_list_state: ListState,
     pending_g: bool,
     filter_mode: bool,
     filter_input: String,
@@ -46,6 +47,7 @@ impl TuiApp {
             countries_list_state: TableState::default(),
             cities_list_state: TableState::default(),
             logs_list_state: ListState::default(),
+            settings_list_state: ListState::default(),
             pending_g: false,
             filter_mode: false,
             filter_input: String::new(),
@@ -130,6 +132,13 @@ impl TuiApp {
         self.state.filter.hash(&mut hasher);
         self.state.sort.hash(&mut hasher);
         self.state.sort_direction.hash(&mut hasher);
+
+        self.state.settings_selected.hash(&mut hasher);
+        self.state.settings_expanded.hash(&mut hasher);
+        self.state.settings_option_selected.hash(&mut hasher);
+
+        self.state.logs_selected.hash(&mut hasher);
+        self.state.notification_log.len().hash(&mut hasher);
 
         hasher.finish()
     }
@@ -848,9 +857,12 @@ impl TuiApp {
                 f,
                 area,
             ),
-            AppView::Settings => {
-                views::settings_view::render_settings_view(&mut self.state, f, area)
-            }
+            AppView::Settings => views::settings_view::render_settings_view(
+                &mut self.state,
+                &mut self.settings_list_state,
+                f,
+                area,
+            ),
             AppView::Logs => {
                 views::logs_view::render_logs_view(&self.state, &mut self.logs_list_state, f, area)
             }

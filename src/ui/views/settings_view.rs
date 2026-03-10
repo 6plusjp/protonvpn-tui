@@ -4,13 +4,18 @@ use ratatui::{
     layout::Rect,
     style::{Style, Stylize},
     text::Line,
-    widgets::{List, ListItem},
+    widgets::{List, ListItem, ListState},
     Frame,
 };
 
 use crate::AppState;
 
-pub fn render_settings_view(state: &mut AppState, f: &mut Frame<'_>, area: Rect) {
+pub fn render_settings_view(
+    state: &mut AppState,
+    list_state: &mut ListState,
+    f: &mut Frame<'_>,
+    area: Rect,
+) {
     let theme = state.get_theme();
     let block = centered_block("Settings", &theme);
 
@@ -60,11 +65,16 @@ pub fn render_settings_view(state: &mut AppState, f: &mut Frame<'_>, area: Rect)
         }
     }
 
+    let items_len = all_items.len();
+
     let list = List::new(all_items)
         .block(block)
         .style(Style::default().fg(theme.foreground));
 
-    f.render_widget(list, area);
+    let selected = selected.min(items_len.saturating_sub(1));
+    list_state.select(Some(selected));
+
+    f.render_stateful_widget(list, area, list_state);
 }
 
 fn get_setting_value(

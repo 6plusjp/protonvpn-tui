@@ -65,7 +65,7 @@ pub fn render_logs_view(
 
     let selected = state
         .logs_selected
-        .map(|idx| idx.min(items.len() - 1))
+        .map(|idx| idx.min(items.len().saturating_sub(1)))
         .unwrap_or(0)
         .min(items.len().saturating_sub(1));
     list_state.select(Some(selected));

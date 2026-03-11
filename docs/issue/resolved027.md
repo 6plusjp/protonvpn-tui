@@ -6,7 +6,7 @@
 |------|------|-------|----------|--------|
 | Part 1 | Bug fixes | 12 issues | ✅ Resolved | ✅ Complete |
 | Part 2 | Performance | P1-P5 | High→Low | ✅ 3/5 Complete |
-| Part 3 | Structural | S1-S4 | High→Low | ⏭️ Skipped |
+| Part 3 | Structural | S1-S4 | High→Low | ✅ S1-S2→Done, S3→issue036, S4→issue037 |
 
 ---
 
@@ -122,7 +122,7 @@
 
 ## ⏭️ S3: Move `async_tasks.rs` to `vpn/`
 
-**Status**: ⏭️ Skipped - Requires file move
+**Status**: ⏭️ Skipped - Moved to issue036
 
 **Reason**: Simple file move but requires updating imports across codebase.
 
@@ -130,7 +130,7 @@
 
 ## ⏭️ S4: Centralize Render Logic
 
-**Status**: ⏭️ Skipped - UI changes required
+**Status**: ⏭️ Skipped - Moved to issue037
 
 **Reason**: Requires architectural changes to UI layer.
 

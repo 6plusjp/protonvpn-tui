@@ -355,11 +355,7 @@ impl AppState {
         if let Some(idx) = self.selected_server {
             if let Some(server) = self.filtered_servers().get(idx) {
                 self.current_country_code = Some(server.id.clone());
-                if let Some(cities) = self.vpn_state.get_cached_cities(&server.id) {
-                    self.current_cities = cities;
-                } else {
-                    self.load_cities_async(&server.id);
-                }
+                self.fetch_cities(&server.id);
             }
         }
     }
@@ -863,35 +859,6 @@ impl AppState {
             .spawn_disconnect(self.vpn_state.clone(), tx);
     }
 
-    pub fn fetch_cities(&mut self, country_code: &str) {
-        let country_code = country_code.to_string();
-
-        self.current_cities.clear();
-        self.current_country_code = Some(country_code.clone());
-
-        if let Ok(cities) = self.vpn_state.list_cities_with_features(&country_code) {
-            self.current_cities = cities;
-        }
-
-        self.invalidate_filtered_cache();
-
-        self.show_notification(
-            format!("Loading cities for {}...", country_code),
-            NotificationType::Info,
-        );
-
-        let (tx, rx) = create_channel();
-        self.pending_cities.insert(country_code.clone(), rx);
-        self.async_manager
-            .spawn_cities(self.vpn_state.clone(), country_code, tx);
-    }
-
-    pub fn set_cities(&mut self, cities: Vec<crate::vpn::City>, country_code: String) {
-        self.current_cities.clear();
-        self.current_cities = cities;
-        self.current_country_code = Some(country_code);
-    }
-
     pub fn connect_city(&mut self, city: &str) {
         if self.connection.is_connecting() {
             self.show_notification(
@@ -1101,19 +1068,19 @@ impl AppState {
                 if self.current_country_code.as_deref() != Some(country_code) {
                     self.current_cities.clear();
                     self.current_country_code = Some(country_code.clone());
-
-                    if let Some(cities) = self.vpn_state.get_cached_cities(country_code) {
-                        self.current_cities = cities;
-                    } else {
-                        self.load_cities_async(country_code);
-                    }
+                    self.fetch_cities(country_code);
                 }
             }
         }
     }
 
-    fn load_cities_async(&mut self, country_code: &str) {
+    fn fetch_cities(&mut self, country_code: &str) {
         let country_code = country_code.to_string();
+
+        if let Some(cities) = self.vpn_state.get_cached_cities(&country_code) {
+            self.current_cities = cities;
+            return;
+        }
 
         self.show_notification(
             format!("Loading cities for {}...", country_code),
@@ -1124,6 +1091,26 @@ impl AppState {
         self.pending_cities.insert(country_code.clone(), rx);
         self.async_manager
             .spawn_cities(self.vpn_state.clone(), country_code, tx);
+    }
+
+    pub fn reload_cities(&mut self) {
+        if let Some(country_code) = self.current_country_code.clone() {
+            self.current_cities.clear();
+
+            if let Err(e) = self.vpn_state.clear_cities_cache(&country_code) {
+                tracing::warn!("Failed to clear cities cache: {}", e);
+            }
+
+            self.show_notification(
+                format!("Loading cities for {}...", country_code),
+                NotificationType::Info,
+            );
+
+            let (tx, rx) = create_channel();
+            self.pending_cities.insert(country_code.clone(), rx);
+            self.async_manager
+                .spawn_cities(self.vpn_state.clone(), country_code, tx);
+        }
     }
 
     pub fn select_first(&mut self) {

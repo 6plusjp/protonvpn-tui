@@ -189,6 +189,9 @@ impl Default for AppState {
 
 impl AppState {
     pub fn new() -> Self {
+        let vpn_state = Arc::new(VpnState::new());
+        let servers = vpn_state.get_servers_or_refresh().unwrap_or_default();
+
         Self {
             connection: ConnectionState::Disconnected,
             current_view: crate::state::AppView::Servers,
@@ -198,7 +201,7 @@ impl AppState {
             sort: ServerSort::default(),
             sort_direction: SortDirection::default(),
             is_dark_theme: true,
-            servers: Vec::new(),
+            servers,
             current_cities: Vec::new(),
             current_country_code: None,
             selected_server: Some(0),
@@ -210,7 +213,7 @@ impl AppState {
             logs_selected: Some(0),
             input_mode: InputMode::Normal,
             dns_input: String::new(),
-            vpn_state: Arc::new(VpnState::new()),
+            vpn_state,
             notifications: Vec::new(),
             notification_log: log_persistence::load_notification_log(),
             async_manager: AsyncTaskManager::new(),

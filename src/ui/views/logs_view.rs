@@ -43,6 +43,7 @@ pub fn render_logs_view(
             let (prefix, color) = match n.notification_type {
                 NotificationType::Info => ("  [INFO] ", theme.primary),
                 NotificationType::Success => ("  [OK]   ", theme.success),
+                NotificationType::Warning => ("  [WARN] ", theme.warning),
                 NotificationType::Error => ("  [ERR]  ", theme.error),
             };
             let relative_time = format_relative_time(n.timestamp);

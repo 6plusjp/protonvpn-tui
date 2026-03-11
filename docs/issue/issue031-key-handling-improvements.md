@@ -152,13 +152,54 @@ impl Default for KeyBindings {
 }
 ```
 
+## Status: Partially Implemented (2026-03-11)
+
+### Implemented (High Priority)
+
+- [x] State-aware key handling for `c` (connect)
+- [x] State-aware key handling for `d` (disconnect)
+- [x] State-aware key handling for `r` (refresh)
+- [x] State-aware key handling for `x` (random connect)
+- [x] Added `NotificationType::Warning` variant
+- [x] Added `is_refreshing()` method to `AppState`
+
+### Not Implemented (Low Priority)
+
+- [ ] Extract common navigation handler (code duplication)
+- [ ] Configurable key bindings
+- [ ] Potential key input loss fix (theoretical issue, low impact)
+
+## Implementation Details
+
+### Key Behavior After Changes
+
+| Key | State | Action |
+|-----|-------|--------|
+| `c` | Connected | Show "Already connected" (Info) |
+| `c` | Connecting | Show "Connection in progress..." (Warning) |
+| `c` | Disconnecting | Show "Disconnecting..." (Warning) |
+| `c` | Disconnected/Error | Execute connect |
+| `d` | Disconnected | Show "Not connected" (Info) |
+| `d` | Disconnecting | Show "Already disconnecting..." (Warning) |
+| `d` | Connected/Connecting | Execute disconnect |
+| `r` | Refreshing | Show "Refresh in progress..." (Warning) |
+| `r` | Idle | Execute refresh |
+| `x` | Connected/Connecting/Disconnecting | Show appropriate warning |
+| `x` | Disconnected/Error | Execute random connect |
+
+### Files Changed
+
+- `src/state/app_state.rs`: Added `NotificationType::Warning`, `is_refreshing()`
+- `src/ui/app.rs`: Added state checks in key handlers
+- `src/ui/views/logs_view.rs`: Added Warning display support
+
 ## Priority
 
-| Priority | Item | Effort |
-|----------|------|--------|
-| High | State-aware key handling | Low |
-| Low | Extract common navigation handler | Low |
-| Low | Configurable key bindings | Medium |
+| Priority | Item | Effort | Status |
+|----------|------|--------|--------|
+| High | State-aware key handling | Low | ✅ Done |
+| Low | Extract common navigation handler | Low | Pending |
+| Low | Configurable key bindings | Medium | Pending |
 
 ## References
 

@@ -187,7 +187,30 @@ impl TuiApp {
     fn handle_servers_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
         match key_event.code {
             KeyCode::Char('c') => {
-                self.handle_connect();
+                match self.state.get_connection() {
+                    crate::state::ConnectionState::Connected { .. } => {
+                        self.state.show_notification(
+                            "Already connected".to_string(),
+                            crate::state::NotificationType::Info,
+                        );
+                    }
+                    crate::state::ConnectionState::Connecting => {
+                        self.state.show_notification(
+                            "Connection in progress...".to_string(),
+                            crate::state::NotificationType::Warning,
+                        );
+                    }
+                    crate::state::ConnectionState::Disconnecting => {
+                        self.state.show_notification(
+                            "Disconnecting...".to_string(),
+                            crate::state::NotificationType::Warning,
+                        );
+                    }
+                    crate::state::ConnectionState::Disconnected
+                    | crate::state::ConnectionState::Error(_) => {
+                        self.handle_connect();
+                    }
+                }
                 None
             }
             KeyCode::Char('l') => {
@@ -228,11 +251,34 @@ impl TuiApp {
                 None
             }
             KeyCode::Char('d') => {
-                self.handle_disconnect();
+                match self.state.get_connection() {
+                    crate::state::ConnectionState::Disconnected => {
+                        self.state.show_notification(
+                            "Not connected".to_string(),
+                            crate::state::NotificationType::Info,
+                        );
+                    }
+                    crate::state::ConnectionState::Disconnecting => {
+                        self.state.show_notification(
+                            "Already disconnecting...".to_string(),
+                            crate::state::NotificationType::Warning,
+                        );
+                    }
+                    _ => {
+                        self.handle_disconnect();
+                    }
+                }
                 None
             }
             KeyCode::Char('r') => {
-                self.handle_refresh();
+                if self.state.is_refreshing() {
+                    self.state.show_notification(
+                        "Refresh in progress...".to_string(),
+                        crate::state::NotificationType::Warning,
+                    );
+                } else {
+                    self.handle_refresh();
+                }
                 None
             }
             KeyCode::Char('s') => {
@@ -256,7 +302,30 @@ impl TuiApp {
                 None
             }
             KeyCode::Char('x') => {
-                self.handle_connect_random();
+                match self.state.get_connection() {
+                    crate::state::ConnectionState::Connected { .. } => {
+                        self.state.show_notification(
+                            "Already connected".to_string(),
+                            crate::state::NotificationType::Info,
+                        );
+                    }
+                    crate::state::ConnectionState::Connecting => {
+                        self.state.show_notification(
+                            "Connection in progress...".to_string(),
+                            crate::state::NotificationType::Warning,
+                        );
+                    }
+                    crate::state::ConnectionState::Disconnecting => {
+                        self.state.show_notification(
+                            "Disconnecting...".to_string(),
+                            crate::state::NotificationType::Warning,
+                        );
+                    }
+                    crate::state::ConnectionState::Disconnected
+                    | crate::state::ConnectionState::Error(_) => {
+                        self.handle_connect_random();
+                    }
+                }
                 None
             }
             _ => None,
@@ -710,22 +779,13 @@ impl TuiApp {
                 break;
             }
 
-            let (fg_color, title) = match notification.notification_type {
-                crate::state::NotificationType::Info => (theme.primary, None),
-                crate::state::NotificationType::Success => (theme.success, None),
-                crate::state::NotificationType::Error => {
-                    let title = if notification.message.contains("Disconnect") {
-                        Some("Disconnect failed")
-                    } else if notification.message.contains("Connect")
-                        || notification.message.contains("Connection")
-                    {
-                        Some("Connection failed")
-                    } else {
-                        Some("Error")
-                    };
-                    (theme.error, title)
-                }
-            };
+            let (fg_color, title): (ratatui::style::Color, Option<&str>) =
+                match notification.notification_type {
+                    crate::state::NotificationType::Info => (theme.primary, None),
+                    crate::state::NotificationType::Success => (theme.success, None),
+                    crate::state::NotificationType::Warning => (theme.warning, None),
+                    crate::state::NotificationType::Error => (theme.error, None),
+                };
 
             let raw_msg = &notification.message;
             let msg_single_line = raw_msg.replace('\n', " ");

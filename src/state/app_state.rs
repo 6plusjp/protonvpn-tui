@@ -109,6 +109,7 @@ impl Navigatable for Option<usize> {
 pub enum NotificationType {
     Info,
     Success,
+    Warning,
     Error,
 }
 
@@ -246,6 +247,11 @@ impl AppState {
     /// Get current connection state
     pub fn get_connection(&self) -> &ConnectionState {
         &self.connection
+    }
+
+    /// Check if server list refresh is in progress
+    pub fn is_refreshing(&self) -> bool {
+        self.pending_refresh.is_some()
     }
 
     /// Get current view

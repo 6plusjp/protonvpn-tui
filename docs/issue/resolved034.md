@@ -1,4 +1,4 @@
-# issue034 - Refactor vpn/client.rs: Separate CLI Wrapper from Parsing/Cache Logic
+# resolved034 - Refactor vpn/client.rs: Separate CLI Wrapper from Parsing/Cache Logic
 
 ## Summary
 
@@ -12,7 +12,7 @@ This violates the Single Responsibility Principle and makes the code harder to m
 
 ## Related Issues
 
-- (None directly related)
+- issue035 - Remove redundant state.rs layer (follow-up)
 
 ---
 
@@ -204,7 +204,7 @@ impl VpnClient {
 
 ### Pending
 
-- [ ] Consider removing state.rs (see Analysis below)
+- None - follow-up tracked in issue035
 
 ---
 

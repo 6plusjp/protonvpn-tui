@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use super::types::City;
+use super::types::{City, Server};
 
 /// Fallback countries data - used when CLI is unavailable
 /// Format: country code → country name
@@ -232,4 +232,18 @@ impl ServerCache {
     pub fn is_cli_unavailable(&self) -> bool {
         self.cli_unavailable
     }
+}
+
+pub fn countries_to_servers(
+    countries: &HashMap<String, String>,
+    cities: &HashMap<String, Vec<City>>,
+) -> Vec<Server> {
+    countries
+        .iter()
+        .map(|(id, country)| Server {
+            id: id.clone(),
+            country: country.clone(),
+            cities: cities.get(id).cloned().unwrap_or_default(),
+        })
+        .collect()
 }

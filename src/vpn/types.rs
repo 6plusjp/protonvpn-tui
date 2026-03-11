@@ -232,21 +232,6 @@ pub fn parse_connect_output(
     (server_id, ip, city, country)
 }
 
-/// Convert countries and cities maps to server list
-pub fn countries_to_servers(
-    countries: &HashMap<String, String>,
-    cities_map: &HashMap<String, Vec<City>>,
-) -> Vec<Server> {
-    countries
-        .iter()
-        .map(|(code, name)| Server {
-            id: code.clone(),
-            country: name.clone(),
-            cities: cities_map.get(code).cloned().unwrap_or_default(),
-        })
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

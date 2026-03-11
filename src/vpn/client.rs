@@ -15,10 +15,9 @@ use std::sync::Mutex;
 
 use chrono::Utc;
 
-use super::cache::ServerCache;
+use super::cache::{countries_to_servers, ServerCache};
 use super::types::{
-    countries_to_servers, parse_cities_with_features, parse_connect_output, parse_countries, City,
-    Server,
+    parse_cities_with_features, parse_connect_output, parse_countries, City, Server,
 };
 
 use crate::error::{AppError, AppResult};
@@ -87,6 +86,22 @@ impl VpnClient {
             (cache.clone(), self.cache_path.clone())
         };
         cache_data.save(cache_path)
+    }
+
+    /// Get currently connected server name
+    pub fn get_connected_server(&self) -> Option<String> {
+        self.with_cache(|c| c.connected_server.clone())
+            .ok()
+            .flatten()
+    }
+
+    /// Get VPN IP address if connected
+    pub fn get_vpn_ip(&self) -> Option<String> {
+        self.with_cache(|c| c.connected_ip.clone()).ok().flatten()
+    }
+
+    pub fn matches_ip(&self, ip: &str) -> bool {
+        self.with_cache(|c| c.matches_ip(ip)).is_ok_and(|r| r)
     }
 
     pub fn is_cli_unavailable(&self) -> bool {
@@ -254,22 +269,6 @@ impl VpnClient {
         }
     }
 
-    /// Get currently connected server name
-    pub fn get_connected_server(&self) -> Option<String> {
-        self.with_cache(|c| c.connected_server.clone())
-            .ok()
-            .flatten()
-    }
-
-    /// Get VPN IP address if connected
-    pub fn get_vpn_ip(&self) -> Option<String> {
-        self.with_cache(|c| c.connected_ip.clone()).ok().flatten()
-    }
-
-    pub fn matches_ip(&self, ip: &str) -> bool {
-        self.with_cache(|c| c.matches_ip(ip)).is_ok_and(|r| r)
-    }
-
     pub fn refresh_countries(&self) -> AppResult<HashMap<String, String>> {
         let output = Command::new(&self.cli_path)
             .args(["countries"])
@@ -372,7 +371,8 @@ impl VpnClient {
         let is_empty = self.with_cache(|c| c.countries.is_empty())?;
         if !is_stale && !is_empty {
             let countries = self.with_cache(|c| c.countries.clone())?;
-            return Ok(self.countries_to_servers(&countries));
+            let cities = self.with_cache(|c| c.cities.clone()).unwrap_or_default();
+            return Ok(countries_to_servers(&countries, &cities));
         }
 
         self.refresh_servers()
@@ -387,23 +387,14 @@ impl VpnClient {
                 HashMap::new()
             }
         };
-        self.countries_to_servers(&countries)
+        let cities = self.with_cache(|c| c.cities.clone()).unwrap_or_default();
+        countries_to_servers(&countries, &cities)
     }
 
     pub fn refresh_servers(&self) -> AppResult<Vec<Server>> {
         let countries = self.refresh_countries()?;
-        Ok(self.countries_to_servers(&countries))
-    }
-
-    fn countries_to_servers(&self, countries: &HashMap<String, String>) -> Vec<Server> {
-        let cities_map = match self.with_cache(|c| c.cities.clone()) {
-            Ok(c) => c,
-            Err(e) => {
-                tracing::debug!("Failed to get cities from cache: {}", e);
-                HashMap::new()
-            }
-        };
-        countries_to_servers(countries, &cities_map)
+        let cities = self.with_cache(|c| c.cities.clone()).unwrap_or_default();
+        Ok(countries_to_servers(&countries, &cities))
     }
 
     /// Set a configuration option via `protonvpn config set <setting> <value>`

@@ -36,15 +36,15 @@ src/vpn/
 
 | Function | Current Location | Should Be In | Status |
 |----------|-----------------|--------------|--------|
-| `with_cache()` | client.rs | cache.rs | Not moved yet |
-| `save_cache()` | client.rs | cache.rs | Not moved yet |
+| `with_cache()` | client.rs | client.rs | Stays (Mutex lock helper) |
+| `save_cache()` | client.rs | client.rs | Stays (tied to Mutex) |
 | `parse_countries()` | types.rs | types.rs | ✅ Moved (free fn, tests moved) |
 | `parse_cities_with_features()` | types.rs | types.rs | ✅ Moved (free fn, tests moved) |
 | `parse_connect_output()` | types.rs | types.rs | ✅ Moved (free fn, tests moved) |
-| `get_connected_server()` | client.rs | cache.rs | Not moved yet |
-| `get_vpn_ip()` | client.rs | cache.rs | Not moved yet |
-| `matches_ip()` | client.rs | cache.rs | Not moved yet |
-| `countries_to_servers()` | types.rs | types.rs | ✅ Moved (free fn) |
+| `get_connected_server()` | client.rs | client.rs | Kept (public API for state.rs) |
+| `get_vpn_ip()` | client.rs | client.rs | Kept (public API for state.rs) |
+| `matches_ip()` | client.rs | client.rs | Kept (public API for state.rs) |
+| `countries_to_servers()` | cache.rs | cache.rs | ✅ Moved (free fn in cache.rs) |
 | `check_cli_error()` | client.rs | client.rs | Legitimate - stays |
 | `is_connected()` | client.rs | client.rs | Network check - stays |
 
@@ -60,6 +60,35 @@ src/vpn/
 
 ### Target Architecture
 
+```
+src/vpn/
+├── client.rs   # CLI execution only (~180 lines) ✅ Refactored
+│   ├── connect(), connect_random(), connect_city()
+│   ├── disconnect()
+│   ├── list_countries(), list_cities(), list_servers()
+│   ├── refresh_countries(), refresh_servers()
+│   ├── config_set(), toggle_*(), set_*()
+│   ├── check_cli_error()
+│   ├── with_cache(), save_cache() (Mutex helpers)
+│   ├── get_connected_server(), get_vpn_ip(), matches_ip() (public API)
+│   └── Uses free functions from types.rs and cache.rs
+│
+├── cache.rs    # Cache management (~250 lines) ✅ DONE
+│   ├── ServerCache struct
+│   ├── load(), save(), is_stale()
+│   ├── set_connected(), set_disconnected(), matches_ip()
+│   ├── is_connected(), is_cli_unavailable()
+│   ├── countries_to_servers() ✅ NEW
+│   └── FALLBACK_COUNTRIES
+│
+├── types.rs    # Data types + parsing (~350 lines) ✅ DONE
+│   ├── ServerFeatures, City, Server, ConnectionStats
+│   ├── parse_countries() ✅
+│   ├── parse_cities_with_features() ✅
+│   ├── parse_connect_output() ✅
+│   └── 16 tests in vpn::types::tests ✅
+│
+└── state.rs    # Thin wrapper (unchanged)
 ```
 src/vpn/
 ├── client.rs   # CLI execution only (~180 lines) ✅ Refactored
@@ -151,7 +180,7 @@ impl VpnClient {
 
 ---
 
-## Status: In Progress
+## Status: Completed
 
 ### Completed (2026-03-11)
 
@@ -165,14 +194,17 @@ impl VpnClient {
   - `parse_countries()` - moved to free function in types.rs
   - `parse_cities_with_features()` - moved to free function in types.rs
   - `parse_connect_output()` - moved to free function in types.rs
-  - `countries_to_servers()` - moved to free function in types.rs
-- [x] Update client.rs to use free functions from types.rs
-- [x] Remove wrapper methods from client.rs (no longer needed)
+  - `countries_to_servers()` - moved to cache.rs (uses cache data)
+- [x] Update client.rs to use free functions from types.rs and cache.rs
 - [x] Move tests to types.rs (16 tests now in vpn::types::tests)
+- [x] Move cache management function to cache.rs:
+  - `countries_to_servers()` - moved to free function in cache.rs
+- [x] Remove duplicate countries_to_servers from types.rs
+- [x] Fix ambiguous re-export in mod.rs
 
 ### Pending
 
-- [ ] Move cache management functions to cache.rs
+- None - all tasks completed
 
 ---
 
@@ -183,7 +215,7 @@ impl VpnClient {
 | ~~Medium~~ **Done** | Remove unused functions | Low | ✅ Done |
 | ~~Medium~~ **Done** | Move parsing to types.rs | Low | ✅ Done |
 | ~~Medium~~ **Done** | Move tests to types.rs | Low | ✅ Done |
-| Medium | Move cache logic to cache.rs | Low | Pending |
+| ~~Medium~~ **Done** | Move cache logic to cache.rs | Low | ✅ Done |
 | Low | Verify build passes | Low | ✅ Done |
 
 ---

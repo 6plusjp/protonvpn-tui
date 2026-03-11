@@ -10,4 +10,4 @@ mod state;
 pub use state::*;
 
 mod cache;
-pub use cache::*;
+pub use cache::{countries_to_servers, ServerCache};

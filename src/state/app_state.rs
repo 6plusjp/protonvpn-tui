@@ -1459,7 +1459,7 @@ impl AppState {
 
     pub fn apply_setting(&mut self, key: &str, value: &str) -> Result<String, String> {
         self.vpn_state
-            .config_set(key, value)
+            .set_config(key, value)
             .map_err(|e| e.to_string())
     }
 

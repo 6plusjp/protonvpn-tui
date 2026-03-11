@@ -167,7 +167,7 @@ impl ThreadPool {
                 value,
                 sender,
             } => {
-                let result = vpn_state.config_set(&key, &value);
+                let result = vpn_state.set_config(&key, &value);
                 if sender.send(result).is_err() {
                     tracing::warn!("Failed to send config_set result - receiver dropped");
                 }

@@ -204,7 +204,32 @@ impl VpnClient {
 
 ### Pending
 
-- None - all tasks completed
+- [ ] Consider removing state.rs (see Analysis below)
+
+---
+
+## Analysis: state.rs Redundancy (2026-03-11)
+
+After refactoring, `state.rs` is now nearly empty:
+
+```rust
+// 147 lines total
+pub fn is_connected() -> bool { self.client.is_connected() }
+pub fn get_connected_server() -> Option<String> { self.client.get_connected_server() }
+// ... 30+ similar delegations
+```
+
+**Conclusion:** `state.rs` is completely redundant - every method just delegates to `VpnClient`.
+
+**Option A: Delete state.rs**
+- Pros: Remove unnecessary layer, simpler architecture
+- Cons: Breaking change for any external users (none currently)
+
+**Option B: Keep state.rs**
+- Pros: API stability, may add value later
+- Cons: Dead weight, maintenance burden
+
+**Decision:** Recommend **deleting** state.rs (issue035)
 
 ---
 

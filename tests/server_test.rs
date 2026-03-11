@@ -178,21 +178,21 @@ mod vpn_client {
 }
 
 mod vpn_state {
-    use protonvpn_tui::vpn::VpnState;
+    use protonvpn_tui::vpn::VpnClient;
 
     #[test]
     #[ignore = "Actually connects to VPN, disconnecting internet"]
     fn test_vpn_state_has_connect_random() {
-        let state = VpnState::new();
-        let result = state.connect_random();
+        let client = VpnClient::new();
+        let result = client.connect_random();
         assert!(result.is_err() || result.is_ok());
     }
 
     #[test]
     #[ignore = "Actually disconnects VPN"]
     fn test_vpn_state_has_disconnect() {
-        let state = VpnState::new();
-        let result = state.disconnect();
+        let client = VpnClient::new();
+        let result = client.disconnect();
         assert!(result.is_err() || result.is_ok());
     }
 }

@@ -13,7 +13,7 @@ use crate::state::ServerSort;
 use crate::state::SortDirection;
 use crate::ui::styles::Theme;
 use crate::vpn::Server;
-use crate::vpn::VpnState;
+use crate::vpn::VpnClient;
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::mpsc;
@@ -194,7 +194,7 @@ pub struct ToastNotification {
 pub struct AppState {
     // === Connection & Async (深い結合) ===
     pub connection: ConnectionState,
-    pub vpn_state: Arc<VpnState>,
+    pub vpn_state: Arc<VpnClient>,
     previous_connection: Option<ConnectionState>,
     async_manager: AsyncTaskManager,
     async_notifier: Arc<AsyncNotifier>,
@@ -248,7 +248,7 @@ impl Default for AppState {
 
 impl AppState {
     pub fn new() -> Self {
-        let vpn_state = Arc::new(VpnState::new());
+        let vpn_state = Arc::new(VpnClient::new());
         let servers = vpn_state.get_servers();
 
         Self {
@@ -1515,7 +1515,7 @@ mod tests {
     fn test_filtered_servers_empty_query() {
         setup();
         let mut state = AppState::new();
-        state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
+        state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
         state.search_query = String::new();
         state.search_query_lower = String::new();
 
@@ -1528,7 +1528,7 @@ mod tests {
     fn test_filtered_servers_by_id() {
         setup();
         let mut state = AppState::new();
-        state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
+        state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
         state.search_query = "jp".to_string();
         state.search_query_lower = "jp".to_string();
         state.filter = ServerFilter::Id;
@@ -1542,7 +1542,7 @@ mod tests {
     #[test]
     fn test_filtered_servers_by_country() {
         let mut state = AppState::new();
-        state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
+        state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
         state.search_query = "japan".to_string();
         state.search_query_lower = "japan".to_string();
         state.filter = ServerFilter::Country;
@@ -1556,7 +1556,7 @@ mod tests {
     #[test]
     fn test_filtered_servers_by_country_exact_match() {
         let mut state = AppState::new();
-        state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
+        state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
         state.search_query = "JP".to_string();
         state.search_query_lower = "jp".to_string();
         state.filter = ServerFilter::Country;
@@ -1570,7 +1570,7 @@ mod tests {
     #[test]
     fn test_filtered_servers_by_city() {
         let mut state = AppState::new();
-        state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
+        state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
         state.search_query = "tokyo".to_string();
         state.search_query_lower = "tokyo".to_string();
         state.filter = ServerFilter::City;
@@ -1584,7 +1584,7 @@ mod tests {
     #[test]
     fn test_filtered_servers_case_insensitive() {
         let mut state = AppState::new();
-        state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
+        state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
         state.search_query = "JAPAN".to_string();
         state.search_query_lower = "japan".to_string();
         state.filter = ServerFilter::Country;
@@ -1598,7 +1598,7 @@ mod tests {
     #[test]
     fn test_filtered_servers_sort_asc_by_id() {
         let mut state = AppState::new();
-        state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
+        state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
         state.search_query = String::new();
         state.search_query_lower = String::new();
         state.sort = ServerSort::Id;
@@ -1613,7 +1613,7 @@ mod tests {
     #[test]
     fn test_filtered_servers_sort_desc_by_id() {
         let mut state = AppState::new();
-        state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
+        state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
         state.search_query = String::new();
         state.search_query_lower = String::new();
         state.sort = ServerSort::Id;
@@ -1628,7 +1628,7 @@ mod tests {
     #[test]
     fn test_filtered_servers_sort_asc_by_country() {
         let mut state = AppState::new();
-        state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
+        state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
         state.search_query = String::new();
         state.search_query_lower = String::new();
         state.sort = ServerSort::Country;
@@ -1643,7 +1643,7 @@ mod tests {
     #[test]
     fn test_filtered_servers_sort_desc_by_country() {
         let mut state = AppState::new();
-        state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
+        state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
         state.search_query = String::new();
         state.search_query_lower = String::new();
         state.sort = ServerSort::Country;
@@ -1658,7 +1658,7 @@ mod tests {
     #[test]
     fn test_filtered_servers_multiple_matches() {
         let mut state = AppState::new();
-        state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
+        state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
         state.search_query = "u".to_string();
         state.search_query_lower = "u".to_string();
         state.filter = ServerFilter::Country;
@@ -1671,7 +1671,7 @@ mod tests {
     #[test]
     fn test_fuzzy_match_starts_with() {
         let mut state = AppState::new();
-        state.vpn_state = Arc::new(VpnState::with_test_servers(make_servers()));
+        state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
 
         let result = state.compute_filtered_servers();
         assert!(!result.is_empty());

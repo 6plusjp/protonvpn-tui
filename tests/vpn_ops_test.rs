@@ -2,7 +2,7 @@
 //!
 //! Tests VPN client operations like listing servers, connecting, disconnecting.
 
-use protonvpn_tui::vpn::{City, Server, VpnClient, VpnState};
+use protonvpn_tui::vpn::{City, Server, VpnClient};
 
 mod vpn_client_operations {
     use super::*;
@@ -27,21 +27,20 @@ mod vpn_client_operations {
 
     #[test]
     fn test_vpn_state_new() {
-        let state = VpnState::new();
-        drop(state);
+        let client = VpnClient::new();
+        drop(client);
     }
 
     #[test]
     fn test_vpn_state_get_servers() {
-        let state = VpnState::new();
-        let _servers = state.get_servers();
+        let client = VpnClient::new();
+        let _servers = client.get_servers();
     }
 
     #[test]
     fn test_vpn_state_get_servers_or_refresh() {
-        let state = VpnState::new();
-        let result = state.get_servers_or_refresh();
-        assert!(result.is_ok() || result.is_err());
+        let client = VpnClient::new();
+        let _servers = client.get_servers();
     }
 }
 
@@ -104,26 +103,26 @@ mod vpn_connection {
 
     #[test]
     fn test_vpn_state_is_connected() {
-        let state = VpnState::new();
-        let _ = state.is_connected();
+        let client = VpnClient::new();
+        let _ = client.is_connected();
     }
 
     #[test]
     fn test_vpn_state_get_connected_server() {
-        let state = VpnState::new();
-        let _ = state.get_connected_server();
+        let client = VpnClient::new();
+        let _ = client.get_connected_server();
     }
 
     #[test]
     fn test_vpn_state_get_vpn_ip() {
-        let state = VpnState::new();
-        let _ = state.get_vpn_ip();
+        let client = VpnClient::new();
+        let _ = client.get_vpn_ip();
     }
 
     #[test]
     fn test_vpn_state_matches_ip() {
-        let state = VpnState::new();
-        assert!(!state.matches_ip("1.1.1.1"));
-        assert!(!state.matches_ip("8.8.8.8"));
+        let client = VpnClient::new();
+        assert!(!client.matches_ip("1.1.1.1"));
+        assert!(!client.matches_ip("8.8.8.8"));
     }
 }

@@ -39,7 +39,6 @@ impl TuiApp {
         }));
 
         let mut state = AppState::new();
-        state.sync_connection_state();
         state.refresh_servers();
 
         Ok(Self {
@@ -640,6 +639,12 @@ impl TuiApp {
             area,
         );
 
+        // Show loading view during initialization
+        if !self.state.is_initialized {
+            self.render_loading(f, area, &theme);
+            return;
+        }
+
         // Always show filter box between header and main view
         let has_filter_active = !self.state.search_query.is_empty();
 
@@ -752,6 +757,29 @@ impl TuiApp {
         if area.width > cursor as u16 + 2 {
             f.set_cursor(area.x + cursor as u16 + 1, area.y + 1);
         }
+    }
+
+    fn render_loading(&self, f: &mut Frame<'_>, area: Rect, theme: &Theme) {
+        let loading_text = vec![
+            Line::from(""),
+            Line::from(""),
+            Line::from("ProtonVPN TUI"),
+            Line::from(""),
+            Line::from("Loading servers..."),
+            Line::from(""),
+        ];
+
+        let paragraph = Paragraph::new(loading_text)
+            .alignment(ratatui::layout::Alignment::Center)
+            .style(Style::default().fg(theme.foreground));
+
+        let width = 30u16;
+        let height = 6u16;
+        let x = (area.width.saturating_sub(width)) / 2;
+        let y = (area.height.saturating_sub(height)) / 2;
+        let loading_area = Rect::new(x, y, width, height);
+
+        f.render_widget(paragraph, loading_area);
     }
 
     fn render_notification_popup(&self, f: &mut Frame<'_>) {

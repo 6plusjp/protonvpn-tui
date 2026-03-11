@@ -210,6 +210,7 @@ pub struct AppState {
     pub(crate) servers: Vec<Server>,
     filtered_servers_cache: RwLock<Option<(Vec<Server>, u64)>>,
     filtered_servers_version: u64,
+    pub is_initialized: bool,
     pub(crate) current_cities: Vec<crate::vpn::City>,
     pub(crate) current_country_code: Option<String>,
 
@@ -248,7 +249,7 @@ impl Default for AppState {
 impl AppState {
     pub fn new() -> Self {
         let vpn_state = Arc::new(VpnState::new());
-        let servers = vpn_state.get_servers_or_refresh().unwrap_or_default();
+        let servers = vpn_state.get_servers();
 
         Self {
             connection: ConnectionState::Disconnected,
@@ -286,6 +287,7 @@ impl AppState {
             proton_settings_cache: ProtonSettings::load(),
             filtered_servers_cache: RwLock::new(None),
             filtered_servers_version: 0,
+            is_initialized: false,
         }
     }
 
@@ -424,6 +426,7 @@ impl AppState {
                 AsyncEvent::ServersRefreshed(servers) => {
                     self.set_servers(servers);
                     tracing::info!("Server list refreshed: {} servers", self.servers.len());
+                    self.is_initialized = true;
                     if self.vpn_state.is_cli_unavailable() {
                         self.show_notification(
                             "ProtonVPN CLI unavailable. VPN functionality disabled.".to_string(),
@@ -440,6 +443,7 @@ impl AppState {
                 }
                 AsyncEvent::ServersRefreshFailed(e) => {
                     tracing::warn!("Server list refresh failed: {}", e);
+                    self.is_initialized = true;
                     self.show_notification(
                         format!("Refresh failed: {}", e),
                         NotificationType::Error,
@@ -543,6 +547,7 @@ impl AppState {
                     Ok(servers) => {
                         self.set_servers(servers);
                         tracing::info!("Server list refreshed: {} servers", self.servers.len());
+                        self.is_initialized = true;
 
                         if self.vpn_state.is_cli_unavailable() {
                             self.show_notification(
@@ -560,6 +565,7 @@ impl AppState {
                     }
                     Err(e) => {
                         tracing::warn!("Server list refresh failed: {}", e);
+                        self.is_initialized = true;
                         self.show_notification(
                             format!("Refresh failed: {}", e),
                             NotificationType::Error,

@@ -383,8 +383,10 @@ impl VpnClient {
             .collect();
 
         self.with_cache(|c| {
+            c.countries = fallback.clone();
             c.cli_unavailable = true;
         })?;
+        self.save_cache()?;
 
         tracing::info!("Using fallback countries (CLI unavailable)");
         Ok(fallback)

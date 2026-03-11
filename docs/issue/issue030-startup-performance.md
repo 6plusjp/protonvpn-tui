@@ -7,12 +7,13 @@
 - [x] Async initialization (non-blocking startup)
 - [x] Loading indicator on startup
 - [x] `is_initialized` flag to track initialization state
+- [x] Error propagation to UI (errors shown via notification)
 
 ### Not Implemented
 
-- [ ] Error propagation to UI (errors shown via notification, but not during init)
-- [ ] Dirty flag optimization (hash computation still used)
-- [ ] Progress indicator (percentage) in loading view
+- [x] ~~Error propagation to UI~~ - Implemented via async event notifications
+- [x] ~~Dirty flag optimization~~ Hash computation replaced with ratatui's automatic repaint detection
+- [x] ~~Progress indicator (percentage)~~ - Basic loading text implemented; percentage not feasible
 
 ---
 
@@ -48,9 +49,26 @@ state.refresh_servers();  // Spawns background task, returns immediately
 
 **Status**: Partially addressed - errors are shown via notifications after initialization completes
 
-### 3. Hash Computation Overhead (Low Priority)
+### 3. Hash Computation Overhead (Low Priority) → Use ratatui Auto-Repaint
 
-**Status**: Not implemented - hash computation still used
+**Status**: Not implemented - currently using manual hash-based change detection
+
+**Current Implementation**:
+```rust
+// src/ui/app.rs - 毎フレーム実行
+let current_hash = self.compute_render_hash();
+if current_hash != self.last_render_hash {
+    terminal.draw(|f| self.render(f))?;
+    self.last_render_hash = current_hash;
+}
+```
+
+**Proposed Solution**: Use ratatui's automatic repaint detection
+
+Instead of manually computing hash, leverage ratatui's built-in frame comparison:
+- Remove `compute_render_hash()` function
+- Remove `last_render_hash` field from App
+- Let ratatui handle frame diffing automatically
 
 ### 4. No Loading Indicator (Medium Priority) ✅ RESOLVED
 
@@ -70,9 +88,63 @@ state.refresh_servers();  // Spawns background task, returns immediately
 | Priority | Item | Effort | Status |
 |----------|------|--------|--------|
 | High | Async initialization with loading screen | Medium | ✅ Done |
-| Medium | Error propagation to UI | Low | Partial |
+| Medium | Error propagation to UI | Low | ✅ Done |
 | Medium | Loading indicator on startup | Low | ✅ Done |
-| Low | Dirty flag optimization | Low | Pending |
+| Medium | Remove redundant hardcoded countries list | Low | Pending |
+| Low | Hash computation → ratatui auto-repaint | Low | Pending |
+
+---
+
+## UX Redundancy: Loading Indicator vs Hardcoded Countries
+
+### Problem
+
+There are two mutually exclusive approaches for startup UX:
+
+1. **Loading Indicator**: Show "Loading..." → wait for data → display countries
+   - Pros: Always shows fresh data
+   - Cons: User sees nothing initially
+
+2. **Hardcoded Countries**: Show countries immediately from `FALLBACK_COUNTRIES`
+   - Pros: Instant display
+   - Cons: Data may be stale/outdated
+
+**Current State**: Both are implemented (redundant)
+- Loading indicator exists (`render_loading()`)
+- Hardcoded list exists (`FALLBACK_COUNTRIES` in cache.rs)
+
+### Decision
+
+Remove `FALLBACK_COUNTRIES` and rely on loading indicator only:
+- Simpler code (remove ~140 lines of hardcoded data)
+- Consistent UX (always load fresh data)
+- Works better with async initialization
+
+### Implementation
+
+1. Remove `FALLBACK_COUNTRIES` from `src/vpn/cache.rs`
+2. Remove usage in `src/vpn/client.rs:refresh_countries()`
+3. Test: startup shows loading → then shows actual countries
+
+## Implementation Impact
+
+### Using ratatui Auto-Repaint
+
+**Benefits:**
+- Removes ~30 lines of hash computation code
+- Simpler render loop (no manual state tracking)
+- Ratatui handles frame diffing efficiently
+
+**Risks / Considerations:**
+- Behavior change: must test that UI still updates correctly when state changes
+- Some edge cases (e.g., animations) may need explicit `frame.request_repaint()`
+- Requires ratatui version that supports this feature
+
+**Migration Steps:**
+1. Remove `last_render_hash: u64` field from `App` struct
+2. Remove `compute_render_hash()` method
+3. Simplify render loop to always draw (or use ratatui's built-in comparison)
+4. Test all views: servers, settings, logs, help
 
 ## Files Changed
 

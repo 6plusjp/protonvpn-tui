@@ -188,6 +188,7 @@ mod vpn_state {
     use protonvpn_tui::vpn::VpnState;
 
     #[test]
+    #[ignore = "Actually connects to VPN, disconnecting internet"]
     fn test_vpn_state_has_connect_random() {
         let state = VpnState::new();
         let result = state.connect_random();
@@ -195,6 +196,7 @@ mod vpn_state {
     }
 
     #[test]
+    #[ignore = "Actually disconnects VPN"]
     fn test_vpn_state_has_disconnect() {
         let state = VpnState::new();
         let result = state.disconnect();

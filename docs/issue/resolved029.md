@@ -66,9 +66,9 @@ If `ServerCache::save()` fails (permission issues, etc.):
 - When ProtonVPN CLI is unavailable
 - When cache file fails to load
 
-## Proposed Fix
+## Fix Applied
 
-### Fix 1: Save Fallback Countries to Cache in use_fallback_countries()
+### Fix 1: Save Fallback Countries to Cache (client.rs)
 
 ```rust
 fn use_fallback_countries(&self) -> AppResult<HashMap<String, String>> {
@@ -80,20 +80,27 @@ fn use_fallback_countries(&self) -> AppResult<HashMap<String, String>> {
         .collect();
 
     self.with_cache(|c| {
-        c.countries = fallback.clone();  // add: save to cache
+        c.countries = fallback.clone();  // save to cache
         c.cli_unavailable = true;
     })?;
-    self.save_cache()?;  // add: persist to disk
+    self.save_cache()?;  // persist to disk
 
     tracing::info!("Using fallback countries (CLI unavailable)");
     Ok(fallback)
 }
 ```
 
-### Fix 2: Improve Initial Display (Optional)
+### Fix 2: Load Servers Synchronously on Init (app_state.rs)
 
-- Display fallback immediately on startup
-- Or show a loading indicator
+```rust
+pub fn new() -> Self {
+    let vpn_state = Arc::new(VpnState::new());
+    let servers = vpn_state.get_servers_or_refresh().unwrap_or_default();
+    // ... rest of initialization
+}
+```
+
+Now loads servers synchronously during AppState creation, ensuring fallback countries are available immediately on first render.
 
 ## Related Files
 
@@ -104,5 +111,12 @@ fn use_fallback_countries(&self) -> AppResult<HashMap<String, String>> {
 
 ## Status
 
-- [ ] Investigation complete
-- [ ] Fix planned
+- [x] Investigation complete
+- [x] Fix implemented (2026-03-11)
+
+## Commits
+
+| Fix | Commit |
+|-----|--------|
+| Save fallback countries to cache | `4dcb507` |
+| Load servers synchronously on init | `34aec3c` |

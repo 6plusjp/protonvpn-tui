@@ -175,13 +175,6 @@ mod vpn_client {
         let result = client.disconnect();
         assert!(result.is_err() || result.is_ok());
     }
-
-    #[test]
-    fn test_vpn_client_list_cities_exists() {
-        let client = VpnClient::with_path("echo");
-        let result = client.list_cities("JP");
-        assert!(result.is_err() || result.is_ok());
-    }
 }
 
 mod vpn_state {

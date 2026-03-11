@@ -328,25 +328,6 @@ impl VpnClient {
         self.with_cache(|c| c.matches_ip(ip)).is_ok_and(|r| r)
     }
 
-    /// Get countries map (code -> name)
-    pub fn get_countries(&self) -> AppResult<HashMap<String, String>> {
-        let is_empty = self.with_cache(|c| c.countries.is_empty())?;
-        if is_empty {
-            return self.refresh_countries();
-        }
-        self.with_cache(|c| c.countries.clone())
-    }
-
-    pub fn list_countries(&self) -> AppResult<HashMap<String, String>> {
-        let is_stale = self.with_cache(|c| c.is_stale())?;
-        let is_empty = self.with_cache(|c| c.countries.is_empty())?;
-        if !is_stale && !is_empty {
-            return self.with_cache(|c| c.countries.clone());
-        }
-
-        self.refresh_countries()
-    }
-
     pub fn refresh_countries(&self) -> AppResult<HashMap<String, String>> {
         let output = Command::new(&self.cli_path)
             .args(["countries"])
@@ -424,11 +405,6 @@ impl VpnClient {
         }
 
         countries
-    }
-
-    pub fn list_cities(&self, country_code: &str) -> AppResult<Vec<String>> {
-        let cities = self.list_cities_with_features(country_code)?;
-        Ok(cities.into_iter().map(|c| c.name).collect())
     }
 
     pub fn get_cached_cities(&self, country_code: &str) -> Option<Vec<City>> {
@@ -594,14 +570,6 @@ impl VpnClient {
             .collect();
 
         servers
-    }
-
-    pub fn status(&self) -> String {
-        if let Ok(Some(server)) = self.with_cache(|c| c.connected_server.clone()) {
-            format!("Connected to: {}", server)
-        } else {
-            "Disconnected".to_string()
-        }
     }
 
     /// Set a configuration option via `protonvpn config set <setting> <value>`

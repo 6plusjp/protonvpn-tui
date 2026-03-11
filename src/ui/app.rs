@@ -269,13 +269,20 @@ impl TuiApp {
                 None
             }
             KeyCode::Char('r') => {
-                if self.state.is_refreshing() {
-                    self.state.show_notification(
-                        "Refresh in progress...".to_string(),
-                        crate::state::NotificationType::Warning,
-                    );
-                } else {
-                    self.handle_refresh();
+                match self.state.get_pane_focus() {
+                    Pane::Cities => {
+                        self.state.reload_cities();
+                    }
+                    Pane::Countries => {
+                        if self.state.is_refreshing() {
+                            self.state.show_notification(
+                                "Refresh in progress...".to_string(),
+                                crate::state::NotificationType::Warning,
+                            );
+                        } else {
+                            self.handle_refresh();
+                        }
+                    }
                 }
                 None
             }
@@ -1020,7 +1027,10 @@ impl TuiApp {
                 hints.extend([
                     Span::raw("["),
                     Span::styled("h/Backspace", Style::default().fg(theme.key_hint)),
-                    Span::raw("] countries"),
+                    Span::raw("] countries "),
+                    Span::raw("["),
+                    Span::styled("r", Style::default().fg(theme.key_hint)),
+                    Span::raw("] reload"),
                 ]);
                 hints
             }

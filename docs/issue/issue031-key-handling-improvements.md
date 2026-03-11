@@ -175,17 +175,17 @@ impl Default for KeyBindings {
 
 | Key | State | Action |
 |-----|-------|--------|
-| `c` | Connected | Show "Already connected" (Info) |
 | `c` | Connecting | Show "Connection in progress..." (Warning) |
 | `c` | Disconnecting | Show "Disconnecting..." (Warning) |
-| `c` | Disconnected/Error | Execute connect |
+| `c` | Connected/Disconnected/Error | Execute connect (reconnect allowed) |
 | `d` | Disconnected | Show "Not connected" (Info) |
 | `d` | Disconnecting | Show "Already disconnecting..." (Warning) |
 | `d` | Connected/Connecting | Execute disconnect |
 | `r` | Refreshing | Show "Refresh in progress..." (Warning) |
 | `r` | Idle | Execute refresh |
-| `x` | Connected/Connecting/Disconnecting | Show appropriate warning |
-| `x` | Disconnected/Error | Execute random connect |
+| `x` | Connecting | Show "Connection in progress..." (Warning) |
+| `x` | Disconnecting | Show "Disconnecting..." (Warning) |
+| `x` | Connected/Disconnected/Error | Execute random connect |
 
 ### Files Changed
 

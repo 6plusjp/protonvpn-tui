@@ -188,12 +188,6 @@ impl TuiApp {
         match key_event.code {
             KeyCode::Char('c') => {
                 match self.state.get_connection() {
-                    crate::state::ConnectionState::Connected { .. } => {
-                        self.state.show_notification(
-                            "Already connected".to_string(),
-                            crate::state::NotificationType::Info,
-                        );
-                    }
                     crate::state::ConnectionState::Connecting => {
                         self.state.show_notification(
                             "Connection in progress...".to_string(),
@@ -206,8 +200,7 @@ impl TuiApp {
                             crate::state::NotificationType::Warning,
                         );
                     }
-                    crate::state::ConnectionState::Disconnected
-                    | crate::state::ConnectionState::Error(_) => {
+                    _ => {
                         self.handle_connect();
                     }
                 }
@@ -303,12 +296,6 @@ impl TuiApp {
             }
             KeyCode::Char('x') => {
                 match self.state.get_connection() {
-                    crate::state::ConnectionState::Connected { .. } => {
-                        self.state.show_notification(
-                            "Already connected".to_string(),
-                            crate::state::NotificationType::Info,
-                        );
-                    }
                     crate::state::ConnectionState::Connecting => {
                         self.state.show_notification(
                             "Connection in progress...".to_string(),
@@ -321,8 +308,7 @@ impl TuiApp {
                             crate::state::NotificationType::Warning,
                         );
                     }
-                    crate::state::ConnectionState::Disconnected
-                    | crate::state::ConnectionState::Error(_) => {
+                    _ => {
                         self.handle_connect_random();
                     }
                 }

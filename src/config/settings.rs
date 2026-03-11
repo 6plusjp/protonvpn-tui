@@ -69,13 +69,13 @@ impl SettingKey {
     // The CLI config key name corresponding to this setting.
     pub fn config_key(&self) -> &'static str {
         match self {
-            SettingKey::Killswitch => "killswitch",
+            SettingKey::Killswitch => "kill-switch",
             SettingKey::Ipv6 => "ipv6",
-            SettingKey::Dns => "dns",
-            SettingKey::NetShield => "net_shield",
-            SettingKey::ModerateNat => "moderate_nat",
-            SettingKey::VpnAccelerator => "vpn_accelerator",
-            SettingKey::PortForwarding => "port_forwarding",
+            SettingKey::Dns => "custom-dns",
+            SettingKey::NetShield => "netshield",
+            SettingKey::ModerateNat => "moderate-nat",
+            SettingKey::VpnAccelerator => "vpn-accelerator",
+            SettingKey::PortForwarding => "port-forwarding",
             SettingKey::Theme => "theme",
         }
     }

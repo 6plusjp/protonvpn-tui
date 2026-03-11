@@ -38,13 +38,13 @@ src/vpn/
 |----------|-----------------|--------------|--------|
 | `with_cache()` | client.rs | cache.rs | Not moved yet |
 | `save_cache()` | client.rs | cache.rs | Not moved yet |
-| `parse_countries()` | client.rs | types.rs | Not moved yet |
-| `parse_cities_with_features()` | client.rs | types.rs | Not moved yet |
-| `parse_connect_output()` | client.rs | types.rs | Not moved yet |
+| `parse_countries()` | types.rs | types.rs | ✅ Moved (free fn, tests moved) |
+| `parse_cities_with_features()` | types.rs | types.rs | ✅ Moved (free fn, tests moved) |
+| `parse_connect_output()` | types.rs | types.rs | ✅ Moved (free fn, tests moved) |
 | `get_connected_server()` | client.rs | cache.rs | Not moved yet |
 | `get_vpn_ip()` | client.rs | cache.rs | Not moved yet |
 | `matches_ip()` | client.rs | cache.rs | Not moved yet |
-| `countries_to_servers()` | client.rs | types.rs | Not moved yet |
+| `countries_to_servers()` | types.rs | types.rs | ✅ Moved (free fn) |
 | `check_cli_error()` | client.rs | client.rs | Legitimate - stays |
 | `is_connected()` | client.rs | client.rs | Network check - stays |
 
@@ -62,13 +62,14 @@ src/vpn/
 
 ```
 src/vpn/
-├── client.rs   # CLI execution only (~200 lines)
+├── client.rs   # CLI execution only (~180 lines) ✅ Refactored
 │   ├── connect(), connect_random(), connect_city()
 │   ├── disconnect()
 │   ├── list_countries(), list_cities(), list_servers()
 │   ├── refresh_countries(), refresh_servers()
 │   ├── config_set(), toggle_*(), set_*()
-│   └── check_cli_error()
+│   ├── check_cli_error()
+│   └── Uses free functions from types.rs for parsing
 │
 ├── cache.rs    # Cache management (~300 lines)
 │   ├── ServerCache struct
@@ -77,12 +78,13 @@ src/vpn/
 │   ├── matches_ip(), status()
 │   └── FALLBACK_COUNTRIES
 │
-├── types.rs    # Data types + parsing (~200 lines)
+├── types.rs    # Data types + parsing (~400 lines) ✅ DONE
 │   ├── ServerFeatures, City, Server, ConnectionStats
-│   ├── parse_countries()
-│   ├── parse_cities_with_features()
-│   ├── parse_connect_output()
-│   └── countries_to_servers()
+│   ├── parse_countries() ✅
+│   ├── parse_cities_with_features() ✅
+│   ├── parse_connect_output() ✅
+│   ├── countries_to_servers() ✅
+│   └── 16 tests in vpn::types::tests ✅
 │
 └── state.rs    # Thin wrapper (unchanged)
 ```
@@ -159,13 +161,18 @@ impl VpnClient {
   - `list_cities()` - use `list_cities_with_features()` instead
   - `status()` - unused
 - [x] Update related tests
+- [x] Move parsing functions to types.rs as free functions:
+  - `parse_countries()` - moved to free function in types.rs
+  - `parse_cities_with_features()` - moved to free function in types.rs
+  - `parse_connect_output()` - moved to free function in types.rs
+  - `countries_to_servers()` - moved to free function in types.rs
+- [x] Update client.rs to use free functions from types.rs
+- [x] Remove wrapper methods from client.rs (no longer needed)
+- [x] Move tests to types.rs (16 tests now in vpn::types::tests)
 
 ### Pending
 
-- [ ] Move parsing functions to types.rs
-- [ ] Move cache management functions to cache.rs  
-- [ ] Update VpnClient to delegate to appropriate modules
-- [ ] Run cargo check and cargo test
+- [ ] Move cache management functions to cache.rs
 
 ---
 
@@ -174,10 +181,10 @@ impl VpnClient {
 | Priority | Item | Effort | Status |
 |----------|------|--------|--------|
 | ~~Medium~~ **Done** | Remove unused functions | Low | ✅ Done |
-| Medium | Move parsing to types.rs | Low | Pending |
+| ~~Medium~~ **Done** | Move parsing to types.rs | Low | ✅ Done |
+| ~~Medium~~ **Done** | Move tests to types.rs | Low | ✅ Done |
 | Medium | Move cache logic to cache.rs | Low | Pending |
-| Low | Update tests | Low | Pending |
-| Low | Verify build passes | Low | Pending |
+| Low | Verify build passes | Low | ✅ Done |
 
 ---
 

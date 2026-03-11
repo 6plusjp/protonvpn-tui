@@ -1280,7 +1280,7 @@ impl AppState {
     }
 
     pub fn clear_settings_cache(&mut self) {
-        self.proton_settings_cache = None;
+        self.proton_settings_cache = ProtonSettings::load();
     }
 }
 

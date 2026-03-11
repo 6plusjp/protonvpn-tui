@@ -50,6 +50,12 @@ enum Job {
         city: String,
         sender: mpsc::Sender<AsyncResult<(String, Option<String>)>>,
     },
+    ConfigSet {
+        vpn_state: Arc<VpnState>,
+        key: String,
+        value: String,
+        sender: mpsc::Sender<AsyncResult<String>>,
+    },
 }
 
 /// Custom thread pool for executing VPN operations.
@@ -153,6 +159,17 @@ impl ThreadPool {
                 let result = vpn_state.connect_city(&city);
                 if sender.send(result).is_err() {
                     tracing::warn!("Failed to send connect_city result - receiver dropped");
+                }
+            }
+            Job::ConfigSet {
+                vpn_state,
+                key,
+                value,
+                sender,
+            } => {
+                let result = vpn_state.config_set(&key, &value);
+                if sender.send(result).is_err() {
+                    tracing::warn!("Failed to send config_set result - receiver dropped");
                 }
             }
         }
@@ -259,6 +276,21 @@ impl AsyncTaskManager {
         self.pool.submit(Job::ConnectCity {
             vpn_state,
             city,
+            sender,
+        });
+    }
+
+    pub fn spawn_config_set(
+        &self,
+        vpn_state: Arc<VpnState>,
+        key: String,
+        value: String,
+        sender: mpsc::Sender<AsyncResult<String>>,
+    ) {
+        self.pool.submit(Job::ConfigSet {
+            vpn_state,
+            key,
+            value,
             sender,
         });
     }

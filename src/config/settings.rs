@@ -36,29 +36,29 @@ impl SettingKey {
         Self::ALL.iter().position(|k| k == self).unwrap_or(0)
     }
 
-    // Return all possible option strings for this setting.
-    pub fn options(&self) -> Vec<&'static str> {
+    /// Return selectable options only (excludes "unknown").
+    /// "unknown" is display-only - users cannot set a setting to "unknown".
+    pub fn selectable_options(&self) -> Vec<&'static str> {
         match self {
-            SettingKey::Killswitch => vec!["off", "on", "unknown"],
-            SettingKey::Ipv6 => vec!["disabled", "enabled", "unknown"],
-            SettingKey::Dns => vec!["default", "custom", "unknown"],
-            SettingKey::NetShield => vec!["off", "malware-only", "malware-ads-trackers", "unknown"],
-            SettingKey::ModerateNat => vec!["off", "on", "unknown"],
-            SettingKey::VpnAccelerator => vec!["off", "on", "unknown"],
-            SettingKey::PortForwarding => vec!["off", "on", "unknown"],
+            SettingKey::Killswitch => vec!["off", "on"],
+            SettingKey::Ipv6 => vec!["disabled", "enabled"],
+            SettingKey::Dns => vec!["default", "custom"],
+            SettingKey::NetShield => vec!["off", "malware-only", "malware-ads-trackers"],
+            SettingKey::ModerateNat => vec!["off", "on"],
+            SettingKey::VpnAccelerator => vec!["off", "on"],
+            SettingKey::PortForwarding => vec!["off", "on"],
             SettingKey::Theme => vec!["Dark", "Light"],
         }
     }
 
-    // Convenience: number of options for this key
-    pub fn option_count(&self) -> usize {
-        self.options().len()
+    /// Convenience: number of selectable options
+    pub fn selectable_option_count(&self) -> usize {
+        self.selectable_options().len()
     }
 
-    // Given an option index, return the (config_key, value) pair to apply
-    // or None if the index is out of range.
-    pub fn get_option_command(&self, option_index: usize) -> Option<(String, String)> {
-        let opts = self.options();
+    /// Given a selectable option index, return the (config_key, value) pair.
+    pub fn get_selectable_option_command(&self, option_index: usize) -> Option<(String, String)> {
+        let opts = self.selectable_options();
         if option_index >= opts.len() {
             return None;
         }

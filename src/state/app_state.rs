@@ -37,6 +37,7 @@ pub type ConnectReceiver = mpsc::Receiver<AsyncResult<ConnectResult>>;
 pub type ServerReceiver = mpsc::Receiver<AsyncResult<Vec<Server>>>;
 pub type DisconnectReceiver = mpsc::Receiver<AsyncResult<()>>;
 pub type CitiesReceiver = mpsc::Receiver<AsyncResult<Vec<crate::vpn::City>>>;
+pub type ConfigReceiver = mpsc::Receiver<AsyncResult<String>>;
 
 pub trait Navigatable {
     fn move_next(&mut self, bounds: usize);
@@ -147,6 +148,7 @@ pub struct AppState {
     pending_disconnect: Option<DisconnectReceiver>,
     pub(crate) pending_cities: HashMap<String, CitiesReceiver>,
     pending_connect_city: Option<ConnectReceiver>,
+    pending_config_set: Option<ConfigReceiver>,
 
     // === Server Data ===
     pub(crate) servers: Vec<Server>,
@@ -223,6 +225,7 @@ impl AppState {
             pending_disconnect: None,
             pending_cities: HashMap::new(),
             pending_connect_city: None,
+            pending_config_set: None,
             proton_settings_cache: ProtonSettings::load(),
             filtered_servers_cache: RwLock::new(None),
             filtered_servers_version: 0,
@@ -531,6 +534,29 @@ impl AppState {
             }
         }
 
+        // Check for pending config_set result
+        if let Some(rx) = self.pending_config_set.as_mut() {
+            if let Ok(result) = rx.try_recv() {
+                match result {
+                    Ok(msg) => {
+                        self.show_notification(
+                            format!("Setting updated: {}", msg),
+                            NotificationType::Success,
+                        );
+                        self.clear_settings_cache();
+                    }
+                    Err(e) => {
+                        tracing::warn!("Config set failed: {}", e);
+                        self.show_notification(
+                            format!("Failed to update setting: {}", e),
+                            NotificationType::Error,
+                        );
+                    }
+                }
+                self.pending_config_set = None;
+            }
+        }
+
         // When already connected, don't keep checking system state
         // This prevents flickering between connected/disconnected
         if self.connection.is_connected() {
@@ -687,6 +713,13 @@ impl AppState {
         self.pending_connect_city = Some(rx);
         self.async_manager
             .spawn_connect_city(self.vpn_state.clone(), city, tx);
+    }
+
+    pub fn spawn_config_set(&mut self, key: String, value: String) {
+        let (tx, rx) = create_channel();
+        self.pending_config_set = Some(rx);
+        self.async_manager
+            .spawn_config_set(self.vpn_state.clone(), key, value, tx);
     }
 
     /// Get filtered and sorted server list

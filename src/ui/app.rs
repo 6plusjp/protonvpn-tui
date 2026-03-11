@@ -346,23 +346,13 @@ impl TuiApp {
                     }
 
                     let option_idx = self.state.settings_option_selected;
-                    if let Some((config_key, value)) = key.get_option_command(option_idx) {
-                        let result = self.state.vpn_state.config_set(&config_key, &value);
-                        match result {
-                            Ok(msg) => {
-                                self.state.show_notification(
-                                    format!("Setting updated: {}", msg),
-                                    crate::state::NotificationType::Success,
-                                );
-                                self.state.clear_settings_cache();
-                            }
-                            Err(e) => {
-                                self.state.show_notification(
-                                    format!("Failed to update setting: {}", e),
-                                    crate::state::NotificationType::Error,
-                                );
-                            }
-                        }
+                    if let Some((config_key, value)) = key.get_selectable_option_command(option_idx)
+                    {
+                        self.state.spawn_config_set(config_key, value);
+                        self.state.show_notification(
+                            "Applying setting...".to_string(),
+                            crate::state::NotificationType::Info,
+                        );
                     }
                 }
                 self.state.settings_expanded = false;
@@ -375,9 +365,10 @@ impl TuiApp {
             (true, KeyCode::Char('j') | KeyCode::Down) => {
                 if let Some(idx) = self.state.settings_selected {
                     if let Some(key) = SettingKey::from_index(idx) {
-                        let opt_count = key.option_count();
-                        self.state.settings_option_selected =
-                            (self.state.settings_option_selected + 1).min(opt_count - 1);
+                        let opt_count = key.selectable_option_count();
+                        self.state.settings_option_selected = (self.state.settings_option_selected
+                            + 1)
+                        .min(opt_count.saturating_sub(1));
                     }
                 }
                 None

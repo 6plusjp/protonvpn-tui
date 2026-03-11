@@ -42,25 +42,27 @@ pub fn render_settings_view(
         all_items.push(styled_list_item(&main_line, is_selected, true, &theme));
 
         if is_expanded {
-            let options = key.options();
+            let options = key.selectable_options();
             let opt_len = options.len();
-            for (opt_idx, option) in options.iter().enumerate() {
-                let prefix = if opt_idx == option_selected {
-                    if opt_idx == opt_len - 1 {
-                        "└►"
+            if opt_len > 0 {
+                for (opt_idx, option) in options.iter().enumerate() {
+                    let prefix = if opt_idx == option_selected {
+                        if opt_idx == opt_len - 1 {
+                            "└►"
+                        } else {
+                            "├►"
+                        }
+                    } else if opt_idx == opt_len - 1 {
+                        "└─"
                     } else {
-                        "├►"
-                    }
-                } else if opt_idx == opt_len - 1 {
-                    "└─"
-                } else {
-                    "│ "
-                };
-                let opt_line = format!("  {} {}", prefix, option);
-                all_items.push(
-                    ListItem::from(Line::from(opt_line))
-                        .style(Style::default().fg(theme.foreground).dim()),
-                );
+                        "│ "
+                    };
+                    let opt_line = format!("  {} {}", prefix, option);
+                    all_items.push(
+                        ListItem::from(Line::from(opt_line))
+                            .style(Style::default().fg(theme.foreground).dim()),
+                    );
+                }
             }
         }
     }

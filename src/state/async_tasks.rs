@@ -124,7 +124,7 @@ impl ThreadPool {
                 server_id,
                 sender,
             } => {
-                let result = vpn_state.connect(&server_id);
+                let result = vpn_state.connect_country(&server_id);
                 if sender.send(result).is_err() {
                     tracing::warn!("Failed to send connect result - receiver dropped");
                 }

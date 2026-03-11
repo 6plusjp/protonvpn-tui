@@ -109,7 +109,7 @@ impl VpnClient {
     }
 
     /// Connect to a server by country code
-    pub fn connect(&self, target: &str) -> AppResult<(String, Option<String>)> {
+    pub fn connect_country(&self, target: &str) -> AppResult<(String, Option<String>)> {
         let output = Command::new(&self.cli_path)
             .args(["connect", "--country", target])
             .output()

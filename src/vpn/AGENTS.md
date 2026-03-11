@@ -35,8 +35,8 @@ Each file has one clear purpose:
 // DON'T DO THIS
 pub struct VpnState { client: VpnClient }
 impl VpnState {
-    pub fn connect(&self, server: &str) -> AppResult<...> {
-        self.client.connect(server)?; // Pure delegation - unnecessary
+    pub fn connect_country(&self, server: &str) -> AppResult<...> {
+        self.client.connect_country(server)?; // Pure delegation - unnecessary
     }
 }
 ```
@@ -45,7 +45,7 @@ impl VpnState {
 ```rust
 // Use VpnClient directly
 let client = VpnClient::new();
-client.connect("JP-Tokyo-01")?;
+client.connect_country("JP")?;
 ```
 
 ### 3. Cache is Thread-Safe
@@ -130,8 +130,8 @@ mod wrapper {
     use super::VpnClient;
     pub struct Wrapper { client: VpnClient }
     impl Wrapper {
-        pub fn connect(&self, s: &str) -> AppResult<...> {
-            self.client.connect(s)? // Unnecessary indirection
+        pub fn connect_country(&self, s: &str) -> AppResult<...> {
+            self.client.connect_country(s)? // Unnecessary indirection
         }
     }
 }

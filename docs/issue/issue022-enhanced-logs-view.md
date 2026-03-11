@@ -25,10 +25,10 @@ Enhanced Logs view with scroll support, selection highlight, and more detailed m
 
 ## Not Implemented (Postponed)
 
-- Settings + Logs tabs integration
+- ~~Settings + Logs tabs integration~~ - Decision to keep separate views
 - Full log content display (popup/expand)
-- Copy to clipboard (removed due to terminal limitations)
-- Log persistence (issue018)
+- ~~Copy to clipboard~~ - removed due to terminal limitations
+- ~~Log persistence~~ - Implemented (resolved018)
 
 ---
 
@@ -38,9 +38,9 @@ Enhanced Logs view with scroll support, selection highlight, and more detailed m
 - [x] Selected log is highlighted
 - [x] Newest logs appear at top
 - [x] Log messages are detailed (include server/city name)
-- [ ] Settings and Logs accessible via tabs in unified view
+- [x] ~~Settings and Logs accessible via tabs~~ - kept separate
 - [ ] Long log messages show full content on selection
-- [ ] Logs persist across restarts (issue018)
+- [x] Logs persist across restarts (implemented in log_persistence.rs)
 
 ---
 

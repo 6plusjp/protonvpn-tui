@@ -80,12 +80,18 @@ impl TuiApp {
                 self.last_render_hash = current_hash;
             }
 
-            // Sync connection state (checks for background connection completion)
+            // Wait for async events with timeout (event-driven, max 10ms delay)
+            let _async_processed = self
+                .state
+                .wait_for_async_events(std::time::Duration::from_millis(10));
+
+            // Sync remaining connection state (polling fallback)
             let _notification_shown = self.state.sync_connection_state();
 
             self.state.tick_notifications();
 
-            if event::poll(std::time::Duration::from_millis(100))? {
+            // Check for keyboard input (non-blocking)
+            if event::poll(std::time::Duration::from_millis(0))? {
                 if let Event::Key(key_event) = event::read()? {
                     // Handle Ctrl+C for graceful shutdown
                     if key_event.code == KeyCode::Char('c')

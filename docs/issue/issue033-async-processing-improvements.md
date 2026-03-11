@@ -251,11 +251,31 @@ pub fn spawn_connect_with_timeout(
 
 ---
 
+## Status: Partially Implemented (2026-03-11)
+
+### Implemented
+
+- [x] Reduce polling delay: 100ms → 10ms using Condvar wait
+- [x] Add AsyncNotifier struct (Mutex + Condvar)
+- [x] Add AsyncEvent enum for event types
+- [x] Add wait_for_async_events() method with Condvar
+- [x] Update event loop to use event-driven waiting
+
+### Not Implemented
+
+- [ ] Full event-driven notification (mpsc::Receiver not Clone)
+- [ ] Extract duplicate error handling
+- [ ] Consolidate pending state fields
+- [ ] Rename sync_connection_state
+- [ ] Add timeout support
+
+---
+
 ## Priority
 
 | Priority | Item | Effort | Status |
 |----------|------|--------|--------|
-| **High** | Reduce polling delay (mpsc + Condvar) | Medium | **Selected** |
+| **High** | Reduce polling delay (mpsc + Condvar) | Medium | ✅ Done (10ms polling) |
 | Low | Extract duplicate error handling | Low | Pending |
 | Medium | Consolidate pending state fields | Medium | Pending |
 | Low | Rename sync_connection_state | Low | Pending |
@@ -263,11 +283,11 @@ pub fn spawn_connect_with_timeout(
 
 ---
 
-## Architecture Suggestion: Event-Driven Async (IMPLEMENTING)
+## Architecture Suggestion: Event-Driven Async (IMPLEMENTED)
 
 **Selected Approach**: mpsc + Condvar (std only)
 
-**Current** (polling):
+**Before** (100ms polling):
 ```
 [Event Loop] --100ms--> [check try_recv()]
                               |
@@ -275,13 +295,16 @@ pub fn spawn_connect_with_timeout(
                         [update state]
 ```
 
-**After Implementation** (event-driven):
+**After Implementation** (10ms polling with Condvar):
 ```
-[Worker Thread] --mpsc--> [Condvar wait]
+[Event Loop] --10ms--> [wait_for_async_events]
                               |
                               v
-                        [immediate update]
+                        [update state]
 ```
+
+**Note**: Full event-driven notification not implemented due to mpsc::Receiver not being Clone.
+To implement full event-driven, use crossbeam channel or Arc-based solution.
 
 ### Implementation Steps
 
@@ -314,6 +337,12 @@ pub fn spawn_connect_with_timeout(
 - This approach is consistent with issue027 P1 (ThreadPool already uses Condvar)
 - Maintains compatibility with existing mpsc architecture
 - Minimal external dependencies
+- 10ms polling provides near-immediate response (10x improvement from 100ms)
+
+### Files Changed
+
+- `src/state/app_state.rs`: Added AsyncNotifier, AsyncEvent, wait_for_async_events()
+- `src/ui/app.rs`: Updated event loop to use wait_for_async_events(10ms)
 
 ---
 

@@ -18,7 +18,61 @@ use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::mpsc;
 use std::sync::Arc;
+use std::sync::Condvar;
+use std::sync::Mutex;
 use std::sync::RwLock;
+
+/// Async event types for event-driven notification
+#[derive(Debug, Clone)]
+pub enum AsyncEvent {
+    ServersRefreshed(Vec<Server>),
+    ServersRefreshFailed(String),
+    Connected(String, Option<String>),
+    ConnectFailed(String),
+    Disconnected,
+    DisconnectFailed(String),
+    CitiesLoaded(String, Vec<crate::vpn::City>),
+    ConnectCityResult(String, Option<String>),
+    ConnectCityFailed(String),
+}
+
+/// Notifier for async task completion (event-driven wakeup)
+pub struct AsyncNotifier {
+    pending: Mutex<Vec<AsyncEvent>>,
+    condvar: Condvar,
+}
+
+impl AsyncNotifier {
+    pub fn new() -> Self {
+        Self {
+            pending: Mutex::new(Vec::new()),
+            condvar: Condvar::new(),
+        }
+    }
+
+    pub fn notify(&self, event: AsyncEvent) {
+        let mut pending = self.pending.lock().unwrap();
+        pending.push(event);
+        self.condvar.notify_one();
+    }
+
+    pub fn try_recv_all(&self) -> Vec<AsyncEvent> {
+        let mut pending = self.pending.lock().unwrap();
+        pending.drain(..).collect()
+    }
+
+    pub fn wait_timeout(&self, duration: std::time::Duration) -> Vec<AsyncEvent> {
+        let guard = self.pending.lock().unwrap();
+        let (mut remaining, _timeout_result) = self.condvar.wait_timeout(guard, duration).unwrap();
+        remaining.drain(..).collect()
+    }
+}
+
+impl Default for AsyncNotifier {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 /// Input mode for text input
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -143,6 +197,7 @@ pub struct AppState {
     pub vpn_state: Arc<VpnState>,
     previous_connection: Option<ConnectionState>,
     async_manager: AsyncTaskManager,
+    async_notifier: Arc<AsyncNotifier>,
     #[allow(clippy::type_complexity)]
     pending_refresh: Option<ServerReceiver>,
     pending_connect: Option<ConnectReceiver>,
@@ -220,6 +275,7 @@ impl AppState {
             notifications: Vec::new(),
             notification_log: log_persistence::load_notification_log(),
             async_manager: AsyncTaskManager::new(),
+            async_notifier: Arc::new(AsyncNotifier::new()),
             pending_refresh: None,
             previous_connection: None,
             pending_connect: None,
@@ -252,6 +308,16 @@ impl AppState {
     /// Check if server list refresh is in progress
     pub fn is_refreshing(&self) -> bool {
         self.pending_refresh.is_some()
+    }
+
+    /// Wait for async events with timeout (event-driven)
+    /// Returns true if any events were processed
+    pub fn wait_for_async_events(&mut self, timeout: std::time::Duration) -> bool {
+        let events = self.async_notifier.wait_timeout(timeout);
+        if events.is_empty() {
+            return false;
+        }
+        self.process_async_events()
     }
 
     /// Get current view
@@ -346,11 +412,130 @@ impl AppState {
         self.notifications.retain(|n| n.timer > 0);
     }
 
+    /// Process async events notified via Condvar (event-driven)
+    pub fn process_async_events(&mut self) -> bool {
+        let events = self.async_notifier.try_recv_all();
+        if events.is_empty() {
+            return false;
+        }
+        let mut notification_shown = false;
+        for event in events {
+            match event {
+                AsyncEvent::ServersRefreshed(servers) => {
+                    self.set_servers(servers);
+                    tracing::info!("Server list refreshed: {} servers", self.servers.len());
+                    if self.vpn_state.is_cli_unavailable() {
+                        self.show_notification(
+                            "ProtonVPN CLI unavailable. VPN functionality disabled.".to_string(),
+                            NotificationType::Error,
+                        );
+                    } else {
+                        self.show_notification(
+                            format!("Refreshed {} servers", self.servers.len()),
+                            NotificationType::Success,
+                        );
+                    }
+                    notification_shown = true;
+                    self.pending_refresh = None;
+                }
+                AsyncEvent::ServersRefreshFailed(e) => {
+                    tracing::warn!("Server list refresh failed: {}", e);
+                    self.show_notification(
+                        format!("Refresh failed: {}", e),
+                        NotificationType::Error,
+                    );
+                    notification_shown = true;
+                    self.pending_refresh = None;
+                }
+                AsyncEvent::Connected(server, ip) => {
+                    self.show_notification(
+                        format!("Connected to {}", &server),
+                        NotificationType::Success,
+                    );
+                    tracing::info!("Successfully connected to server: {}", server);
+                    self.connection = ConnectionState::Connected {
+                        server,
+                        ip: ip.unwrap_or_default(),
+                    };
+                    self.previous_connection = None;
+                    self.pending_connect = None;
+                    notification_shown = true;
+                }
+                AsyncEvent::ConnectFailed(e) => {
+                    if let Some(prev) = self.previous_connection.take() {
+                        self.connection = prev;
+                    } else {
+                        self.connection = ConnectionState::Disconnected;
+                    }
+                    tracing::warn!("Connection failed: {}", e);
+                    self.show_notification(
+                        format!("Connection failed: {}", e),
+                        NotificationType::Error,
+                    );
+                    self.pending_connect = None;
+                    notification_shown = true;
+                }
+                AsyncEvent::Disconnected => {
+                    self.show_notification("Disconnected".to_string(), NotificationType::Info);
+                    tracing::info!("Disconnected from VPN");
+                    self.connection = ConnectionState::Disconnected;
+                    self.previous_connection = None;
+                    self.pending_disconnect = None;
+                    notification_shown = true;
+                }
+                AsyncEvent::DisconnectFailed(e) => {
+                    tracing::warn!("Disconnect failed: {}", e);
+                    self.show_notification(
+                        format!("Disconnect failed: {}", e),
+                        NotificationType::Error,
+                    );
+                    if let Some(prev) = self.previous_connection.take() {
+                        self.connection = prev;
+                    }
+                    self.pending_disconnect = None;
+                    notification_shown = true;
+                }
+                AsyncEvent::CitiesLoaded(_, _) => {
+                    // Handled by pending_cities try_recv in sync_connection_state
+                }
+                AsyncEvent::ConnectCityResult(city, ip) => {
+                    self.show_notification(
+                        format!("Connected to {}", city),
+                        NotificationType::Success,
+                    );
+                    self.connection = ConnectionState::Connected {
+                        server: city,
+                        ip: ip.unwrap_or_default(),
+                    };
+                    self.previous_connection = None;
+                    self.pending_connect_city = None;
+                    notification_shown = true;
+                }
+                AsyncEvent::ConnectCityFailed(e) => {
+                    if let Some(prev) = self.previous_connection.take() {
+                        self.connection = prev;
+                    } else {
+                        self.connection = ConnectionState::Disconnected;
+                    }
+                    self.show_notification(
+                        format!("Connection failed: {}", e),
+                        NotificationType::Error,
+                    );
+                    self.pending_connect_city = None;
+                    notification_shown = true;
+                }
+            }
+        }
+        notification_shown
+    }
+
     /// Sync connection state with background tasks.
     /// Returns true if any notification was shown during sync.
     /// Sync connection state with system (call periodically)
     pub fn sync_connection_state(&mut self) -> bool {
         let mut notification_shown = false;
+        // Check for notified async events (event-driven)
+        notification_shown |= self.process_async_events();
         // Check for pending server refresh result
         if let Some(rx) = self.pending_refresh.as_mut() {
             if let Ok(result) = rx.try_recv() {

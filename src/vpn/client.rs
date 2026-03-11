@@ -474,7 +474,14 @@ impl VpnClient {
         Ok(cities)
     }
 
-    /// Parse cities output with features
+    pub fn clear_cities_cache(&self, country_code: &str) -> AppResult<()> {
+        self.with_cache(|c| {
+            c.cities.remove(country_code);
+        })?;
+        self.save_cache()?;
+        Ok(())
+    }
+
     pub(crate) fn parse_cities_with_features(&self, output: &str) -> Vec<City> {
         let mut cities = Vec::new();
 

@@ -68,6 +68,10 @@ impl VpnState {
         self.client.get_cached_cities(country_code)
     }
 
+    pub fn clear_cities_cache(&self, country_code: &str) -> AppResult<()> {
+        self.client.clear_cities_cache(country_code)
+    }
+
     pub fn disconnect(&self) -> AppResult<()> {
         self.client.disconnect()?;
         Ok(())

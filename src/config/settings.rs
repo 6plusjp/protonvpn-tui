@@ -40,9 +40,9 @@ impl SettingKey {
     /// "unknown" is display-only - users cannot set a setting to "unknown".
     pub fn selectable_options(&self) -> Vec<&'static str> {
         match self {
-            SettingKey::Killswitch => vec!["off", "on"],
-            SettingKey::Ipv6 => vec!["disabled", "enabled"],
-            SettingKey::Dns => vec!["default", "custom"],
+            SettingKey::Killswitch => vec!["off", "standard"],
+            SettingKey::Ipv6 => vec!["off", "on"],
+            SettingKey::Dns => vec!["off", "on"],
             SettingKey::NetShield => vec!["off", "malware-only", "malware-ads-trackers"],
             SettingKey::ModerateNat => vec!["off", "on"],
             SettingKey::VpnAccelerator => vec!["off", "on"],

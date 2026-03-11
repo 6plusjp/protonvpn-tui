@@ -91,14 +91,14 @@ fn get_setting_value(
     match key {
         SettingKey::Killswitch => match ps.killswitch {
             Some(0) => "off".to_string(),
-            Some(1) => "on".to_string(),
+            Some(1) => "standard".to_string(),
             _ => "unknown".to_string(),
         },
         SettingKey::Ipv6 => {
             if ps.ipv6 == Some(true) {
-                "enabled".to_string()
+                "on".to_string()
             } else if ps.ipv6 == Some(false) {
-                "disabled".to_string()
+                "off".to_string()
             } else {
                 "unknown".to_string()
             }

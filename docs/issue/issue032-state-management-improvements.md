@@ -12,19 +12,38 @@ This issue covers structural problems with `AppState` and related state manageme
 
 ---
 
+## Status: Partially Implemented (2026-03-11)
+
+### Implemented
+
+- [x] `previous_connection` field - Already implemented and used for connection rollback on failure
+
+### Not Implemented
+
+- [ ] Add AppState Unit Tests
+- [ ] Encapsulate AppState fields (getter/setter)
+- [ ] Split AppState into modules
+
+---
+
 ## Problems Identified
 
-### 1. Unused Field: `previous_connection`
+### 1. Unused Field: `previous_connection` ✅ RESOLVED
 
-**Location**: `src/state/app_state.rs:142`
+**Location**: `src/state/app_state.rs:144`
 
 ```rust
 previous_connection: Option<ConnectionState>,
 ```
 
-**Issue**: This field exists in the struct but is never used in the codebase.
+**Status**: Already implemented and in use!
 
-**Action**: Either implement its intended use (e.g., detecting connection state changes for notifications) or remove it.
+**Usage**:
+- On connection start: `previous_connection = Some(current_connection)` (saves state before attempting)
+- On connection success: `previous_connection = None` (clear on success)
+- On connection failure: `previous_connection.take()` restores previous state (rollback)
+
+This provides rollback functionality when a connection attempt fails.
 
 ---
 
@@ -175,12 +194,12 @@ impl AsyncManager {
 
 ## Priority
 
-| Priority | Item | Effort |
-|----------|------|--------|
-| High | Remove or implement `previous_connection` | Low |
-| Medium | Add AppState Unit Tests | Medium |
-| Medium | Encapsulate AppState fields (getter/setter) | Medium |
-| Low | Split AppState into modules | High |
+| Priority | Item | Effort | Status |
+|----------|------|--------|--------|
+| High | `previous_connection` implementation | Low | ✅ Done |
+| Medium | Add AppState Unit Tests | Medium | Pending |
+| Medium | Encapsulate AppState fields (getter/setter) | Medium | Pending |
+| Low | Split AppState into modules | High | Pending |
 
 ---
 

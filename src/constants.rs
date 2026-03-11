@@ -1,6 +1,6 @@
 pub mod ui {
-    pub const NOTIFICATION_TIMER_DEFAULT: u8 = 30;
-    pub const NOTIFICATION_TIMER_SHORT: u8 = 15;
+    pub const NOTIFICATION_TIMER_DEFAULT: u16 = 300; // 30 × 10 (loop interval 10ms)
+    pub const NOTIFICATION_TIMER_SHORT: u16 = 150; // 15 × 10 (loop interval 10ms)
     pub const NOTIFICATION_MSG_MAX_LEN: usize = 35;
     pub const POPUP_WIDTH_MIN: usize = 30;
     pub const POPUP_WIDTH_MAX: usize = 54;

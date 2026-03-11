@@ -180,7 +180,7 @@ pub struct Notification {
 pub struct ToastNotification {
     pub message: String,
     pub notification_type: NotificationType,
-    pub timer: u8,
+    pub timer: u16,
 }
 
 /// Main application state
@@ -1688,6 +1688,7 @@ mod tests {
 #[cfg(test)]
 mod notification_tests {
     use super::{AppState, NotificationType};
+    use crate::constants::ui::NOTIFICATION_TIMER_DEFAULT;
     use crate::state::log_persistence;
 
     fn setup() {
@@ -1710,7 +1711,7 @@ mod notification_tests {
         let mut state = AppState::new();
         state.show_notification("Test".to_string(), NotificationType::Info);
 
-        for _ in 0..30 {
+        for _ in 0..NOTIFICATION_TIMER_DEFAULT {
             state.tick_notifications();
         }
 
@@ -1727,7 +1728,10 @@ mod notification_tests {
         state.tick_notifications();
 
         assert_eq!(state.notifications.len(), 2);
-        assert!(state.notifications.iter().all(|n| n.timer < 30));
+        assert!(state
+            .notifications
+            .iter()
+            .all(|n| n.timer < NOTIFICATION_TIMER_DEFAULT));
     }
 
     #[test]

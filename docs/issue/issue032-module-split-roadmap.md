@@ -9,7 +9,7 @@ AppState (after split)
 ├── Connection & Async (12 fields)  → Phase 2.4
 ├── Server Data (5 fields)          → Phase 2.3
 ├── UI State (16 fields)            → Phase 2.1 ✅ Done
-├── Notification (2 fields)         → Phase 2.2 ⏳
+├── Notification (2 fields)         → Phase 2.2 ✅ Done
 └── Config (1 field)               → Phase 2.5 ⏳
 ```
 
@@ -17,29 +17,34 @@ AppState (after split)
 
 ## Phase 2.1: UI State ✅ Done (2026-03-12)
 
-### Completed Work
+### Target Module
+`src/state/ui_state.rs`
 
-| Item | Status |
-|------|--------|
-| Target | `src/state/ui_state.rs` |
-| Added | `UiState` struct with 16 fields |
-| Added | 30+ getter/setter methods |
-| Added | `AppState.ui_state` field as delegation target |
-| Removed | Legacy fields from AppState (16 fields) |
-| Updated | app.rs to use getters/setters |
-| Updated | views to use getters |
-| Updated | tests to use ui_state delegation |
-| Complexity | **Done** |
-
-### Fields Moved to UiState
+### Fields to Move
 - `current_view`, `selected_server`, `selected_city`, `pane_focus`
 - `settings_selected`, `settings_expanded`, `settings_option_selected`
 - `logs_selected`, `search_query`, `filter`, `sort`, `sort_direction`
 - `is_dark_theme`, `input_mode`, `dns_input`
 
+### Methods to Move
+- Navigation methods (select_next, select_prev, etc.)
+- Filter/sort methods
+
+### Existing Types
+- `InputMode`, `SearchQuery`, `ServerCache`, `UiState`
+
+### Approach
+1. `UiState` struct already exists
+2. Added 30+ getter/setter methods
+3. Added `ui_state: UiState` field to AppState
+4. Tests pass
+
+### Complexity
+**Medium** - 16 fields moved
+
 ---
 
-## Phase 2.2: Notification State (Easiest)
+## Phase 2.2: Notification State ✅ Done (2026-03-12)
 
 ### Target Module
 `src/state/notifications.rs`
@@ -60,10 +65,11 @@ AppState (after split)
 - `NotificationManager` (already extracted)
 
 ### Approach
-1. Create `NotificationState` struct
-2. Add `notification_state: NotificationState` to `AppState`
-3. Add delegation methods to `AppState`
-4. Tests pass
+1. Created `NotificationState` struct
+2. Added `notification_state: NotificationState` field to AppState
+3. Added delegation methods to AppState
+4. Updated views to use getters
+5. Tests pass
 
 ### Complexity
 **Low** - Types already in separate module
@@ -204,7 +210,7 @@ Phase 2.4 (High) ┘
 | Phase | Complexity | Status | Notes |
 |-------|------------|--------|-------|
 | 2.1 UI State | Medium | ✅ Done | 16 fields moved to UiState |
-| 2.2 Notification | Low | ⏳ Pending | 2 fields to move |
+| 2.2 Notification | Low | ✅ Done | 2 fields moved to NotificationState |
 | 2.3 Server Data | Medium | ⏳ Pending | 5 fields + methods |
 | 2.4 Connection | High | ⏳ Pending | 12 fields + async |
 | 2.5 Config | Low | ⏳ Pending | 1 field + methods |

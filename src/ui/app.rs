@@ -79,7 +79,7 @@ impl TuiApp {
             self.state.tick_notifications();
 
             // Always redraw on first iteration to show loading screen
-            let is_first_render = self.state.is_initialized;
+            let is_first_render = self.state.is_initialized();
             if !is_first_render || async_processed || notification_shown {
                 terminal.draw(|f| self.render(f))?;
             }
@@ -651,12 +651,12 @@ impl TuiApp {
         }
 
         // Show loading popup overlay during initialization
-        if !self.state.is_initialized {
+        if !self.state.is_initialized() {
             self.render_loading(f, area, &theme);
         }
 
         // Render notification as popup last (on top)
-        if !self.state.notifications.is_empty() {
+        if !self.state.get_notifications().is_empty() {
             self.render_notification_popup(f);
         }
     }
@@ -766,7 +766,7 @@ impl TuiApp {
         let theme = self.get_theme();
         let terminal = f.size();
 
-        let notifications: Vec<_> = self.state.notifications.iter().rev().collect();
+        let notifications: Vec<_> = self.state.get_notifications().iter().rev().collect();
 
         for (i, notification) in notifications.iter().enumerate() {
             let position_from_bottom = i;
@@ -946,7 +946,7 @@ impl TuiApp {
 
     fn get_footer_action_hints(&self) -> Vec<Span<'_>> {
         let theme = self.get_theme();
-        let is_disconnected = self.state.connection.is_disconnected();
+        let is_disconnected = self.state.get_connection().is_disconnected();
 
         match (self.state.get_current_view(), self.state.get_pane_focus()) {
             (AppView::Servers, Pane::Countries) => {

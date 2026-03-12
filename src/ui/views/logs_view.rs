@@ -18,7 +18,7 @@ pub fn render_logs_view(
     let theme = state.get_theme();
     let block = centered_block("Logs", &theme);
 
-    let logs = &state.notification_log;
+    let logs = state.get_notification_log();
     if logs.is_empty() {
         let empty_list = List::new(vec![ListItem::new("No logs yet")])
             .block(block)

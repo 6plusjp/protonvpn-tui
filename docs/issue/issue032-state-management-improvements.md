@@ -24,13 +24,33 @@ This issue covers structural problems with `AppState` and related state manageme
   - [x] All getters/setters for UI fields
   - [x] Updated app.rs and views to use getters/setters
   - [x] Updated tests to use ui_state delegation
+- [x] **Phase 2.2: Notification State Delegation** (2026-03-12)
+  - [x] NotificationState struct added to notifications.rs
+  - [x] AppState.notification_state field added as delegation target
+  - [x] Getters: get_notifications(), get_notification_log(), len(), is_empty(), is_log_empty()
+  - [x] Methods: show(), clear(), tick()
+  - [x] Updated app.rs to use getters
+  - [x] Updated logs_view.rs to use getter
+  - [x] Updated tests to use notification_state delegation
+- [x] **Public Field Cleanup** (2026-03-12)
+  - [x] Made `connection` field private (use get_connection() getter)
+  - [x] Made `is_initialized` field private (use is_initialized() getter)
+  - [x] Updated app.rs to use getters
+  - [x] Updated stats_view.rs to use get_connection()
 
 ### Not Implemented
 
-- [ ] Phase 2.2: Notification state delegation
 - [ ] Phase 2.3: Server data state delegation
 - [ ] Phase 2.4: Connection state delegation
 - [ ] Phase 2.5: Config state delegation
+- [ ] **Post-Phase 2.5**: Remove wrapper getters from AppState (optimization)
+
+### Technical Notes
+
+**Current Delegation Pattern**:
+- AppState has wrapper getters that delegate to sub-state structs
+- Maintains backward compatibility during migration
+- After all phases complete: remove wrappers, callers use `state.ui_state.get_xxx()` directly
 
 ---
 

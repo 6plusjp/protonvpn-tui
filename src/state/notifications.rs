@@ -30,24 +30,58 @@ pub struct ToastNotification {
     pub timer: u16,
 }
 
-/// Notification manager - handles notification state mutations
-/// This struct can be extracted to notifications.rs in Phase 2
-pub struct NotificationManager<'a> {
-    notifications: &'a mut Vec<ToastNotification>,
-    notification_log: &'a mut Vec<Notification>,
+/// Notification state - contains all notification-related fields
+/// This struct can be extracted to notifications.rs in Phase 2.2
+#[derive(Clone)]
+pub struct NotificationState {
+    pub(crate) notifications: Vec<ToastNotification>,
+    pub(crate) notification_log: Vec<Notification>,
 }
 
-impl<'a> NotificationManager<'a> {
-    pub fn new(
-        notifications: &'a mut Vec<ToastNotification>,
-        notification_log: &'a mut Vec<Notification>,
-    ) -> Self {
+impl Default for NotificationState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl NotificationState {
+    pub fn new() -> Self {
         Self {
-            notifications,
-            notification_log,
+            notifications: Vec::new(),
+            notification_log: log_persistence::load_notification_log(),
         }
     }
 
+    // === Getters ===
+
+    /// Get active toast notifications
+    pub fn get_notifications(&self) -> &Vec<ToastNotification> {
+        &self.notifications
+    }
+
+    /// Get notification log (history)
+    pub fn get_notification_log(&self) -> &Vec<Notification> {
+        &self.notification_log
+    }
+
+    /// Get notification log length
+    pub fn len(&self) -> usize {
+        self.notification_log.len()
+    }
+
+    /// Check if notifications is empty
+    pub fn is_empty(&self) -> bool {
+        self.notifications.is_empty()
+    }
+
+    /// Check if notification log is empty
+    pub fn is_log_empty(&self) -> bool {
+        self.notification_log.is_empty()
+    }
+
+    // === Mutation methods (delegated from AppState) ===
+
+    /// Show a notification
     pub fn show(&mut self, message: String, notification_type: NotificationType) {
         self.notifications.push(ToastNotification {
             message: message.clone(),
@@ -71,12 +105,14 @@ impl<'a> NotificationManager<'a> {
         log_persistence::save_notification_log(&self.notification_log);
     }
 
+    /// Clear all notifications
     pub fn clear(&mut self) {
         self.notifications.clear();
     }
 
+    /// Tick down notification timers and remove expired ones
     pub fn tick(&mut self) {
-        for notification in &mut *self.notifications {
+        for notification in &mut self.notifications {
             if notification.timer > 0 {
                 notification.timer -= 1;
             }

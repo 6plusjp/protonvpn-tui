@@ -6,85 +6,28 @@ use crate::constants::state::PAGE_SIZE;
 use crate::constants::ui::{MAX_VISIBLE_NOTIFICATIONS, NOTIFICATION_TIMER_DEFAULT};
 use crate::state::async_tasks::{create_channel, AsyncResult, AsyncTaskManager};
 use crate::state::log_persistence;
+use crate::state::AsyncEvent;
+use crate::state::AsyncNotifier;
 use crate::state::ConnectionState;
+use crate::state::InputMode;
+use crate::state::Notification;
+use crate::state::NotificationType;
 use crate::state::Pane;
 use crate::state::ServerFilter;
 use crate::state::ServerSort;
 use crate::state::SortDirection;
+use crate::state::ToastNotification;
 use crate::ui::styles::Theme;
 use crate::vpn::Server;
 use crate::vpn::VpnClient;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::mpsc;
 use std::sync::Arc;
-use std::sync::Condvar;
-use std::sync::Mutex;
 use std::sync::RwLock;
 
 /// Async event types for event-driven notification
-#[derive(Debug, Clone)]
-pub enum AsyncEvent {
-    ServersRefreshed(Vec<Server>),
-    ServersRefreshFailed(String),
-    Connected(String, Option<String>),
-    ConnectFailed(String),
-    Disconnected,
-    DisconnectFailed(String),
-    CitiesLoaded(String, Vec<crate::vpn::City>),
-    ConnectCityResult(String, Option<String>),
-    ConnectCityFailed(String),
-}
-
 /// Notifier for async task completion (event-driven wakeup)
-pub struct AsyncNotifier {
-    pending: Mutex<Vec<AsyncEvent>>,
-    condvar: Condvar,
-}
-
-impl AsyncNotifier {
-    pub fn new() -> Self {
-        Self {
-            pending: Mutex::new(Vec::new()),
-            condvar: Condvar::new(),
-        }
-    }
-
-    pub fn notify(&self, event: AsyncEvent) {
-        let mut pending = self.pending.lock().unwrap();
-        pending.push(event);
-        self.condvar.notify_one();
-    }
-
-    pub fn try_recv_all(&self) -> Vec<AsyncEvent> {
-        let mut pending = self.pending.lock().unwrap();
-        pending.drain(..).collect()
-    }
-
-    pub fn wait_timeout(&self, duration: std::time::Duration) -> Vec<AsyncEvent> {
-        let guard = self.pending.lock().unwrap();
-        let (mut remaining, _timeout_result) = self.condvar.wait_timeout(guard, duration).unwrap();
-        remaining.drain(..).collect()
-    }
-}
-
-impl Default for AsyncNotifier {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// Input mode for text input
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum InputMode {
-    /// Normal navigation mode
-    #[default]
-    Normal,
-    /// Filter input mode (/)
-    Filter,
-    /// DNS input mode (for custom DNS)
-    DnsInput,
-}
 
 pub type ConnectResult = (String, Option<String>);
 pub type ConnectReceiver = mpsc::Receiver<AsyncResult<ConnectResult>>;
@@ -156,31 +99,6 @@ impl Navigatable for Option<usize> {
             None => 0,
         });
     }
-}
-
-/// Notification type for UI feedback
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum NotificationType {
-    Info,
-    Success,
-    Warning,
-    Error,
-}
-
-/// Notification popup (legacy - used for notification_log)
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Notification {
-    pub message: String,
-    pub notification_type: NotificationType,
-    pub timestamp: DateTime<Utc>,
-}
-
-/// Toast notification with individual timer for stacked display
-#[derive(Debug, Clone)]
-pub struct ToastNotification {
-    pub message: String,
-    pub notification_type: NotificationType,
-    pub timer: u16,
 }
 
 /// Main application state

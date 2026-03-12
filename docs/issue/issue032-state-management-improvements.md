@@ -111,6 +111,7 @@ To make future module extraction easier, added wrapper types:
 |------|------|---------|
 | `SearchQuery` | `ui_state.rs` | Encapsulates search_query + search_query_lower |
 | `NotificationManager` | `notifications.rs` | Handles notification state mutations |
+| `ServerCache` | `ui_state.rs` | Encapsulates filtered_servers_cache + version |
 
 **Benefits**:
 - Ensures related fields stay in sync (e.g., query + query_lower)
@@ -143,7 +144,7 @@ To make future module extraction easier, added wrapper types:
 | Medium | Encapsulate UI state fields (selected_*, pane_focus, current_view) | Medium | ✅ Done |
 | Low | Encapsulate settings/logs fields | Medium | ✅ Done |
 | Low | Module split - Type definitions | Low | ✅ Done (Phase 1) |
-| Low | Refactoring for extraction (SearchQuery, NotificationManager) | Low | ✅ Done |
+| Low | Refactoring for extraction (SearchQuery, NotificationManager, ServerCache) | Low | ✅ Done |
 | Low | Module split - Fields & Methods | High | ⏸️ Postponed (complexity) |
 
 ### Future Work Required

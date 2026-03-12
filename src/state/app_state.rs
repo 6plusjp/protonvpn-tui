@@ -18,6 +18,7 @@ use crate::state::ServerFilter;
 use crate::state::ServerSort;
 use crate::state::SortDirection;
 use crate::state::ToastNotification;
+use crate::state::UiState;
 use crate::ui::styles::Theme;
 use crate::vpn::Server;
 use crate::vpn::VpnClient;
@@ -130,22 +131,8 @@ pub struct AppState {
     pub(crate) current_cities: Vec<crate::vpn::City>,
     pub(crate) current_country_code: Option<String>,
 
-    // === UI State ( views から直接アクセス ) ===
-    pub current_view: crate::state::AppView,
-    pub selected_server: Option<usize>,
-    pub selected_city: Option<usize>,
-    pub pane_focus: Pane,
-    pub settings_selected: Option<usize>,
-    pub settings_expanded: bool,
-    pub settings_option_selected: usize,
-    pub logs_selected: Option<usize>,
-    pub search_query: SearchQuery,
-    pub filter: ServerFilter,
-    pub sort: ServerSort,
-    pub sort_direction: SortDirection,
-    pub is_dark_theme: bool,
-    pub input_mode: InputMode,
-    pub dns_input: String,
+    // === UI State (delegated to ui_state) ===
+    ui_state: UiState,
 
     // === Notification ===
     pub notifications: Vec<ToastNotification>,
@@ -168,24 +155,10 @@ impl AppState {
 
         Self {
             connection: ConnectionState::Disconnected,
-            current_view: crate::state::AppView::Servers,
-            search_query: SearchQuery::new(),
-            filter: ServerFilter::default(),
-            sort: ServerSort::default(),
-            sort_direction: SortDirection::default(),
-            is_dark_theme: true,
+            ui_state: UiState::new(),
             servers,
             current_cities: Vec::new(),
             current_country_code: None,
-            selected_server: Some(0),
-            selected_city: Some(0),
-            pane_focus: Pane::Countries,
-            settings_selected: Some(0),
-            settings_expanded: false,
-            settings_option_selected: 0,
-            logs_selected: Some(0),
-            input_mode: InputMode::Normal,
-            dns_input: String::new(),
             vpn_state,
             notifications: Vec::new(),
             notification_log: log_persistence::load_notification_log(),
@@ -206,7 +179,7 @@ impl AppState {
 
     /// Get current theme based on dark/light mode
     pub fn get_theme(&self) -> Theme {
-        if self.is_dark_theme {
+        if self.ui_state.is_dark_theme {
             Theme::dark()
         } else {
             Theme::light()
@@ -237,67 +210,115 @@ impl AppState {
 
     /// Get current view
     pub fn get_current_view(&self) -> crate::state::AppView {
-        self.current_view
+        self.ui_state.current_view
     }
 
     /// Set current view
     pub fn set_current_view(&mut self, view: crate::state::AppView) {
-        self.current_view = view;
+        self.ui_state.current_view = view;
     }
 
     /// Get current pane focus
     pub fn get_pane_focus(&self) -> Pane {
-        self.pane_focus
+        self.ui_state.pane_focus
     }
 
     /// Get selected server index
     pub fn get_selected_server(&self) -> Option<usize> {
-        self.selected_server
+        self.ui_state.selected_server
     }
 
     /// Get selected city index
     pub fn get_selected_city(&self) -> Option<usize> {
-        self.selected_city
+        self.ui_state.selected_city
     }
 
     /// Get settings selected index
     pub fn get_settings_selected(&self) -> Option<usize> {
-        self.settings_selected
+        self.ui_state.settings_selected
     }
 
     /// Get settings expanded state
     pub fn is_settings_expanded(&self) -> bool {
-        self.settings_expanded
+        self.ui_state.settings_expanded
     }
 
     /// Get settings option selected index
     pub fn get_settings_option_selected(&self) -> usize {
-        self.settings_option_selected
+        self.ui_state.settings_option_selected
     }
 
     /// Get logs selected index
     pub fn get_logs_selected(&self) -> Option<usize> {
-        self.logs_selected
+        self.ui_state.logs_selected
     }
 
     /// Set settings expanded state
     pub fn set_settings_expanded(&mut self, expanded: bool) {
-        self.settings_expanded = expanded;
+        self.ui_state.settings_expanded = expanded;
     }
 
     /// Set settings option selected index
     pub fn set_settings_option_selected(&mut self, index: usize) {
-        self.settings_option_selected = index;
+        self.ui_state.settings_option_selected = index;
     }
 
     /// Reset settings expanded and option selected
     pub fn reset_settings_selection(&mut self) {
-        self.settings_expanded = false;
-        self.settings_option_selected = 0;
+        self.ui_state.settings_expanded = false;
+        self.ui_state.settings_option_selected = 0;
+    }
+
+    // === Dark theme ===
+
+    pub fn is_dark_theme(&self) -> bool {
+        self.ui_state.is_dark_theme
+    }
+
+    pub fn set_is_dark_theme(&mut self, dark: bool) {
+        self.ui_state.is_dark_theme = dark;
+    }
+
+    // === Input mode ===
+
+    pub fn get_input_mode(&self) -> InputMode {
+        self.ui_state.input_mode
+    }
+
+    pub fn set_input_mode(&mut self, mode: InputMode) {
+        self.ui_state.input_mode = mode;
+    }
+
+    // === DNS input ===
+
+    pub fn get_dns_input(&self) -> &str {
+        &self.ui_state.dns_input
+    }
+
+    pub fn set_dns_input(&mut self, input: String) {
+        self.ui_state.dns_input = input;
+    }
+
+    pub fn clear_dns_input(&mut self) {
+        self.ui_state.dns_input.clear();
+    }
+
+    pub fn push_dns_char(&mut self, c: char) {
+        self.ui_state.dns_input.push(c);
+    }
+
+    pub fn pop_dns_char(&mut self) {
+        self.ui_state.dns_input.pop();
+    }
+
+    // === Search query ===
+
+    pub fn get_search_query(&self) -> &SearchQuery {
+        &self.ui_state.search_query
     }
 
     pub fn set_search_query(&mut self, query: String) {
-        self.search_query.set(query);
+        self.ui_state.search_query.set(query);
         self.invalidate_filtered_cache();
     }
 
@@ -305,7 +326,7 @@ impl AppState {
         self.servers = servers;
         self.invalidate_filtered_cache();
 
-        if let Some(idx) = self.selected_server {
+        if let Some(idx) = self.ui_state.selected_server {
             if let Some(server) = self.filtered_servers().get(idx) {
                 self.current_country_code = Some(server.id.clone());
                 self.fetch_cities(&server.id);
@@ -324,7 +345,7 @@ impl AppState {
     }
 
     pub fn switch_view(&mut self) {
-        self.current_view = self.current_view.next();
+        self.ui_state.current_view = self.ui_state.current_view.next();
     }
 
     pub fn show_notification(&mut self, message: String, notification_type: NotificationType) {
@@ -725,7 +746,7 @@ impl AppState {
             );
             return;
         }
-        let Some(idx) = self.selected_server else {
+        let Some(idx) = self.ui_state.selected_server else {
             self.show_notification("No server selected".to_string(), NotificationType::Error);
             return;
         };
@@ -833,7 +854,7 @@ impl AppState {
     }
 
     pub(crate) fn compute_filtered_servers(&self) -> Vec<Server> {
-        let query = &self.search_query.query_lower;
+        let query = &self.ui_state.search_query.query_lower;
 
         let connected_server_id = match &self.connection {
             ConnectionState::Connected { server, .. } => Some(server.clone()),
@@ -857,7 +878,7 @@ impl AppState {
                         .any(|c| c.name.to_lowercase().contains(q));
                     let matches_fuzzy = self.fuzzy_match(&servers, &server.country, q);
 
-                    match self.filter {
+                    match self.ui_state.filter {
                         ServerFilter::Id => matches_id || matches_fuzzy,
                         ServerFilter::Country => matches_country || matches_fuzzy,
                         ServerFilter::City => matches_city || matches_fuzzy,
@@ -867,7 +888,7 @@ impl AppState {
                 .collect()
         };
 
-        match (self.sort, self.sort_direction) {
+        match (self.ui_state.sort, self.ui_state.sort_direction) {
             (ServerSort::Id, SortDirection::Asc) => {
                 result.sort_by(|a, b| a.id.to_lowercase().cmp(&b.id.to_lowercase()))
             }
@@ -938,51 +959,55 @@ impl AppState {
     }
 
     pub fn cycle_filter(&mut self) {
-        self.filter = self.filter.next();
+        self.ui_state.filter = self.ui_state.filter.next();
         self.invalidate_filtered_cache();
     }
 
     pub fn cycle_sort(&mut self) {
-        self.sort_direction = self.sort_direction.toggle();
+        self.ui_state.sort_direction = self.ui_state.sort_direction.toggle();
         self.invalidate_filtered_cache();
     }
 
     pub fn cycle_sort_field(&mut self) {
-        self.sort = self.sort.next();
+        self.ui_state.sort = self.ui_state.sort.next();
         self.invalidate_filtered_cache();
     }
 
     pub fn set_filter(&mut self, filter: ServerFilter) {
-        self.filter = filter;
+        self.ui_state.filter = filter;
         self.invalidate_filtered_cache();
     }
 
     pub fn select_next(&mut self) {
-        let old_idx = self.selected_server;
-        self.selected_server.move_next(self.get_selection_bounds());
+        let old_idx = self.ui_state.selected_server;
+        self.ui_state
+            .selected_server
+            .move_next(self.get_selection_bounds());
 
-        if old_idx != self.selected_server {
+        if old_idx != self.ui_state.selected_server {
             self.switch_cities_to_selected();
         }
     }
 
     pub fn select_prev(&mut self) {
-        let old_idx = self.selected_server;
-        self.selected_server.move_prev(self.get_selection_bounds());
+        let old_idx = self.ui_state.selected_server;
+        self.ui_state
+            .selected_server
+            .move_prev(self.get_selection_bounds());
 
-        if old_idx != self.selected_server {
+        if old_idx != self.ui_state.selected_server {
             self.switch_cities_to_selected();
         }
     }
 
     fn switch_cities_to_selected(&mut self) {
-        if let Some(idx) = self.selected_server {
+        if let Some(idx) = self.ui_state.selected_server {
             if let Some(server) = self.filtered_servers().get(idx) {
                 let country_code = &server.id;
 
                 if self.current_country_code.as_deref() != Some(country_code) {
                     self.current_cities.clear();
-                    self.current_country_code = Some(country_code.clone());
+                    self.current_country_code = Some(country_code.to_string());
                     self.fetch_cities(country_code);
                 }
             }
@@ -1029,45 +1054,51 @@ impl AppState {
     }
 
     pub fn select_first(&mut self) {
-        let old_idx = self.selected_server;
-        self.selected_server.move_first(self.get_selection_bounds());
+        let old_idx = self.ui_state.selected_server;
+        self.ui_state
+            .selected_server
+            .move_first(self.get_selection_bounds());
 
-        if old_idx != self.selected_server {
+        if old_idx != self.ui_state.selected_server {
             self.switch_cities_to_selected();
         }
     }
 
     pub fn select_last(&mut self) {
-        let old_idx = self.selected_server;
-        self.selected_server.move_last(self.get_selection_bounds());
+        let old_idx = self.ui_state.selected_server;
+        self.ui_state
+            .selected_server
+            .move_last(self.get_selection_bounds());
 
-        if old_idx != self.selected_server {
+        if old_idx != self.ui_state.selected_server {
             self.switch_cities_to_selected();
         }
     }
 
     pub fn select_page_down(&mut self) {
-        let old_idx = self.selected_server;
-        self.selected_server
+        let old_idx = self.ui_state.selected_server;
+        self.ui_state
+            .selected_server
             .move_page_down(self.get_selection_bounds());
 
-        if old_idx != self.selected_server {
+        if old_idx != self.ui_state.selected_server {
             self.switch_cities_to_selected();
         }
     }
 
     pub fn select_page_up(&mut self) {
-        let old_idx = self.selected_server;
-        self.selected_server
+        let old_idx = self.ui_state.selected_server;
+        self.ui_state
+            .selected_server
             .move_page_up(self.get_selection_bounds());
 
-        if old_idx != self.selected_server {
+        if old_idx != self.ui_state.selected_server {
             self.switch_cities_to_selected();
         }
     }
 
     pub fn move_to_cities(&mut self) {
-        if let Some(idx) = self.selected_server {
+        if let Some(idx) = self.ui_state.selected_server {
             let servers = self.filtered_servers();
             if let Some(server) = servers.get(idx) {
                 self.current_cities.clear();
@@ -1075,57 +1106,59 @@ impl AppState {
                 self.fetch_cities(&server.id);
             }
         }
-        self.pane_focus = Pane::Cities;
+        self.ui_state.pane_focus = Pane::Cities;
     }
 
     pub fn move_to_countries(&mut self) {
-        self.pane_focus = Pane::Countries;
+        self.ui_state.pane_focus = Pane::Countries;
     }
 
     pub fn city_select_next(&mut self) {
         let bounds = self.current_cities.len();
         if bounds > 0 {
-            self.selected_city.move_next(bounds);
+            self.ui_state.selected_city.move_next(bounds);
         }
     }
 
     pub fn city_select_prev(&mut self) {
         let bounds = self.current_cities.len();
         if bounds > 0 {
-            self.selected_city.move_prev(bounds);
+            self.ui_state.selected_city.move_prev(bounds);
         }
     }
 
     pub fn city_select_first(&mut self) {
         let bounds = self.current_cities.len();
         if bounds > 0 {
-            self.selected_city.move_first(bounds);
+            self.ui_state.selected_city.move_first(bounds);
         }
     }
 
     pub fn city_select_last(&mut self) {
         let bounds = self.current_cities.len();
         if bounds > 0 {
-            self.selected_city.move_last(bounds);
+            self.ui_state.selected_city.move_last(bounds);
         }
     }
 
     pub fn city_select_page_down(&mut self) {
         let bounds = self.current_cities.len();
         if bounds > 0 {
-            self.selected_city.move_page_down(bounds);
+            self.ui_state.selected_city.move_page_down(bounds);
         }
     }
 
     pub fn city_select_page_up(&mut self) {
         let bounds = self.current_cities.len();
         if bounds > 0 {
-            self.selected_city.move_page_up(bounds);
+            self.ui_state.selected_city.move_page_up(bounds);
         }
     }
 
     fn get_selection_bounds(&self) -> usize {
-        if self.current_view == crate::state::AppView::Servers && self.pane_focus == Pane::Cities {
+        if self.ui_state.current_view == crate::state::AppView::Servers
+            && self.ui_state.pane_focus == Pane::Cities
+        {
             self.current_cities.len()
         } else {
             self.filtered_servers().len()
@@ -1134,73 +1167,73 @@ impl AppState {
 
     pub fn settings_select_next(&mut self) {
         let count = SettingKey::ALL.len();
-        self.settings_selected.move_next(count);
+        self.ui_state.settings_selected.move_next(count);
     }
 
     pub fn settings_select_prev(&mut self) {
         let count = SettingKey::ALL.len();
-        self.settings_selected.move_prev(count);
+        self.ui_state.settings_selected.move_prev(count);
     }
 
     pub fn settings_select_first(&mut self) {
         let count = SettingKey::ALL.len();
-        self.settings_selected.move_first(count);
+        self.ui_state.settings_selected.move_first(count);
     }
 
     pub fn settings_select_last(&mut self) {
         let count = SettingKey::ALL.len();
-        self.settings_selected.move_last(count);
+        self.ui_state.settings_selected.move_last(count);
     }
 
     pub fn settings_select_page_down(&mut self) {
         let count = SettingKey::ALL.len();
-        self.settings_selected.move_page_down(count);
+        self.ui_state.settings_selected.move_page_down(count);
     }
 
     pub fn settings_select_page_up(&mut self) {
         let count = SettingKey::ALL.len();
-        self.settings_selected.move_page_up(count);
+        self.ui_state.settings_selected.move_page_up(count);
     }
 
     pub fn logs_select_next(&mut self) {
         let bounds = self.notification_log.len();
         if bounds > 0 {
-            self.logs_selected.move_next(bounds);
+            self.ui_state.logs_selected.move_next(bounds);
         }
     }
 
     pub fn logs_select_prev(&mut self) {
         let bounds = self.notification_log.len();
         if bounds > 0 {
-            self.logs_selected.move_prev(bounds);
+            self.ui_state.logs_selected.move_prev(bounds);
         }
     }
 
     pub fn logs_select_first(&mut self) {
         let bounds = self.notification_log.len();
         if bounds > 0 {
-            self.logs_selected.move_first(bounds);
+            self.ui_state.logs_selected.move_first(bounds);
         }
     }
 
     pub fn logs_select_last(&mut self) {
         let bounds = self.notification_log.len();
         if bounds > 0 {
-            self.logs_selected.move_last(bounds);
+            self.ui_state.logs_selected.move_last(bounds);
         }
     }
 
     pub fn logs_select_page_down(&mut self) {
         let bounds = self.notification_log.len();
         if bounds > 0 {
-            self.logs_selected.move_page_down(bounds);
+            self.ui_state.logs_selected.move_page_down(bounds);
         }
     }
 
     pub fn logs_select_page_up(&mut self) {
         let bounds = self.notification_log.len();
         if bounds > 0 {
-            self.logs_selected.move_page_up(bounds);
+            self.ui_state.logs_selected.move_page_up(bounds);
         }
     }
 
@@ -1217,8 +1250,8 @@ impl AppState {
         };
 
         if key == SettingKey::Dns {
-            self.input_mode = InputMode::DnsInput;
-            self.dns_input = String::new();
+            self.ui_state.input_mode = InputMode::DnsInput;
+            self.ui_state.dns_input = String::new();
             self.show_notification(
                 "Enter DNS IPs (e.g., 1.1.1.1,9.9.9.9)".to_string(),
                 NotificationType::Info,
@@ -1227,15 +1260,23 @@ impl AppState {
         }
 
         if key == SettingKey::Theme {
-            self.is_dark_theme = !self.is_dark_theme;
+            self.ui_state.is_dark_theme = !self.ui_state.is_dark_theme;
             tracing::info!(
                 "Theme changed to {}",
-                if self.is_dark_theme { "Dark" } else { "Light" }
+                if self.ui_state.is_dark_theme {
+                    "Dark"
+                } else {
+                    "Light"
+                }
             );
             self.show_notification(
                 format!(
                     "Theme changed to {}",
-                    if self.is_dark_theme { "Dark" } else { "Light" }
+                    if self.ui_state.is_dark_theme {
+                        "Dark"
+                    } else {
+                        "Light"
+                    }
                 ),
                 NotificationType::Info,
             );
@@ -1431,7 +1472,7 @@ mod tests {
         setup();
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
-        state.search_query.set(String::new());
+        state.ui_state.search_query.set(String::new());
 
         let result = state.filtered_servers();
 
@@ -1443,8 +1484,8 @@ mod tests {
         setup();
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
-        state.search_query.set("jp".to_string());
-        state.filter = ServerFilter::Id;
+        state.ui_state.search_query.set("jp".to_string());
+        state.ui_state.filter = ServerFilter::Id;
 
         let result = state.filtered_servers();
 
@@ -1456,8 +1497,8 @@ mod tests {
     fn test_filtered_servers_by_country() {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
-        state.search_query.set("japan".to_string());
-        state.filter = ServerFilter::Country;
+        state.ui_state.search_query.set("japan".to_string());
+        state.ui_state.filter = ServerFilter::Country;
 
         let result = state.filtered_servers();
 
@@ -1469,8 +1510,8 @@ mod tests {
     fn test_filtered_servers_by_country_exact_match() {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
-        state.search_query.set("JP".to_string());
-        state.filter = ServerFilter::Country;
+        state.ui_state.search_query.set("JP".to_string());
+        state.ui_state.filter = ServerFilter::Country;
 
         let result = state.filtered_servers();
 
@@ -1482,8 +1523,8 @@ mod tests {
     fn test_filtered_servers_by_city() {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
-        state.search_query.set("tokyo".to_string());
-        state.filter = ServerFilter::City;
+        state.ui_state.search_query.set("tokyo".to_string());
+        state.ui_state.filter = ServerFilter::City;
 
         let result = state.filtered_servers();
 
@@ -1495,8 +1536,8 @@ mod tests {
     fn test_filtered_servers_case_insensitive() {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
-        state.search_query.set("JAPAN".to_string());
-        state.filter = ServerFilter::Country;
+        state.ui_state.search_query.set("JAPAN".to_string());
+        state.ui_state.filter = ServerFilter::Country;
 
         let result = state.filtered_servers();
 
@@ -1508,9 +1549,9 @@ mod tests {
     fn test_filtered_servers_sort_asc_by_id() {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
-        state.search_query.set(String::new());
-        state.sort = ServerSort::Id;
-        state.sort_direction = SortDirection::Asc;
+        state.ui_state.search_query.set(String::new());
+        state.ui_state.sort = ServerSort::Id;
+        state.ui_state.sort_direction = SortDirection::Asc;
 
         let result = state.filtered_servers();
 
@@ -1522,9 +1563,9 @@ mod tests {
     fn test_filtered_servers_sort_desc_by_id() {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
-        state.search_query.set(String::new());
-        state.sort = ServerSort::Id;
-        state.sort_direction = SortDirection::Desc;
+        state.ui_state.search_query.set(String::new());
+        state.ui_state.sort = ServerSort::Id;
+        state.ui_state.sort_direction = SortDirection::Desc;
 
         let result = state.filtered_servers();
 
@@ -1536,9 +1577,9 @@ mod tests {
     fn test_filtered_servers_sort_asc_by_country() {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
-        state.search_query.set(String::new());
-        state.sort = ServerSort::Country;
-        state.sort_direction = SortDirection::Asc;
+        state.ui_state.search_query.set(String::new());
+        state.ui_state.sort = ServerSort::Country;
+        state.ui_state.sort_direction = SortDirection::Asc;
 
         let result = state.filtered_servers();
 
@@ -1550,9 +1591,9 @@ mod tests {
     fn test_filtered_servers_sort_desc_by_country() {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
-        state.search_query.set(String::new());
-        state.sort = ServerSort::Country;
-        state.sort_direction = SortDirection::Desc;
+        state.ui_state.search_query.set(String::new());
+        state.ui_state.sort = ServerSort::Country;
+        state.ui_state.sort_direction = SortDirection::Desc;
 
         let result = state.filtered_servers();
 
@@ -1564,8 +1605,8 @@ mod tests {
     fn test_filtered_servers_multiple_matches() {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
-        state.search_query.set("u".to_string());
-        state.filter = ServerFilter::Country;
+        state.ui_state.search_query.set("u".to_string());
+        state.ui_state.filter = ServerFilter::Country;
 
         let result = state.filtered_servers();
 

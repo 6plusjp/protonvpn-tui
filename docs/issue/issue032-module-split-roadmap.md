@@ -1,0 +1,210 @@
+# Module Split Roadmap
+
+## Overview
+
+Split `AppState` (1687 lines) into focused modules by responsibility.
+
+```
+AppState (after split)
+├── Connection & Async (12 fields)  → Phase 2.4
+├── Server Data (5 fields)          → Phase 2.3
+├── UI State (16 fields)            → Phase 2.1 ✅ Done
+├── Notification (2 fields)         → Phase 2.2 ⏳
+└── Config (1 field)               → Phase 2.5 ⏳
+```
+
+---
+
+## Phase 2.1: UI State ✅ Done (2026-03-12)
+
+### Completed Work
+
+| Item | Status |
+|------|--------|
+| Target | `src/state/ui_state.rs` |
+| Added | `UiState` struct with 16 fields |
+| Added | 30+ getter/setter methods |
+| Added | `AppState.ui_state` field as delegation target |
+| Removed | Legacy fields from AppState (16 fields) |
+| Updated | app.rs to use getters/setters |
+| Updated | views to use getters |
+| Updated | tests to use ui_state delegation |
+| Complexity | **Done** |
+
+### Fields Moved to UiState
+- `current_view`, `selected_server`, `selected_city`, `pane_focus`
+- `settings_selected`, `settings_expanded`, `settings_option_selected`
+- `logs_selected`, `search_query`, `filter`, `sort`, `sort_direction`
+- `is_dark_theme`, `input_mode`, `dns_input`
+
+---
+
+## Phase 2.2: Notification State (Easiest)
+
+### Target Module
+`src/state/notifications.rs`
+
+### Fields to Move
+- `notifications: Vec<ToastNotification>`
+- `notification_log: Vec<Notification>`
+
+### Methods to Move
+- `show_notification()`
+- `clear_notifications()`
+- `tick_notifications()`
+
+### Existing Types
+- `NotificationType`
+- `Notification`
+- `ToastNotification`
+- `NotificationManager` (already extracted)
+
+### Approach
+1. Create `NotificationState` struct
+2. Add `notification_state: NotificationState` to `AppState`
+3. Add delegation methods to `AppState`
+4. Tests pass
+
+### Complexity
+**Low** - Types already in separate module
+
+---
+
+## Phase 2.3: Server Data State
+
+### Target Module
+New file: `src/state/server_data.rs`
+
+### Fields to Move
+- `servers: Vec<Server>`
+- `server_cache: ServerCache`
+- `is_initialized: bool`
+- `current_cities: Vec<City>`
+- `current_country_code: Option<String>`
+
+### Methods to Move
+- `filtered_servers()`
+- `compute_filtered_servers()`
+- `set_servers()`
+- `invalidate_filtered_cache()`
+- `fetch_cities()`
+- `reload_cities()`
+- `switch_cities_to_selected()`
+
+### Dependencies
+- `vpn_state` (Arc<VpnClient>) - needs reference
+- `connection` - for connected server highlighting
+- `search_query`, `filter`, `sort`, `sort_direction` - for filtering
+
+### Approach
+1. Create `ServerDataState` struct (includes cache)
+2. Add `server_data: ServerDataState` to `AppState`
+3. Add delegation methods to `AppState`
+4. Tests pass
+
+### Complexity
+**Medium** - Cache and filter/sort coupling
+
+---
+
+## Phase 2.4: Connection State
+
+### Target Module
+`src/state/connection.rs` (expand existing)
+
+### Fields to Move
+- `connection: ConnectionState`
+- `previous_connection: Option<ConnectionState>`
+- `async_manager: AsyncTaskManager`
+- `async_notifier: Arc<AsyncNotifier>`
+- `pending_refresh: Option<ServerReceiver>`
+- `pending_connect: Option<ConnectReceiver>`
+- `pending_disconnect: Option<DisconnectReceiver>`
+- `pending_cities: HashMap<String, CitiesReceiver>`
+- `pending_connect_city: Option<ConnectReceiver>`
+- `pending_config_set: Option<ConfigReceiver>`
+
+### Methods to Move
+- `connect()`
+- `connect_random()`
+- `connect_city()`
+- `disconnect()`
+- `refresh_servers()`
+- `sync_connection_state()`
+- `process_async_events()`
+- `wait_for_async_events()`
+
+### Existing Types
+- `AsyncEvent`
+- `AsyncNotifier`
+- `ConnectionState`
+
+### Approach
+1. Create `ConnectionManager` struct (includes async_manager, notifier)
+2. Add `connection_manager: ConnectionManager` to `AppState`
+3. Add delegation methods to `AppState`
+4. Tests pass
+
+### Complexity
+**High** - Deep coupling with VPN operations
+
+---
+
+## Phase 2.5: Config State
+
+### Target Module
+New file: `src/state/config_state.rs`
+
+### Fields to Move
+- `proton_settings_cache: Option<ProtonSettings>`
+
+### Methods to Move
+- `get_proton_settings()`
+- `get_proton_protocol()`
+- `clear_settings_cache()`
+
+### Dependencies
+- `vpn_state` - for settings operations
+
+### Approach
+1. Create `ConfigState` struct
+2. Add `config_state: ConfigState` to `AppState`
+3. Add delegation methods to `AppState`
+4. Tests pass
+
+### Complexity
+**Low** - Can load independently
+
+---
+
+## Execution Order
+
+```
+Phase 2.2 (Low)  ─┐
+Phase 2.5 (Low)  ─┼─> Parallel possible
+                  │
+Phase 2.3 (Med) ──┤
+                  │
+Phase 2.4 (High) ┘
+```
+
+---
+
+## Principles
+
+1. **Backward Compatibility**: Add new struct field to AppState, keep legacy fields
+2. **Delegation Pattern**: AppState delegates to sub-state structs
+3. **Incremental Migration**: Each phase maintains working state
+4. **Tests First**: Run tests after each phase
+
+---
+
+## Progress Tracking
+
+| Phase | Complexity | Status | Notes |
+|-------|------------|--------|-------|
+| 2.1 UI State | Medium | ✅ Done | 16 fields moved to UiState |
+| 2.2 Notification | Low | ⏳ Pending | 2 fields to move |
+| 2.3 Server Data | Medium | ⏳ Pending | 5 fields + methods |
+| 2.4 Connection | High | ⏳ Pending | 12 fields + async |
+| 2.5 Config | Low | ⏳ Pending | 1 field + methods |

@@ -18,10 +18,19 @@ This issue covers structural problems with `AppState` and related state manageme
 
 - [x] `previous_connection` field - Already implemented and used for connection rollback on failure
 - [x] Add AppState Unit Tests (58 tests for Navigatable, ConnectionState)
+- [x] **Phase 2.1: UI State Delegation** (2026-03-12)
+  - [x] UiState struct added to ui_state.rs with all UI fields (16 fields)
+  - [x] AppState.ui_state field added as delegation target
+  - [x] All getters/setters for UI fields
+  - [x] Updated app.rs and views to use getters/setters
+  - [x] Updated tests to use ui_state delegation
 
 ### Not Implemented
 
-- [ ] Encapsulate AppState fields (getter/setter) - incremental approach
+- [ ] Phase 2.2: Notification state delegation
+- [ ] Phase 2.3: Server data state delegation
+- [ ] Phase 2.4: Connection state delegation
+- [ ] Phase 2.5: Config state delegation
 
 ---
 
@@ -126,6 +135,11 @@ To make future module extraction easier, added wrapper types:
 - Moving fields requires moving all methods that use them
 - Risk of breaking existing functionality
 
+**Current state**: Foundation added (2026-03-12)
+- Added `UiState` struct to `ui_state.rs` with all UI fields
+- Added `ui_state: UiState` field to `AppState` as delegation target
+- This enables future extraction without breaking changes
+
 **Current state**: 82 lines reduced (1817 → 1735), types organized into modules
 
 #### Phase 3: Move methods (POSTPONED)
@@ -145,6 +159,7 @@ To make future module extraction easier, added wrapper types:
 | Low | Encapsulate settings/logs fields | Medium | ✅ Done |
 | Low | Module split - Type definitions | Low | ✅ Done (Phase 1) |
 | Low | Refactoring for extraction (SearchQuery, NotificationManager, ServerCache) | Low | ✅ Done |
+| Low | Module split - UiState foundation | Low | ✅ Done (2026-03-12) |
 | Low | Module split - Fields & Methods | High | ⏸️ Postponed (complexity) |
 
 ### Future Work Required

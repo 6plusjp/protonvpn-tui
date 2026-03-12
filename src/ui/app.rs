@@ -53,7 +53,7 @@ impl TuiApp {
     }
 
     pub fn get_theme(&self) -> Theme {
-        if self.state.is_dark_theme {
+        if self.state.is_dark_theme() {
             Theme::dark()
         } else {
             Theme::light()
@@ -116,7 +116,7 @@ impl TuiApp {
     }
 
     fn handle_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
-        if self.filter_mode || self.state.input_mode == InputMode::DnsInput {
+        if self.filter_mode || self.state.get_input_mode() == InputMode::DnsInput {
             return self.handle_filter_input(key_event);
         }
 
@@ -142,11 +142,11 @@ impl TuiApp {
             }
             KeyCode::Char('/') => {
                 self.filter_mode = true;
-                self.filter_input = self.state.search_query.query.clone();
+                self.filter_input = self.state.get_search_query().query.clone();
                 None
             }
             KeyCode::Esc => {
-                if !self.state.search_query.is_empty() {
+                if !self.state.get_search_query().is_empty() {
                     self.state.set_search_query(String::new());
                     self.filter_input.clear();
                 }
@@ -353,8 +353,8 @@ impl TuiApp {
 
                     if key == SettingKey::Dns {
                         self.state.set_settings_expanded(false);
-                        self.state.input_mode = InputMode::DnsInput;
-                        self.state.dns_input = String::new();
+                        self.state.set_input_mode(InputMode::DnsInput);
+                        self.state.set_dns_input(String::new());
                         self.state.show_notification(
                             "Enter DNS IPs (e.g., 1.1.1.1,9.9.9.9)".to_string(),
                             crate::state::NotificationType::Info,
@@ -364,11 +364,11 @@ impl TuiApp {
 
                     if key == SettingKey::Theme {
                         self.state.set_settings_expanded(false);
-                        self.state.is_dark_theme = !self.state.is_dark_theme;
+                        self.state.set_is_dark_theme(!self.state.is_dark_theme());
                         self.state.show_notification(
                             format!(
                                 "Theme changed to {}",
-                                if self.state.is_dark_theme {
+                                if self.state.is_dark_theme() {
                                     "Dark"
                                 } else {
                                     "Light"
@@ -557,7 +557,7 @@ impl TuiApp {
     }
 
     fn handle_filter_input(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
-        let is_dns_input = self.state.input_mode == InputMode::DnsInput;
+        let is_dns_input = self.state.get_input_mode() == InputMode::DnsInput;
 
         match key_event.code {
             KeyCode::Esc => {
@@ -565,16 +565,16 @@ impl TuiApp {
                 self.filter_input.clear();
                 self.state.set_search_query(String::new());
                 if is_dns_input {
-                    self.state.input_mode = InputMode::Normal;
-                    self.state.dns_input.clear();
+                    self.state.set_input_mode(InputMode::Normal);
+                    self.state.clear_dns_input();
                 }
                 None
             }
             KeyCode::Enter => {
                 if is_dns_input {
-                    let dns_ips = self.state.dns_input.clone();
-                    self.state.dns_input.clear();
-                    self.state.input_mode = InputMode::Normal;
+                    let dns_ips = self.state.get_dns_input().to_string();
+                    self.state.clear_dns_input();
+                    self.state.set_input_mode(InputMode::Normal);
                     if !dns_ips.is_empty() {
                         self.state.apply_dns_setting(&dns_ips);
                     }
@@ -586,7 +586,7 @@ impl TuiApp {
             }
             KeyCode::Backspace => {
                 if is_dns_input {
-                    self.state.dns_input.pop();
+                    self.state.pop_dns_char();
                 } else {
                     self.filter_input.pop();
                     self.state.set_search_query(self.filter_input.clone());
@@ -595,7 +595,7 @@ impl TuiApp {
             }
             KeyCode::Char(c) => {
                 if is_dns_input {
-                    self.state.dns_input.push(c);
+                    self.state.push_dns_char(c);
                 } else {
                     self.filter_input.push(c);
                     self.state.set_search_query(self.filter_input.clone());
@@ -616,9 +616,9 @@ impl TuiApp {
         );
 
         // Always show filter box between header and main view
-        let has_filter_active = !self.state.search_query.is_empty();
+        let has_filter_active = !self.state.get_search_query().is_empty();
 
-        if self.state.input_mode == InputMode::DnsInput {
+        if self.state.get_input_mode() == InputMode::DnsInput {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
@@ -670,7 +670,7 @@ impl TuiApp {
             (prompt, text, theme.primary, theme.foreground)
         } else if has_filter_active {
             let prompt = "filter: ";
-            let text = self.state.search_query.as_str();
+            let text = self.state.get_search_query().as_str();
             (prompt, text, theme.success, theme.success)
         } else {
             ("filter: ", "", theme.key_hint, theme.secondary)
@@ -711,11 +711,12 @@ impl TuiApp {
     fn render_dns_input(&self, f: &mut Frame<'_>, area: Rect) {
         let theme = self.get_theme();
         let prompt = "DNS IPs (comma-separated): ";
-        let input_display = format!("{}{}", prompt, self.state.dns_input);
-        let cursor = if self.state.dns_input.is_empty() {
+        let dns_input = self.state.get_dns_input();
+        let input_display = format!("{}{}", prompt, dns_input);
+        let cursor = if dns_input.is_empty() {
             prompt.len()
         } else {
-            prompt.len() + self.state.dns_input.len()
+            prompt.len() + dns_input.len()
         };
 
         let block = Block::default()

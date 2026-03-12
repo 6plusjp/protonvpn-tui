@@ -233,7 +233,7 @@ fn render_cities_pane(
         .iter()
         .enumerate()
         .map(|(idx, (city_name, features))| {
-            let is_selected = state.selected_city == Some(idx);
+            let is_selected = state.get_selected_city() == Some(idx);
 
             let style = if is_selected && is_focused {
                 Style::default()

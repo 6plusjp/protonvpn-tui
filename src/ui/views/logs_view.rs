@@ -18,7 +18,7 @@ pub fn render_logs_view(
     let theme = state.get_theme();
     let block = centered_block("Logs", &theme);
 
-    let logs = state.get_notification_log();
+    let logs = &state.notification_state.notification_log;
     if logs.is_empty() {
         let empty_list = List::new(vec![ListItem::new("No logs yet")])
             .block(block)
@@ -38,7 +38,7 @@ pub fn render_logs_view(
         .rev()
         .enumerate()
         .map(|(idx, n)| {
-            let selected = state.get_logs_selected().unwrap_or(0);
+            let selected = state.ui_state.logs_selected.unwrap_or(0);
             let is_selected = idx == selected;
             let (prefix, color) = match n.notification_type {
                 NotificationType::Info => ("  [INFO] ", theme.primary),
@@ -65,7 +65,8 @@ pub fn render_logs_view(
         .collect();
 
     let selected = state
-        .get_logs_selected()
+        .ui_state
+        .logs_selected
         .map(|idx| idx.min(items.len().saturating_sub(1)))
         .unwrap_or(0)
         .min(items.len().saturating_sub(1));

@@ -7,17 +7,14 @@ use crate::state::AsyncEvent;
 use crate::state::AsyncNotifier;
 use crate::state::ConnectionState;
 use crate::state::InputMode;
-use crate::state::Notification;
 use crate::state::NotificationState;
 use crate::state::NotificationType;
 use crate::state::Pane;
-use crate::state::SearchQuery;
 use crate::state::ServerCache;
 use crate::state::ServerDataState;
 use crate::state::ServerFilter;
 use crate::state::ServerSort;
 use crate::state::SortDirection;
-use crate::state::ToastNotification;
 use crate::state::UiState;
 use crate::ui::styles::Theme;
 use crate::vpn::Server;
@@ -132,13 +129,13 @@ pub struct AppState {
     pub(crate) current_country_code: Option<String>,
 
     // === Server Data (delegated to server_data) ===
-    server_data: ServerDataState,
+    pub server_data: ServerDataState,
 
     // === UI State (delegated to ui_state) ===
-    ui_state: UiState,
+    pub ui_state: UiState,
 
     // === Notification (delegated to notification_state) ===
-    notification_state: NotificationState,
+    pub notification_state: NotificationState,
 
     // === Config (独立してロード可能) ===
     proton_settings_cache: Option<ProtonSettings>,
@@ -235,49 +232,14 @@ impl AppState {
         self.process_async_events()
     }
 
-    /// Get current view
-    pub fn get_current_view(&self) -> crate::state::AppView {
-        self.ui_state.current_view
-    }
-
     /// Set current view
     pub fn set_current_view(&mut self, view: crate::state::AppView) {
         self.ui_state.current_view = view;
     }
 
-    /// Get current pane focus
-    pub fn get_pane_focus(&self) -> Pane {
-        self.ui_state.pane_focus
-    }
-
-    /// Get selected server index
-    pub fn get_selected_server(&self) -> Option<usize> {
-        self.ui_state.selected_server
-    }
-
-    /// Get selected city index
-    pub fn get_selected_city(&self) -> Option<usize> {
-        self.ui_state.selected_city
-    }
-
-    /// Get settings selected index
-    pub fn get_settings_selected(&self) -> Option<usize> {
-        self.ui_state.settings_selected
-    }
-
     /// Get settings expanded state
     pub fn is_settings_expanded(&self) -> bool {
         self.ui_state.settings_expanded
-    }
-
-    /// Get settings option selected index
-    pub fn get_settings_option_selected(&self) -> usize {
-        self.ui_state.settings_option_selected
-    }
-
-    /// Get logs selected index
-    pub fn get_logs_selected(&self) -> Option<usize> {
-        self.ui_state.logs_selected
     }
 
     /// Set settings expanded state
@@ -310,41 +272,17 @@ impl AppState {
 
     // === Input mode ===
 
-    pub fn get_input_mode(&self) -> InputMode {
-        self.ui_state.input_mode
-    }
-
     pub fn set_input_mode(&mut self, mode: InputMode) {
         self.ui_state.input_mode = mode;
     }
 
     // === DNS input ===
 
-    pub fn get_dns_input(&self) -> &str {
-        &self.ui_state.dns_input
-    }
-
     pub fn set_dns_input(&mut self, input: String) {
         self.ui_state.dns_input = input;
     }
 
-    pub fn clear_dns_input(&mut self) {
-        self.ui_state.dns_input.clear();
-    }
-
-    pub fn push_dns_char(&mut self, c: char) {
-        self.ui_state.dns_input.push(c);
-    }
-
-    pub fn pop_dns_char(&mut self) {
-        self.ui_state.dns_input.pop();
-    }
-
     // === Search query ===
-
-    pub fn get_search_query(&self) -> &SearchQuery {
-        &self.ui_state.search_query
-    }
 
     pub fn set_search_query(&mut self, query: String) {
         self.ui_state.search_query.set(query);
@@ -382,22 +320,8 @@ impl AppState {
         self.notification_state.show(message, notification_type);
     }
 
-    pub fn clear_notifications(&mut self) {
-        self.notification_state.notifications.clear();
-    }
-
     pub fn tick_notifications(&mut self) {
         self.notification_state.tick();
-    }
-
-    // === Getters for notification state (backward compatibility) ===
-
-    pub fn get_notifications(&self) -> &Vec<ToastNotification> {
-        &self.notification_state.notifications
-    }
-
-    pub fn get_notification_log(&self) -> &Vec<Notification> {
-        &self.notification_state.notification_log
     }
 
     /// Process async events notified via Condvar (event-driven)
@@ -1230,42 +1154,42 @@ impl AppState {
     }
 
     pub fn logs_select_next(&mut self) {
-        let bounds = self.get_notification_log().len();
+        let bounds = self.notification_state.notification_log.len();
         if bounds > 0 {
             self.ui_state.logs_selected.move_next(bounds);
         }
     }
 
     pub fn logs_select_prev(&mut self) {
-        let bounds = self.get_notification_log().len();
+        let bounds = self.notification_state.notification_log.len();
         if bounds > 0 {
             self.ui_state.logs_selected.move_prev(bounds);
         }
     }
 
     pub fn logs_select_first(&mut self) {
-        let bounds = self.get_notification_log().len();
+        let bounds = self.notification_state.notification_log.len();
         if bounds > 0 {
             self.ui_state.logs_selected.move_first(bounds);
         }
     }
 
     pub fn logs_select_last(&mut self) {
-        let bounds = self.get_notification_log().len();
+        let bounds = self.notification_state.notification_log.len();
         if bounds > 0 {
             self.ui_state.logs_selected.move_last(bounds);
         }
     }
 
     pub fn logs_select_page_down(&mut self) {
-        let bounds = self.get_notification_log().len();
+        let bounds = self.notification_state.notification_log.len();
         if bounds > 0 {
             self.ui_state.logs_selected.move_page_down(bounds);
         }
     }
 
     pub fn logs_select_page_up(&mut self) {
-        let bounds = self.get_notification_log().len();
+        let bounds = self.notification_state.notification_log.len();
         if bounds > 0 {
             self.ui_state.logs_selected.move_page_up(bounds);
         }
@@ -1674,7 +1598,7 @@ mod notification_tests {
         state.show_notification("Test 1".to_string(), NotificationType::Info);
         state.show_notification("Test 2".to_string(), NotificationType::Success);
 
-        assert_eq!(state.get_notifications().len(), 2);
+        assert_eq!(state.notification_state.notifications.len(), 2);
     }
 
     #[test]
@@ -1687,7 +1611,7 @@ mod notification_tests {
             state.tick_notifications();
         }
 
-        assert!(state.get_notifications().is_empty());
+        assert!(state.notification_state.notifications.is_empty());
     }
 
     #[test]
@@ -1699,9 +1623,10 @@ mod notification_tests {
 
         state.tick_notifications();
 
-        assert_eq!(state.get_notifications().len(), 2);
+        assert_eq!(state.notification_state.notifications.len(), 2);
         assert!(state
-            .get_notifications()
+            .notification_state
+            .notifications
             .iter()
             .all(|n| n.timer < NOTIFICATION_TIMER_DEFAULT));
     }
@@ -1714,17 +1639,20 @@ mod notification_tests {
             state.show_notification(format!("Msg {}", i), NotificationType::Info);
         }
 
-        assert_eq!(state.get_notifications().len(), 3);
+        assert_eq!(state.notification_state.notifications.len(), 3);
         assert!(state
-            .get_notifications()
+            .notification_state
+            .notifications
             .iter()
             .any(|n| n.message == "Msg 2"));
         assert!(state
-            .get_notifications()
+            .notification_state
+            .notifications
             .iter()
             .any(|n| n.message == "Msg 3"));
         assert!(state
-            .get_notifications()
+            .notification_state
+            .notifications
             .iter()
             .any(|n| n.message == "Msg 4"));
     }
@@ -1736,7 +1664,7 @@ mod notification_tests {
         state.show_notification("Msg 1".to_string(), NotificationType::Info);
         state.show_notification("Msg 2".to_string(), NotificationType::Error);
 
-        assert_eq!(state.get_notification_log().len(), 2);
+        assert_eq!(state.notification_state.notification_log.len(), 2);
     }
 
     #[test]
@@ -1746,10 +1674,10 @@ mod notification_tests {
         state.show_notification("Test".to_string(), NotificationType::Info);
         state.show_notification("Test 2".to_string(), NotificationType::Error);
 
-        state.clear_notifications();
+        state.notification_state.notifications.clear();
 
-        assert!(state.get_notifications().is_empty());
-        assert_eq!(state.get_notification_log().len(), 2);
+        assert!(state.notification_state.notifications.is_empty());
+        assert_eq!(state.notification_state.notification_log.len(), 2);
     }
 }
 

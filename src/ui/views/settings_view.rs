@@ -20,9 +20,9 @@ pub fn render_settings_view(
     let block = centered_block("Settings", &theme);
 
     let proton_settings = state.get_proton_settings();
-    let selected = state.get_settings_selected().unwrap_or(0);
-    let expanded = state.is_settings_expanded();
-    let option_selected = state.get_settings_option_selected();
+    let selected = state.ui_state.settings_selected.unwrap_or(0);
+    let expanded = state.ui_state.settings_expanded;
+    let option_selected = state.ui_state.settings_option_selected;
 
     let mut all_items: Vec<ListItem> = Vec::new();
 

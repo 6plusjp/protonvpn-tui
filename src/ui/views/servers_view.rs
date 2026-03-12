@@ -44,7 +44,7 @@ fn render_countries_pane(
         _ => None,
     };
 
-    let is_focused = state.get_pane_focus() == Pane::Countries;
+    let is_focused = state.ui_state.pane_focus == Pane::Countries;
 
     let max_country_len = servers
         .iter()
@@ -77,7 +77,7 @@ fn render_countries_pane(
         .iter()
         .enumerate()
         .map(|(idx, server)| {
-            let is_selected = state.get_selected_server() == Some(idx);
+            let is_selected = state.ui_state.selected_server == Some(idx);
             let is_connected = connected_server_id
                 .as_ref()
                 .map(|cid| cid.starts_with(&server.id) || server.id.starts_with(cid))
@@ -140,7 +140,7 @@ fn render_countries_pane(
         })
         .highlight_symbol("> ");
 
-    table_state.select(state.get_selected_server());
+    table_state.select(state.ui_state.selected_server);
     f.render_stateful_widget(table, area, table_state);
 }
 
@@ -152,7 +152,7 @@ fn render_cities_pane(
     theme: &Theme,
 ) {
     let cities_table = CitiesTable::table();
-    let is_focused = state.get_pane_focus() == Pane::Cities;
+    let is_focused = state.ui_state.pane_focus == Pane::Cities;
 
     let is_loading = state
         .pending_cities
@@ -226,14 +226,14 @@ fn render_cities_pane(
         return;
     }
 
-    let selected = state.get_selected_city();
+    let selected = state.ui_state.selected_city;
     table_state.select(selected);
 
     let rows: Vec<Row> = cities
         .iter()
         .enumerate()
         .map(|(idx, (city_name, features))| {
-            let is_selected = state.get_selected_city() == Some(idx);
+            let is_selected = state.ui_state.selected_city == Some(idx);
 
             let style = if is_selected && is_focused {
                 Style::default()

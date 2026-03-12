@@ -116,7 +116,7 @@ impl TuiApp {
     }
 
     fn handle_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
-        if self.filter_mode || self.state.get_input_mode() == InputMode::DnsInput {
+        if self.filter_mode || self.state.ui_state.input_mode == InputMode::DnsInput {
             return self.handle_filter_input(key_event);
         }
 
@@ -124,7 +124,7 @@ impl TuiApp {
             return Some(action);
         }
 
-        match self.state.get_current_view() {
+        match self.state.ui_state.current_view {
             AppView::Servers => self.handle_servers_key(key_event),
             AppView::Settings => self.handle_settings_key(key_event),
             AppView::Logs => self.handle_logs_key(key_event),
@@ -142,11 +142,11 @@ impl TuiApp {
             }
             KeyCode::Char('/') => {
                 self.filter_mode = true;
-                self.filter_input = self.state.get_search_query().query.clone();
+                self.filter_input = self.state.ui_state.search_query.query.clone();
                 None
             }
             KeyCode::Esc => {
-                if !self.state.get_search_query().is_empty() {
+                if !self.state.ui_state.search_query.is_empty() {
                     self.state.set_search_query(String::new());
                     self.filter_input.clear();
                 }
@@ -184,19 +184,19 @@ impl TuiApp {
                 None
             }
             KeyCode::Char('h') => {
-                if self.state.get_pane_focus() == Pane::Cities {
+                if self.state.ui_state.pane_focus == Pane::Cities {
                     self.state.move_to_countries();
                 }
                 None
             }
             KeyCode::Backspace => {
-                if self.state.get_pane_focus() == Pane::Cities {
+                if self.state.ui_state.pane_focus == Pane::Cities {
                     self.state.move_to_countries();
                 }
                 None
             }
             KeyCode::Enter => {
-                if self.state.get_pane_focus() == Pane::Cities {
+                if self.state.ui_state.pane_focus == Pane::Cities {
                     self.handle_connect();
                 } else {
                     self.state.move_to_cities();
@@ -236,7 +236,7 @@ impl TuiApp {
                 None
             }
             KeyCode::Char('r') => {
-                match self.state.get_pane_focus() {
+                match self.state.ui_state.pane_focus {
                     Pane::Cities => {
                         self.state.reload_cities();
                     }
@@ -307,7 +307,7 @@ impl TuiApp {
                 None
             }
             (false, KeyCode::Char(' ') | KeyCode::Char('t')) => {
-                if let Some(idx) = self.state.get_settings_selected() {
+                if let Some(idx) = self.state.ui_state.settings_selected {
                     self.state.toggle_settings(idx);
                 }
                 None
@@ -342,7 +342,7 @@ impl TuiApp {
             }
 
             (true, KeyCode::Enter) => {
-                if let Some(idx) = self.state.get_settings_selected() {
+                if let Some(idx) = self.state.ui_state.settings_selected {
                     let key = match SettingKey::from_index(idx) {
                         Some(k) => k,
                         None => {
@@ -379,7 +379,7 @@ impl TuiApp {
                         return None;
                     }
 
-                    let option_idx = self.state.get_settings_option_selected();
+                    let option_idx = self.state.ui_state.settings_option_selected;
                     if let Some((config_key, value)) = key.get_selectable_option_command(option_idx)
                     {
                         self.state.spawn_config_set(config_key, value);
@@ -397,11 +397,11 @@ impl TuiApp {
                 None
             }
             (true, KeyCode::Char('j') | KeyCode::Down) => {
-                if let Some(idx) = self.state.get_settings_selected() {
+                if let Some(idx) = self.state.ui_state.settings_selected {
                     if let Some(key) = SettingKey::from_index(idx) {
                         let opt_count = key.selectable_option_count();
                         self.state.set_settings_option_selected(
-                            (self.state.get_settings_option_selected() + 1)
+                            (self.state.ui_state.settings_option_selected + 1)
                                 .min(opt_count.saturating_sub(1)),
                         );
                     }
@@ -410,7 +410,10 @@ impl TuiApp {
             }
             (true, KeyCode::Char('k') | KeyCode::Up) => {
                 self.state.set_settings_option_selected(
-                    self.state.get_settings_option_selected().saturating_sub(1),
+                    self.state
+                        .ui_state
+                        .settings_option_selected
+                        .saturating_sub(1),
                 );
                 None
             }
@@ -455,7 +458,10 @@ impl TuiApp {
     }
 
     fn handle_navigation_down(&mut self) {
-        match (self.state.get_current_view(), self.state.get_pane_focus()) {
+        match (
+            self.state.ui_state.current_view,
+            self.state.ui_state.pane_focus,
+        ) {
             (AppView::Servers, Pane::Cities) => self.state.city_select_next(),
             (AppView::Servers, Pane::Countries) => self.state.select_next(),
             (AppView::Settings, _) => self.state.settings_select_next(),
@@ -466,7 +472,10 @@ impl TuiApp {
 
     fn handle_navigation_up(&mut self) {
         self.pending_g = false;
-        match (self.state.get_current_view(), self.state.get_pane_focus()) {
+        match (
+            self.state.ui_state.current_view,
+            self.state.ui_state.pane_focus,
+        ) {
             (AppView::Servers, Pane::Cities) => self.state.city_select_prev(),
             (AppView::Servers, Pane::Countries) => self.state.select_prev(),
             (AppView::Settings, _) => self.state.settings_select_prev(),
@@ -477,7 +486,10 @@ impl TuiApp {
 
     fn handle_page_down(&mut self) {
         self.pending_g = false;
-        match (self.state.get_current_view(), self.state.get_pane_focus()) {
+        match (
+            self.state.ui_state.current_view,
+            self.state.ui_state.pane_focus,
+        ) {
             (AppView::Servers, Pane::Cities) => self.state.city_select_page_down(),
             (AppView::Servers, Pane::Countries) => self.state.select_page_down(),
             (AppView::Settings, _) => self.state.settings_select_page_down(),
@@ -488,7 +500,10 @@ impl TuiApp {
 
     fn handle_page_up(&mut self) {
         self.pending_g = false;
-        match (self.state.get_current_view(), self.state.get_pane_focus()) {
+        match (
+            self.state.ui_state.current_view,
+            self.state.ui_state.pane_focus,
+        ) {
             (AppView::Servers, Pane::Cities) => self.state.city_select_page_up(),
             (AppView::Servers, Pane::Countries) => self.state.select_page_up(),
             (AppView::Settings, _) => self.state.settings_select_page_up(),
@@ -499,7 +514,10 @@ impl TuiApp {
 
     fn handle_go_to_first(&mut self) {
         if self.pending_g {
-            match (self.state.get_current_view(), self.state.get_pane_focus()) {
+            match (
+                self.state.ui_state.current_view,
+                self.state.ui_state.pane_focus,
+            ) {
                 (AppView::Servers, Pane::Cities) => self.state.city_select_first(),
                 (AppView::Servers, Pane::Countries) => self.state.select_first(),
                 (AppView::Settings, _) => self.state.settings_select_first(),
@@ -514,7 +532,10 @@ impl TuiApp {
 
     fn handle_go_to_last(&mut self) {
         self.pending_g = false;
-        match (self.state.get_current_view(), self.state.get_pane_focus()) {
+        match (
+            self.state.ui_state.current_view,
+            self.state.ui_state.pane_focus,
+        ) {
             (AppView::Servers, Pane::Cities) => self.state.city_select_last(),
             (AppView::Servers, Pane::Countries) => self.state.select_last(),
             (AppView::Settings, _) => self.state.settings_select_last(),
@@ -524,8 +545,8 @@ impl TuiApp {
     }
 
     fn handle_connect(&mut self) {
-        if self.state.get_pane_focus() == Pane::Cities {
-            if let Some(idx) = self.state.get_selected_city() {
+        if self.state.ui_state.pane_focus == Pane::Cities {
+            if let Some(idx) = self.state.ui_state.selected_city {
                 let city_name = self.state.current_cities.get(idx).map(|c| c.name.clone());
                 if let Some(name) = city_name {
                     self.state.connect_city(&name);
@@ -557,7 +578,7 @@ impl TuiApp {
     }
 
     fn handle_filter_input(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
-        let is_dns_input = self.state.get_input_mode() == InputMode::DnsInput;
+        let is_dns_input = self.state.ui_state.input_mode == InputMode::DnsInput;
 
         match key_event.code {
             KeyCode::Esc => {
@@ -566,14 +587,14 @@ impl TuiApp {
                 self.state.set_search_query(String::new());
                 if is_dns_input {
                     self.state.set_input_mode(InputMode::Normal);
-                    self.state.clear_dns_input();
+                    self.state.ui_state.dns_input.clear();
                 }
                 None
             }
             KeyCode::Enter => {
                 if is_dns_input {
-                    let dns_ips = self.state.get_dns_input().to_string();
-                    self.state.clear_dns_input();
+                    let dns_ips = self.state.ui_state.dns_input.to_string();
+                    self.state.ui_state.dns_input.clear();
                     self.state.set_input_mode(InputMode::Normal);
                     if !dns_ips.is_empty() {
                         self.state.apply_dns_setting(&dns_ips);
@@ -586,7 +607,7 @@ impl TuiApp {
             }
             KeyCode::Backspace => {
                 if is_dns_input {
-                    self.state.pop_dns_char();
+                    self.state.ui_state.dns_input.pop();
                 } else {
                     self.filter_input.pop();
                     self.state.set_search_query(self.filter_input.clone());
@@ -595,7 +616,7 @@ impl TuiApp {
             }
             KeyCode::Char(c) => {
                 if is_dns_input {
-                    self.state.push_dns_char(c);
+                    self.state.ui_state.dns_input.push(c);
                 } else {
                     self.filter_input.push(c);
                     self.state.set_search_query(self.filter_input.clone());
@@ -616,9 +637,9 @@ impl TuiApp {
         );
 
         // Always show filter box between header and main view
-        let has_filter_active = !self.state.get_search_query().is_empty();
+        let has_filter_active = !self.state.ui_state.search_query.is_empty();
 
-        if self.state.get_input_mode() == InputMode::DnsInput {
+        if self.state.ui_state.input_mode == InputMode::DnsInput {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
@@ -656,7 +677,7 @@ impl TuiApp {
         }
 
         // Render notification as popup last (on top)
-        if !self.state.get_notifications().is_empty() {
+        if !self.state.notification_state.notifications.is_empty() {
             self.render_notification_popup(f);
         }
     }
@@ -670,7 +691,7 @@ impl TuiApp {
             (prompt, text, theme.primary, theme.foreground)
         } else if has_filter_active {
             let prompt = "filter: ";
-            let text = self.state.get_search_query().as_str();
+            let text = self.state.ui_state.search_query.as_str();
             (prompt, text, theme.success, theme.success)
         } else {
             ("filter: ", "", theme.key_hint, theme.secondary)
@@ -711,7 +732,7 @@ impl TuiApp {
     fn render_dns_input(&self, f: &mut Frame<'_>, area: Rect) {
         let theme = self.get_theme();
         let prompt = "DNS IPs (comma-separated): ";
-        let dns_input = self.state.get_dns_input();
+        let dns_input = &self.state.ui_state.dns_input;
         let input_display = format!("{}{}", prompt, dns_input);
         let cursor = if dns_input.is_empty() {
             prompt.len()
@@ -766,7 +787,13 @@ impl TuiApp {
         let theme = self.get_theme();
         let terminal = f.size();
 
-        let notifications: Vec<_> = self.state.get_notifications().iter().rev().collect();
+        let notifications: Vec<_> = self
+            .state
+            .notification_state
+            .notifications
+            .iter()
+            .rev()
+            .collect();
 
         for (i, notification) in notifications.iter().enumerate() {
             let position_from_bottom = i;
@@ -900,7 +927,7 @@ impl TuiApp {
     }
 
     fn render_main(&mut self, f: &mut Frame<'_>, area: Rect) {
-        match self.state.get_current_view() {
+        match self.state.ui_state.current_view {
             AppView::Servers => views::servers_view::render_servers_view(
                 &mut self.state,
                 &mut self.countries_list_state,
@@ -948,7 +975,10 @@ impl TuiApp {
         let theme = self.get_theme();
         let is_disconnected = self.state.get_connection().is_disconnected();
 
-        match (self.state.get_current_view(), self.state.get_pane_focus()) {
+        match (
+            self.state.ui_state.current_view,
+            self.state.ui_state.pane_focus,
+        ) {
             (AppView::Servers, Pane::Countries) => {
                 let mut hints = vec![
                     Span::raw("["),

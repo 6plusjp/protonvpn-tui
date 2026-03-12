@@ -728,7 +728,7 @@ impl AppState {
                 .iter()
                 .filter(|server| {
                     let q = query.as_str();
-                    let matches_id = server.code.to_lowercase().contains(q);
+                    let matches_code = server.code.to_lowercase().contains(q);
                     let matches_country = server.country.to_lowercase().contains(q);
                     let matches_city = server
                         .cities
@@ -737,7 +737,7 @@ impl AppState {
                     let matches_fuzzy = self.fuzzy_match(&servers, &server.country, q);
 
                     match self.ui_state.filter {
-                        ServerFilter::Code => matches_id || matches_fuzzy,
+                        ServerFilter::Code => matches_code || matches_fuzzy,
                         ServerFilter::Country => matches_country || matches_fuzzy,
                         ServerFilter::City => matches_city || matches_fuzzy,
                     }

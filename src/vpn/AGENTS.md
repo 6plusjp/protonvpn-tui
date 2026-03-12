@@ -147,3 +147,34 @@ The `Mutex` belongs in `client.rs` because:
 ### Don't duplicate parsing logic
 
 If you need to parse CLI output, extend the existing functions in `types.rs` rather than creating new ones.
+
+### Don't use getter/setter patterns
+
+Rust provides direct field access. Don't add unnecessary methods:
+
+```rust
+// DON'T DO THIS
+pub struct MyStruct {
+    value: i32,
+}
+impl MyStruct {
+    pub fn get_value(&self) -> i32 { self.value }
+    pub fn set_value(&mut self, v: i32) { self.value = v }
+}
+
+// DO THIS INSTEAD
+pub struct MyStruct {
+    pub value: i32,  // Direct access
+}
+
+// OR if validation is needed:
+pub struct MyStruct {
+    value: i32,
+}
+impl MyStruct {
+    pub fn new(value: i32) -> Result<Self, Error> {
+        if value < 0 { return Err(Error::InvalidValue); }
+        Ok(MyStruct { value })
+    }
+}
+```

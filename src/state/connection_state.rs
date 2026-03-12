@@ -11,6 +11,8 @@ pub enum ConnectionState {
     Connected {
         server: String,
         ip: String,
+        city: Option<String>,
+        country: Option<String>,
     },
     Disconnecting,
     Error(String),

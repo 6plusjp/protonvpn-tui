@@ -246,7 +246,7 @@ impl AppState {
                     notification_shown = true;
                     self.connection_manager.pending_refresh = None;
                 }
-                AsyncEvent::Connected(server, ip) => {
+                AsyncEvent::Connected(server, ip, city, country) => {
                     self.show_notification(
                         format!("Connected to {}", &server),
                         NotificationType::Success,
@@ -255,6 +255,8 @@ impl AppState {
                     self.connection_manager.connection = ConnectionState::Connected {
                         server,
                         ip: ip.unwrap_or_default(),
+                        city,
+                        country,
                     };
                     self.connection_manager.previous_connection = None;
                     self.connection_manager.pending_connect = None;
@@ -297,14 +299,16 @@ impl AppState {
                 AsyncEvent::CitiesLoaded(_, _) => {
                     // Handled by pending_cities try_recv in sync_connection_state
                 }
-                AsyncEvent::ConnectCityResult(city, ip) => {
+                AsyncEvent::ConnectCityResult(server, ip, city, country) => {
                     self.show_notification(
-                        format!("Connected to {}", city),
+                        format!("Connected to {}", server),
                         NotificationType::Success,
                     );
                     self.connection_manager.connection = ConnectionState::Connected {
-                        server: city,
+                        server,
                         ip: ip.unwrap_or_default(),
+                        city,
+                        country,
                     };
                     self.connection_manager.previous_connection = None;
                     self.connection_manager.pending_connect_city = None;
@@ -378,7 +382,7 @@ impl AppState {
             if let Some(rx) = self.connection_manager.pending_connect.as_mut() {
                 if let Ok(result) = rx.try_recv() {
                     match result {
-                        Ok((server, ip)) => {
+                        Ok((server, ip, city, country)) => {
                             self.show_notification(
                                 format!("Connected to {}", &server),
                                 NotificationType::Success,
@@ -387,6 +391,8 @@ impl AppState {
                             self.connection_manager.connection = ConnectionState::Connected {
                                 server,
                                 ip: ip.unwrap_or_default(),
+                                city,
+                                country,
                             };
                             self.connection_manager.previous_connection = None;
                             self.connection_manager.pending_connect = None;
@@ -491,7 +497,7 @@ impl AppState {
         if let Some(rx) = self.connection_manager.pending_connect_city.as_mut() {
             if let Ok(result) = rx.try_recv() {
                 match result {
-                    Ok((server, ip)) => {
+                    Ok((server, ip, city, country)) => {
                         self.show_notification(
                             format!("Connected to {}", &server),
                             NotificationType::Success,
@@ -504,6 +510,8 @@ impl AppState {
                         self.connection_manager.connection = ConnectionState::Connected {
                             server,
                             ip: ip.unwrap_or_default(),
+                            city,
+                            country,
                         };
                         self.connection_manager.previous_connection = None;
                         self.connection_manager.pending_connect_city = None;
@@ -562,6 +570,8 @@ impl AppState {
             self.connection_manager.connection = ConnectionState::Connected {
                 server: "Unknown".to_string(),
                 ip: String::new(),
+                city: None,
+                country: None,
             };
         }
 

@@ -14,12 +14,12 @@ use crate::state::ConnectionState;
 pub enum AsyncEvent {
     ServersRefreshed(Vec<Server>),
     ServersRefreshFailed(String),
-    Connected(String, Option<String>),
+    Connected(String, Option<String>, Option<String>, Option<String>),
     ConnectFailed(String),
     Disconnected,
     DisconnectFailed(String),
     CitiesLoaded(String, Vec<crate::vpn::City>),
-    ConnectCityResult(String, Option<String>),
+    ConnectCityResult(String, Option<String>, Option<String>, Option<String>),
     ConnectCityFailed(String),
 }
 
@@ -62,7 +62,7 @@ impl Default for AsyncNotifier {
 }
 
 /// Receiver types for async operations
-pub type ConnectResult = (String, Option<String>);
+pub type ConnectResult = (String, Option<String>, Option<String>, Option<String>);
 pub type ConnectReceiver = std::sync::mpsc::Receiver<crate::state::AsyncResult<ConnectResult>>;
 pub type ServerReceiver = std::sync::mpsc::Receiver<crate::state::AsyncResult<Vec<Server>>>;
 pub type DisconnectReceiver = std::sync::mpsc::Receiver<crate::state::AsyncResult<()>>;

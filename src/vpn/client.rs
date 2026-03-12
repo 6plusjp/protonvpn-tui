@@ -110,7 +110,10 @@ impl VpnClient {
     }
 
     /// Connect to a server by country code
-    pub fn connect_country(&self, target: &str) -> AppResult<(String, Option<String>)> {
+    pub fn connect_country(
+        &self,
+        target: &str,
+    ) -> AppResult<(String, Option<String>, Option<String>, Option<String>)> {
         let output = Command::new(&self.cli_path)
             .args(["connect", "--country", target])
             .output()
@@ -122,7 +125,7 @@ impl VpnClient {
 
         self.check_cli_error(&output, &stdout, &stderr)?;
 
-        let (server_id, ip, _city, _country) = parse_connect_output(&stdout);
+        let (server_id, ip, city, country) = parse_connect_output(&stdout);
 
         let final_server = if !server_id.is_empty() {
             server_id
@@ -132,11 +135,13 @@ impl VpnClient {
         self.with_cache(|c| c.set_connected(final_server.clone(), ip.clone()))?;
         self.save_cache()?;
 
-        Ok((final_server, ip))
+        Ok((final_server, ip, city, country))
     }
 
     /// Connect to a random server
-    pub fn connect_random(&self) -> AppResult<(String, Option<String>)> {
+    pub fn connect_random(
+        &self,
+    ) -> AppResult<(String, Option<String>, Option<String>, Option<String>)> {
         let output = Command::new(&self.cli_path)
             .args(["connect", "--random"])
             .output()
@@ -148,7 +153,7 @@ impl VpnClient {
 
         self.check_cli_error(&output, &stdout, &stderr)?;
 
-        let (server_id, ip, _city, _country) = parse_connect_output(&stdout);
+        let (server_id, ip, city, country) = parse_connect_output(&stdout);
 
         let final_server = if !server_id.is_empty() {
             server_id
@@ -158,13 +163,16 @@ impl VpnClient {
         self.with_cache(|c| c.set_connected(final_server.clone(), ip.clone()))?;
         self.save_cache()?;
 
-        Ok((final_server, ip))
+        Ok((final_server, ip, city, country))
     }
 
     /// Connect to a server by city name
-    pub fn connect_city(&self, city: &str) -> AppResult<(String, Option<String>)> {
+    pub fn connect_city(
+        &self,
+        city_arg: &str,
+    ) -> AppResult<(String, Option<String>, Option<String>, Option<String>)> {
         let output = Command::new(&self.cli_path)
-            .args(["connect", "--city", city])
+            .args(["connect", "--city", city_arg])
             .output()
             .map_err(|e| {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
@@ -174,17 +182,17 @@ impl VpnClient {
 
         self.check_cli_error(&output, &stdout, &stderr)?;
 
-        let (server_id, ip, _city, _country) = parse_connect_output(&stdout);
+        let (server_id, ip, city, country) = parse_connect_output(&stdout);
 
         let final_server = if !server_id.is_empty() {
-            server_id
+            server_id.clone()
         } else {
-            city.to_string()
+            city.clone().unwrap_or_else(|| city_arg.to_string())
         };
         self.with_cache(|c| c.set_connected(final_server.clone(), ip.clone()))?;
         self.save_cache()?;
 
-        Ok((final_server, ip))
+        Ok((final_server, ip, city, country))
     }
 
     fn check_cli_error(

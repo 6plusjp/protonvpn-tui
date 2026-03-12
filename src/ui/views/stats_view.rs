@@ -37,10 +37,22 @@ pub fn render_stats_view(state: &mut crate::AppState, f: &mut Frame<'_>, area: R
         "Session Time: 00:00:00".to_string(),
     ]);
 
-    if let ConnectionState::Connected { ref server, ref ip } = state.connection_manager.connection {
+    if let ConnectionState::Connected {
+        ref server,
+        ref ip,
+        ref city,
+        ref country,
+    } = state.connection_manager.connection
+    {
         stats.push(format!("Server: {}", server));
         if !ip.is_empty() {
             stats.push(format!("IP: {}", ip));
+        }
+        if let Some(c) = city {
+            stats.push(format!("City: {}", c));
+        }
+        if let Some(c) = country {
+            stats.push(format!("Country: {}", c));
         }
     }
 

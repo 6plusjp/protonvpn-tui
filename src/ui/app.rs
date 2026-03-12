@@ -825,12 +825,25 @@ impl TuiApp {
                 crate::state::ConnectionState::Connecting => {
                     ("Connecting...".to_string(), theme.warning)
                 }
-                crate::state::ConnectionState::Connected { server, ip } => {
-                    let info = if ip.is_empty() {
-                        server.clone()
-                    } else {
-                        format!("{} ({})", server, ip)
+                crate::state::ConnectionState::Connected {
+                    server,
+                    ip,
+                    city,
+                    country,
+                } => {
+                    let mut info = server.clone();
+                    if !ip.is_empty() {
+                        info.push_str(&format!(" ip:{}", ip));
+                    }
+                    let loc = match (&city, &country) {
+                        (Some(c), Some(ct)) => format!("{},{}", c, ct),
+                        (Some(c), None) => c.clone(),
+                        (None, Some(ct)) => ct.clone(),
+                        (None, None) => String::new(),
                     };
+                    if !loc.is_empty() {
+                        info.push_str(&format!(" loc:{}", loc));
+                    }
                     (info, theme.success)
                 }
                 crate::state::ConnectionState::Disconnecting => {

@@ -1,13 +1,14 @@
 # issue030 - Startup Performance and UX Improvements
 
-## Status: Partially Implemented (2026-03-11)
+## Status: Partially Implemented (2026-03-12)
 
 ### Implemented
 
 - [x] Async initialization (non-blocking startup)
-- [x] Loading indicator on startup
+- [x] Loading indicator as popup overlay (with TUI background)
 - [x] `is_initialized` flag to track initialization state
 - [x] Error propagation to UI (errors shown via notification)
+- [x] Remove FALLBACK_COUNTRIES (error on CLI failure instead of fallback)
 
 ### Not Implemented
 
@@ -72,8 +73,9 @@ Instead of manually computing hash, leverage ratatui's built-in frame comparison
 
 ### 4. No Loading Indicator (Medium Priority) ✅ RESOLVED
 
-**Solution**: Added `render_loading()` function that shows centered "Loading servers..." message during initialization
+**Solution**: Added `render_loading()` function that shows popup overlay during initialization, while keeping the TUI background visible.
 
+**Before** (full screen replacement):
 ```
 ┌─────────────────────────────────┐
 │        ProtonVPN TUI            │
@@ -83,48 +85,59 @@ Instead of manually computing hash, leverage ratatui's built-in frame comparison
 └─────────────────────────────────┘
 ```
 
+**After** (popup overlay with TUI background):
+```
+┌─────────────────────────────────────────┐
+│  ● Disconnected              ProtonVPN │
+├─────────────────────────────────────────┤
+│  🔍 Search servers...                   │
+├─────────────────────────────────────────┤
+│                                         │
+│    ┌─ Loading ─────────┐                │
+│    │ ProtonVPN TUI    │                │
+│    │                   │                │
+│    │ Loading servers...│                │
+│    └───────────────────┘                │
+│                                         │
+├─────────────────────────────────────────┤
+│  ↑↓ navigate  c:connect  r:refresh      │
+└─────────────────────────────────────────┘
+```
+
+**Implementation Details**:
+- Removed early return in `render()` method
+- Render main TUI first, then overlay loading popup
+- Uses `Block::bordered()` with warning color border
+- Uses `Clear` widget to clear popup background
+
 ## Priority
 
 | Priority | Item | Effort | Status |
 |----------|------|--------|--------|
 | High | Async initialization with loading screen | Medium | ✅ Done |
 | Medium | Error propagation to UI | Low | ✅ Done |
-| Medium | Loading indicator on startup | Low | ✅ Done |
-| Medium | Remove redundant hardcoded countries list | Low | Pending |
+| Medium | Loading popup overlay with TUI background | Low | ✅ Done |
+| Medium | Remove redundant hardcoded countries list | Low | ✅ Done |
 | Low | Hash computation → ratatui auto-repaint | Low | Pending |
 
 ---
 
-## UX Redundancy: Loading Indicator vs Hardcoded Countries
-
-### Problem
-
-There are two mutually exclusive approaches for startup UX:
-
-1. **Loading Indicator**: Show "Loading..." → wait for data → display countries
-   - Pros: Always shows fresh data
-   - Cons: User sees nothing initially
-
-2. **Hardcoded Countries**: Show countries immediately from `FALLBACK_COUNTRIES`
-   - Pros: Instant display
-   - Cons: Data may be stale/outdated
-
-**Current State**: Both are implemented (redundant)
-- Loading indicator exists (`render_loading()`)
-- Hardcoded list exists (`FALLBACK_COUNTRIES` in cache.rs)
+## FALLBACK_COUNTRIES Removal (Completed)
 
 ### Decision
 
-Remove `FALLBACK_COUNTRIES` and rely on loading indicator only:
-- Simpler code (remove ~140 lines of hardcoded data)
+Removed `FALLBACK_COUNTRIES` and rely on loading indicator:
+- Simpler code (remove ~130 lines of hardcoded data)
 - Consistent UX (always load fresh data)
 - Works better with async initialization
+- CLI failure now shows error notification to user
 
 ### Implementation
 
-1. Remove `FALLBACK_COUNTRIES` from `src/vpn/cache.rs`
-2. Remove usage in `src/vpn/client.rs:refresh_countries()`
-3. Test: startup shows loading → then shows actual countries
+1. Removed `FALLBACK_COUNTRIES` from `src/vpn/cache.rs`
+2. Removed `use_fallback_countries()` from `src/vpn/client.rs`
+3. Changed `refresh_countries()` to return `AppError` on CLI failure
+4. CLI failure now displays error notification via async event system
 
 ## Implementation Impact
 
@@ -149,7 +162,9 @@ Remove `FALLBACK_COUNTRIES` and rely on loading indicator only:
 ## Files Changed
 
 - `src/state/app_state.rs`: Added `is_initialized` flag, updated sync logic
-- `src/ui/app.rs`: Added `render_loading()` function, updated render loop
+- `src/ui/app.rs`: Added `render_loading()` function, updated render loop for popup overlay
+- `src/vpn/cache.rs`: Removed `FALLBACK_COUNTRIES` constant (~130 lines)
+- `src/vpn/client.rs`: Changed `refresh_countries()` to return error instead of fallback
 
 ## References
 

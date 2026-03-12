@@ -646,12 +646,6 @@ impl TuiApp {
             area,
         );
 
-        // Show loading view during initialization
-        if !self.state.is_initialized {
-            self.render_loading(f, area, &theme);
-            return;
-        }
-
         // Always show filter box between header and main view
         let has_filter_active = !self.state.search_query.is_empty();
 
@@ -685,6 +679,11 @@ impl TuiApp {
             self.render_filter_input(f, chunks[1], has_filter_active);
             self.render_main(f, chunks[2]);
             self.render_footer(f, chunks[3]);
+        }
+
+        // Show loading popup overlay during initialization
+        if !self.state.is_initialized {
+            self.render_loading(f, area, &theme);
         }
 
         // Render notification as popup last (on top)
@@ -767,25 +766,29 @@ impl TuiApp {
     }
 
     fn render_loading(&self, f: &mut Frame<'_>, area: Rect, theme: &Theme) {
-        let loading_text = vec![
-            Line::from(""),
-            Line::from(""),
+        let lines = vec![
             Line::from("ProtonVPN TUI"),
             Line::from(""),
             Line::from("Loading servers..."),
-            Line::from(""),
         ];
 
-        let paragraph = Paragraph::new(loading_text)
+        let block = Block::bordered()
+            .title(" Loading ")
+            .border_style(Style::default().fg(theme.warning))
+            .style(Style::default().fg(theme.foreground).bg(theme.background));
+
+        let paragraph = Paragraph::new(lines)
+            .block(block)
             .alignment(ratatui::layout::Alignment::Center)
             .style(Style::default().fg(theme.foreground));
 
-        let width = 30u16;
-        let height = 6u16;
+        let width = 25u16;
+        let height = 5u16;
         let x = (area.width.saturating_sub(width)) / 2;
         let y = (area.height.saturating_sub(height)) / 2;
         let loading_area = Rect::new(x, y, width, height);
 
+        f.render_widget(Clear, loading_area);
         f.render_widget(paragraph, loading_area);
     }
 

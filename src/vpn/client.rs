@@ -280,7 +280,10 @@ impl VpnClient {
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             tracing::warn!("protonvpn countries failed: {}", stderr);
-            return self.use_fallback_countries();
+            return Err(AppError::ConfigError(format!(
+                "protonvpn countries command failed: {}",
+                stderr
+            )));
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -294,24 +297,6 @@ impl VpnClient {
         self.save_cache()?;
 
         Ok(countries)
-    }
-
-    fn use_fallback_countries(&self) -> AppResult<HashMap<String, String>> {
-        use super::cache::FALLBACK_COUNTRIES;
-
-        let fallback: HashMap<String, String> = FALLBACK_COUNTRIES
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
-
-        self.with_cache(|c| {
-            c.countries = fallback.clone();
-            c.cli_unavailable = true;
-        })?;
-        self.save_cache()?;
-
-        tracing::info!("Using fallback countries (CLI unavailable)");
-        Ok(fallback)
     }
 
     pub fn get_cached_cities(&self, country_code: &str) -> Option<Vec<City>> {

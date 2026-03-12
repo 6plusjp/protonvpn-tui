@@ -154,7 +154,7 @@ impl Default for AppState {
 impl AppState {
     pub fn new() -> Self {
         let vpn_state = Arc::new(VpnClient::new());
-        let servers = vpn_state.get_servers();
+        let servers = vpn_state.servers();
 
         Self {
             connection: ConnectionState::Disconnected,
@@ -589,7 +589,7 @@ impl AppState {
 
     pub fn refresh_servers(&mut self) {
         tracing::info!("Refreshing server list");
-        let cached = self.vpn_state.get_servers();
+        let cached = self.vpn_state.servers();
         if !cached.is_empty() {
             self.set_servers(cached);
         }
@@ -726,7 +726,7 @@ impl AppState {
         };
 
         // Always get servers from VPN state cache (includes cities)
-        let servers = self.vpn_state.get_servers();
+        let servers = self.vpn_state.servers();
         let mut result: Vec<Server> = if query.is_empty() {
             servers.clone()
         } else {
@@ -877,7 +877,7 @@ impl AppState {
     fn fetch_cities(&mut self, country_code: &str) {
         let country_code = country_code.to_string();
 
-        if let Some(cities) = self.vpn_state.get_cached_cities(&country_code) {
+        if let Some(cities) = self.vpn_state.cached_cities(&country_code) {
             self.current_cities = cities;
             return;
         }

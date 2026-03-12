@@ -108,18 +108,6 @@ mod vpn_connection {
     }
 
     #[test]
-    fn test_vpn_state_get_connected_server() {
-        let client = VpnClient::new();
-        let _ = client.get_connected_server();
-    }
-
-    #[test]
-    fn test_vpn_state_get_vpn_ip() {
-        let client = VpnClient::new();
-        let _ = client.get_vpn_ip();
-    }
-
-    #[test]
     fn test_vpn_state_matches_ip() {
         let client = VpnClient::new();
         assert!(!client.matches_ip("1.1.1.1"));

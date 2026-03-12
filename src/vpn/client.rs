@@ -88,16 +88,17 @@ impl VpnClient {
         cache_data.save(cache_path)
     }
 
-    /// Get currently connected server name
-    pub fn get_connected_server(&self) -> Option<String> {
-        self.with_cache(|c| c.connected_server.clone())
-            .ok()
-            .flatten()
-    }
-
-    /// Get VPN IP address if connected
-    pub fn get_vpn_ip(&self) -> Option<String> {
-        self.with_cache(|c| c.connected_ip.clone()).ok().flatten()
+    /// Get cached servers (non-refreshing)
+    pub fn servers(&self) -> Vec<Server> {
+        let countries = match self.with_cache(|c| c.countries.clone()) {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::debug!("Failed to get countries from cache: {}", e);
+                HashMap::new()
+            }
+        };
+        let cities = self.with_cache(|c| c.cities.clone()).unwrap_or_default();
+        countries_to_servers(&countries, &cities)
     }
 
     pub fn matches_ip(&self, ip: &str) -> bool {
@@ -299,7 +300,7 @@ impl VpnClient {
         Ok(countries)
     }
 
-    pub fn get_cached_cities(&self, country_code: &str) -> Option<Vec<City>> {
+    pub fn cached_cities(&self, country_code: &str) -> Option<Vec<City>> {
         let has_cached = self
             .with_cache(|c| c.cities.contains_key(country_code))
             .ok()?;

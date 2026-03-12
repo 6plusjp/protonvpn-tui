@@ -38,6 +38,7 @@ fn render_countries_pane(
     let countries_table = CountriesTable::table();
 
     let servers = state.filtered_servers();
+    let all_servers = state.vpn_state.servers();
 
     let connected_server_id = match &state.connection_manager.connection {
         ConnectionState::Connected { server, .. } => Some(server.clone()),
@@ -46,13 +47,12 @@ fn render_countries_pane(
 
     let is_focused = state.ui_state.pane_focus == Pane::Countries;
 
-    let max_country_len = servers
+    let max_country_len = all_servers
         .iter()
         .map(|s| s.country.len())
         .max()
-        .unwrap_or(0)
-        .max(8);
-    let max_cities_len = servers
+        .unwrap_or(22);
+    let max_cities_len = all_servers
         .iter()
         .map(|s| {
             if s.cities.is_empty() {
@@ -64,11 +64,7 @@ fn render_countries_pane(
         .max()
         .unwrap_or(1);
 
-    let dynamic_widths = [
-        4,
-        max_country_len.clamp(8, 15) + 2,
-        max_cities_len.clamp(8, 30) + 2,
-    ];
+    let dynamic_widths = [4, max_country_len, max_cities_len];
 
     let header_row = countries_table.header_row(&dynamic_widths);
     let widths = countries_table.column_widths(&dynamic_widths);
@@ -133,6 +129,7 @@ fn render_countries_pane(
     let table = Table::new(rows, widths)
         .header(header_row)
         .block(block)
+        .column_spacing(2)
         .highlight_style(if is_focused {
             Style::default()
                 .fg(theme.foreground)
@@ -188,8 +185,7 @@ fn render_cities_pane(
         .iter()
         .map(|c| c.name.len())
         .max()
-        .unwrap_or(0)
-        .max(8);
+        .unwrap_or(20);
     let max_features_len = state
         .current_cities
         .iter()
@@ -201,9 +197,8 @@ fn render_cities_pane(
             }
         })
         .max()
-        .unwrap_or(0)
-        .max(10);
-    let dynamic_widths = [max_city_len + 2, max_features_len.min(30) + 2];
+        .unwrap_or(8);
+    let dynamic_widths = [max_city_len, max_features_len];
 
     let header_row = cities_table.header_row(&dynamic_widths);
     let widths = cities_table.column_widths(&dynamic_widths);
@@ -265,6 +260,7 @@ fn render_cities_pane(
     let table = Table::new(rows, widths)
         .header(header_row)
         .block(block)
+        .column_spacing(2)
         .highlight_style(if is_focused {
             Style::default()
                 .fg(theme.foreground)

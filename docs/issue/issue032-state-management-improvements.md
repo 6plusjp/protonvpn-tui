@@ -131,6 +131,20 @@ src/state/
 | Low | Module split - Type definitions | Low | ✅ Done (Phase 1) |
 | Low | Module split - Fields & Methods | High | ⏸️ Postponed (complexity) |
 
+### Future Work Required
+
+Phase 2 (fields) and Phase 3 (methods) are still required but postponed due to complexity.
+
+**When to revisit**:
+- After other refactoring simplifies dependencies
+- When more time available for careful migration
+
+**Approach**:
+1. Move UI state fields first (lowest coupling)
+2. Then move notification fields
+3. Then server_data fields (most complex due to cache)
+4. Finally connection fields
+
 ---
 
 ## References

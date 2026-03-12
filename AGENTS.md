@@ -135,6 +135,7 @@ cargo test test_name
 - ❌ Speculate about unread code
 - ❌ Use `unwrap()` on `Option` or `Result` without justification
 - ❌ Skip `cargo check` before submitting changes
+- ❌ Use getter/setter patterns (e.g., `get_field()`, `set_field()`) — use `pub` fields or methods directly
 
 ### Do
 

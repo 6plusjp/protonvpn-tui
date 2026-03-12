@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum ServerFilter {
     #[default]
-    Id,
+    Code,
     Country,
     City,
 }
@@ -14,15 +14,15 @@ pub enum ServerFilter {
 impl ServerFilter {
     pub fn next(&self) -> Self {
         match self {
-            ServerFilter::Id => ServerFilter::Country,
+            ServerFilter::Code => ServerFilter::Country,
             ServerFilter::Country => ServerFilter::City,
-            ServerFilter::City => ServerFilter::Id,
+            ServerFilter::City => ServerFilter::Code,
         }
     }
 
     pub fn label(&self) -> &'static str {
         match self {
-            ServerFilter::Id => "ID",
+            ServerFilter::Code => "Code",
             ServerFilter::Country => "Country",
             ServerFilter::City => "City",
         }

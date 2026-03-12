@@ -737,7 +737,7 @@ impl AppState {
                     let matches_fuzzy = self.fuzzy_match(&servers, &server.country, q);
 
                     match self.ui_state.filter {
-                        ServerFilter::Id => matches_id || matches_fuzzy,
+                        ServerFilter::Code => matches_id || matches_fuzzy,
                         ServerFilter::Country => matches_country || matches_fuzzy,
                         ServerFilter::City => matches_city || matches_fuzzy,
                     }
@@ -747,10 +747,10 @@ impl AppState {
         };
 
         match (self.ui_state.sort, self.ui_state.sort_direction) {
-            (ServerSort::Id, SortDirection::Asc) => {
+            (ServerSort::Code, SortDirection::Asc) => {
                 result.sort_by(|a, b| a.code.to_lowercase().cmp(&b.code.to_lowercase()))
             }
-            (ServerSort::Id, SortDirection::Desc) => {
+            (ServerSort::Code, SortDirection::Desc) => {
                 result.sort_by(|a, b| b.code.to_lowercase().cmp(&a.code.to_lowercase()))
             }
             (ServerSort::Country, SortDirection::Asc) => {
@@ -763,10 +763,9 @@ impl AppState {
 
         if let Some(ref connected_id) = connected_server_id {
             if !connected_id.is_empty() {
-                if let Some(pos) = result
-                    .iter()
-                    .position(|s| connected_id.starts_with(&s.code) || s.code.starts_with(connected_id))
-                {
+                if let Some(pos) = result.iter().position(|s| {
+                    connected_id.starts_with(&s.code) || s.code.starts_with(connected_id)
+                }) {
                     let server = result.remove(pos);
                     result.insert(0, server);
                 }
@@ -1349,7 +1348,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
         state.ui_state.search_query.set("jp".to_string());
-        state.ui_state.filter = ServerFilter::Id;
+        state.ui_state.filter = ServerFilter::Code;
 
         let result = state.filtered_servers();
 
@@ -1414,7 +1413,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
         state.ui_state.search_query.set(String::new());
-        state.ui_state.sort = ServerSort::Id;
+        state.ui_state.sort = ServerSort::Code;
         state.ui_state.sort_direction = SortDirection::Asc;
 
         let result = state.filtered_servers();
@@ -1428,7 +1427,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
         state.ui_state.search_query.set(String::new());
-        state.ui_state.sort = ServerSort::Id;
+        state.ui_state.sort = ServerSort::Code;
         state.ui_state.sort_direction = SortDirection::Desc;
 
         let result = state.filtered_servers();

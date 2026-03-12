@@ -30,7 +30,7 @@ impl SortDirection {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum ServerSort {
     #[default]
-    Id,
+    Code,
     Country,
 }
 
@@ -38,14 +38,14 @@ impl ServerSort {
     /// Cycle through all sort combinations: Id+Asc → Id+Desc → Country+Asc → Country+Desc → Id+Asc
     pub fn next(&self) -> Self {
         match self {
-            ServerSort::Id => ServerSort::Country,
-            ServerSort::Country => ServerSort::Id,
+            ServerSort::Code => ServerSort::Country,
+            ServerSort::Country => ServerSort::Code,
         }
     }
 
     pub fn label(&self) -> &'static str {
         match self {
-            ServerSort::Id => "ID",
+            ServerSort::Code => "ID",
             ServerSort::Country => "Country",
         }
     }

@@ -6,12 +6,12 @@ mod server_filter {
     #[test]
     fn test_default_filter() {
         let filter = ServerFilter::default();
-        assert_eq!(filter, ServerFilter::Id);
+        assert_eq!(filter, ServerFilter::Code);
     }
 
     #[test]
     fn test_filter_next_id_to_country() {
-        let filter = ServerFilter::Id;
+        let filter = ServerFilter::Code;
         assert_eq!(filter.next(), ServerFilter::Country);
     }
 
@@ -24,13 +24,13 @@ mod server_filter {
     #[test]
     fn test_filter_next_city_to_id() {
         let filter = ServerFilter::City;
-        assert_eq!(filter.next(), ServerFilter::Id);
+        assert_eq!(filter.next(), ServerFilter::Code);
     }
 
     #[test]
-    fn test_filter_label_id() {
-        let filter = ServerFilter::Id;
-        assert_eq!(filter.label(), "ID");
+    fn test_filter_label_code() {
+        let filter = ServerFilter::Code;
+        assert_eq!(filter.label(), "Code");
     }
 
     #[test]
@@ -52,7 +52,7 @@ mod server_filter {
             let _next = filter.next();
             filter = filter.next();
         }
-        assert_eq!(filter, ServerFilter::Id);
+        assert_eq!(filter, ServerFilter::Code);
     }
 }
 
@@ -102,24 +102,24 @@ mod server_sort {
     #[test]
     fn test_default_sort() {
         let sort = ServerSort::default();
-        assert_eq!(sort, ServerSort::Id);
+        assert_eq!(sort, ServerSort::Code);
     }
 
     #[test]
     fn test_sort_next_id_to_country() {
-        let sort = ServerSort::Id;
+        let sort = ServerSort::Code;
         assert_eq!(sort.next(), ServerSort::Country);
     }
 
     #[test]
     fn test_sort_next_country_to_id() {
         let sort = ServerSort::Country;
-        assert_eq!(sort.next(), ServerSort::Id);
+        assert_eq!(sort.next(), ServerSort::Code);
     }
 
     #[test]
     fn test_label_id() {
-        let sort = ServerSort::Id;
+        let sort = ServerSort::Code;
         assert_eq!(sort.label(), "ID");
     }
 
@@ -135,7 +135,7 @@ mod server_sort {
         for _ in 0..2 {
             sort = sort.next();
         }
-        assert_eq!(sort, ServerSort::Id);
+        assert_eq!(sort, ServerSort::Code);
     }
 }
 

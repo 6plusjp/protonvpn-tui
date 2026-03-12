@@ -194,7 +194,7 @@ pub struct CountriesTable;
 impl CountriesTable {
     pub fn table() -> PaneTable {
         PaneTable::new("Countries").with_columns(vec![
-            Column::left("ID", 4),
+            Column::left("Code", 4),
             Column::left("Country", 0),
             Column::left("Cities", 0),
         ])

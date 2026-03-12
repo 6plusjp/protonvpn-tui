@@ -90,7 +90,12 @@ cities.dedup_by_key(|c| c.name.clone());
 
 Or use HashSet during parsing to preserve order while removing duplicates.
 
-### Status: PENDING
+### Status: FIXED
+
+Fix applied in `src/vpn/types.rs:parse_cities_with_features()`:
+- Remove duplicate cities (keep first occurrence)
+- Prefer non-empty features when duplicate exists (CLI bug workaround)
+- Preserve input order
 
 ---
 
@@ -145,5 +150,5 @@ Return error from cache loading or add user notification in the app initializati
 ## Priority
 
 1. **High** - Issue 1: City loading behavior is a core UX issue (FIXED)
-2. **Medium** - Issue 2: Duplication affects usability (PENDING)
+2. **Medium** - Issue 2: Duplication affects usability (FIXED)
 3. **Low** - Issue 3: Silent failure is a minor UX issue (app still works) (PENDING)

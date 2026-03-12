@@ -108,7 +108,7 @@ pub fn parse_countries(output: &str) -> HashMap<String, String> {
 
 /// Parse cities output with features from protonvpn CLI
 pub fn parse_cities_with_features(output: &str) -> Vec<City> {
-    let mut cities = Vec::new();
+    let mut cities: Vec<City> = Vec::new();
 
     for line in output.lines() {
         let line = line.trim();
@@ -116,19 +116,14 @@ pub fn parse_cities_with_features(output: &str) -> Vec<City> {
             continue;
         }
 
-        // Skip lines that don't start with a letter (e.g., "------")
         if !line.starts_with(|c: char| c.is_alphabetic()) {
             continue;
         }
 
-        // Skip header lines:
-        // - "Cities in United Arab Emirates:" (title line)
-        // - "City     Features" (column header - features is just "Features")
         if line.starts_with("Cities") || line.starts_with("City") {
             continue;
         }
 
-        // Skip update messages
         if line.starts_with("Server list") {
             continue;
         }
@@ -159,12 +154,18 @@ pub fn parse_cities_with_features(output: &str) -> Vec<City> {
             None => (line.to_string(), ""),
         };
 
-        // Features are comma-separated: "P2P, Secure Core" → ["P2P", "Secure Core"]
         let features: Vec<String> = features_str
             .split(',')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .collect();
+
+        if let Some(existing) = cities.iter_mut().find(|c| c.name == name) {
+            if !features.is_empty() && existing.features.is_empty() {
+                existing.features = features;
+            }
+            continue;
+        }
 
         cities.push(City::with_features(name, features));
     }
@@ -345,6 +346,36 @@ Japan               JP"#;
         let cities = parse_cities_with_features(output);
 
         assert!(cities.is_empty());
+    }
+
+    #[test]
+    fn test_parse_cities_with_duplicates() {
+        let output = "Cities in Canada:\n\
+            City       Features\n\
+            ---------  ----------\n\
+            Montreal   P2P\n\
+            Vancouver\n\
+            Montreal   P2P\n\
+            Toronto    P2P\n\
+            Vancouver  P2P\n\
+            Toronto    P2P\n\
+            Vancouver  P2P\n\
+            Toronto    P2P\n\
+            Vancouver  P2P\n\
+            Toronto    P2P\n\
+            Vancouver  P2P\n\
+            Montreal   P2P\n\
+            Toronto\n\
+            Vancouver";
+        let cities = parse_cities_with_features(output);
+
+        assert_eq!(cities.len(), 3);
+        assert_eq!(cities[0].name, "Montreal");
+        assert_eq!(cities[0].features, vec!["P2P"]);
+        assert_eq!(cities[1].name, "Vancouver");
+        assert_eq!(cities[1].features, vec!["P2P"]);
+        assert_eq!(cities[2].name, "Toronto");
+        assert_eq!(cities[2].features, vec!["P2P"]);
     }
 
     #[test]

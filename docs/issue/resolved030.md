@@ -1,6 +1,6 @@
 # issue030 - Startup Performance and UX Improvements
 
-## Status: Partially Implemented (2026-03-12)
+## Status: Completed (2026-03-12)
 
 ### Implemented
 
@@ -9,12 +9,8 @@
 - [x] `is_initialized` flag to track initialization state
 - [x] Error propagation to UI (errors shown via notification)
 - [x] Remove FALLBACK_COUNTRIES (error on CLI failure instead of fallback)
-
-### Not Implemented
-
-- [x] ~~Error propagation to UI~~ - Implemented via async event notifications
-- [x] ~~Dirty flag optimization~~ Hash computation replaced with ratatui's automatic repaint detection
-- [x] ~~Progress indicator (percentage)~~ - Basic loading text implemented; percentage not feasible
+- [x] Event-driven redraw (replace hash-based render)
+- [x] Always draw on first iteration to show loading screen
 
 ---
 
@@ -118,7 +114,8 @@ Instead of manually computing hash, leverage ratatui's built-in frame comparison
 | Medium | Error propagation to UI | Low | ✅ Done |
 | Medium | Loading popup overlay with TUI background | Low | ✅ Done |
 | Medium | Remove redundant hardcoded countries list | Low | ✅ Done |
-| Low | Hash computation → ratatui auto-repaint | Low | Pending |
+| Low | Hash computation → event-driven redraw | Low | ✅ Done |
+| Low | First render fix (always draw on init) | Low | ✅ Done |
 
 ---
 
@@ -139,30 +136,70 @@ Removed `FALLBACK_COUNTRIES` and rely on loading indicator:
 3. Changed `refresh_countries()` to return `AppError` on CLI failure
 4. CLI failure now displays error notification via async event system
 
-## Implementation Impact
+## Event-Driven Redraw (Completed)
 
-### Using ratatui Auto-Repaint
+### Decision
 
-**Benefits:**
-- Removes ~30 lines of hash computation code
-- Simpler render loop (no manual state tracking)
-- Ratatui handles frame diffing efficiently
+Replaced manual hash computation with event-driven redraw:
+- Simpler code (~30 lines less)
+- Uses existing async event infrastructure
+- More efficient - only redraws when state actually changes
 
-**Risks / Considerations:**
-- Behavior change: must test that UI still updates correctly when state changes
-- Some edge cases (e.g., animations) may need explicit `frame.request_repaint()`
-- Requires ratatui version that supports this feature
+### Before (hash-based):
+```rust
+let current_hash = self.compute_render_hash();
+if current_hash != self.last_render_hash {
+    terminal.draw(|f| self.render(f))?;
+    self.last_render_hash = current_hash;
+}
+```
 
-**Migration Steps:**
-1. Remove `last_render_hash: u64` field from `App` struct
-2. Remove `compute_render_hash()` method
-3. Simplify render loop to always draw (or use ratatui's built-in comparison)
-4. Test all views: servers, settings, logs, help
+### After (event-driven):
+```rust
+let async_processed = self.state.wait_for_async_events(timeout);
+let notification_shown = self.state.sync_connection_state();
+
+if async_processed || notification_shown {
+    terminal.draw(|f| self.render(f))?;
+}
+
+if event::poll(Duration::from_millis(0))? {
+    // handle keyboard input
+    terminal.draw(|f| self.render(f))?;
+}
+```
+
+### Implementation
+
+1. Removed `last_render_hash: u64` field from `TuiApp` struct
+2. Removed `compute_render_hash()` method (~30 lines)
+3. Simplified render loop to check `async_processed` and `notification_shown`
+4. Always redraw after keyboard input
+
+## First Render Fix (Completed)
+
+### Problem
+
+After removing hash-based render, the first loop iteration didn't draw because:
+- `async_processed = false` (no events yet)
+- `notification_shown = false` (no notifications yet)
+- No keyboard input → no draw
+
+### Solution
+
+Always draw on first iteration when `is_initialized = false`:
+
+```rust
+let is_first_render = self.state.is_initialized;
+if !is_first_render || async_processed || notification_shown {
+    terminal.draw(|f| self.render(f))?;
+}
+```
 
 ## Files Changed
 
 - `src/state/app_state.rs`: Added `is_initialized` flag, updated sync logic
-- `src/ui/app.rs`: Added `render_loading()` function, updated render loop for popup overlay
+- `src/ui/app.rs`: Added `render_loading()` function, event-driven render loop
 - `src/vpn/cache.rs`: Removed `FALLBACK_COUNTRIES` constant (~130 lines)
 - `src/vpn/client.rs`: Changed `refresh_countries()` to return error instead of fallback
 

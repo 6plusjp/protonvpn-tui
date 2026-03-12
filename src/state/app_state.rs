@@ -1,9 +1,7 @@
 //! Application state management
 
 use crate::config::{ProtonSettings, SettingKey};
-use crate::constants::state::MAX_NOTIFICATION_LOG;
 use crate::constants::state::PAGE_SIZE;
-use crate::constants::ui::{MAX_VISIBLE_NOTIFICATIONS, NOTIFICATION_TIMER_DEFAULT};
 use crate::state::async_tasks::{create_channel, AsyncResult, AsyncTaskManager};
 use crate::state::log_persistence;
 use crate::state::AsyncEvent;
@@ -11,6 +9,7 @@ use crate::state::AsyncNotifier;
 use crate::state::ConnectionState;
 use crate::state::InputMode;
 use crate::state::Notification;
+use crate::state::NotificationManager;
 use crate::state::NotificationType;
 use crate::state::Pane;
 use crate::state::ServerFilter;
@@ -20,7 +19,6 @@ use crate::state::ToastNotification;
 use crate::ui::styles::Theme;
 use crate::vpn::Server;
 use crate::vpn::VpnClient;
-use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::mpsc;
 use std::sync::Arc;
@@ -334,39 +332,21 @@ impl AppState {
     }
 
     pub fn show_notification(&mut self, message: String, notification_type: NotificationType) {
-        self.notifications.push(ToastNotification {
-            message: message.clone(),
-            notification_type,
-            timer: NOTIFICATION_TIMER_DEFAULT,
-        });
-
-        if self.notifications.len() > MAX_VISIBLE_NOTIFICATIONS {
-            self.notifications.remove(0);
-        }
-
-        self.notification_log.push(Notification {
-            message,
-            notification_type,
-            timestamp: Utc::now(),
-        });
-        if self.notification_log.len() > MAX_NOTIFICATION_LOG {
-            self.notification_log.remove(0);
-        }
-
-        log_persistence::save_notification_log(&self.notification_log);
+        let mut manager =
+            NotificationManager::new(&mut self.notifications, &mut self.notification_log);
+        manager.show(message, notification_type);
     }
 
     pub fn clear_notifications(&mut self) {
-        self.notifications.clear();
+        let mut manager =
+            NotificationManager::new(&mut self.notifications, &mut self.notification_log);
+        manager.clear();
     }
 
     pub fn tick_notifications(&mut self) {
-        for notification in &mut self.notifications {
-            if notification.timer > 0 {
-                notification.timer -= 1;
-            }
-        }
-        self.notifications.retain(|n| n.timer > 0);
+        let mut manager =
+            NotificationManager::new(&mut self.notifications, &mut self.notification_log);
+        manager.tick();
     }
 
     /// Process async events notified via Condvar (event-driven)

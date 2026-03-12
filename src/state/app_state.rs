@@ -2,10 +2,11 @@
 
 use crate::config::{ProtonSettings, SettingKey};
 use crate::constants::state::PAGE_SIZE;
-use crate::state::async_tasks::{create_channel, AsyncResult, AsyncTaskManager};
+use crate::state::async_tasks::{create_channel, AsyncTaskManager};
 use crate::state::AsyncEvent;
 use crate::state::AsyncNotifier;
 use crate::state::ConfigState;
+use crate::state::ConnectionManager;
 use crate::state::ConnectionState;
 use crate::state::InputMode;
 use crate::state::NotificationState;
@@ -17,21 +18,14 @@ use crate::state::ServerFilter;
 use crate::state::ServerSort;
 use crate::state::SortDirection;
 use crate::state::UiState;
+use crate::state::{
+    CitiesReceiver, ConfigReceiver, ConnectReceiver, DisconnectReceiver, ServerReceiver,
+};
 use crate::ui::styles::Theme;
 use crate::vpn::Server;
 use crate::vpn::VpnClient;
 use std::collections::HashMap;
-use std::sync::mpsc;
 use std::sync::Arc;
-
-/// Async event types for event-driven notification
-/// Notifier for async task completion (event-driven wakeup)
-pub type ConnectResult = (String, Option<String>);
-pub type ConnectReceiver = mpsc::Receiver<AsyncResult<ConnectResult>>;
-pub type ServerReceiver = mpsc::Receiver<AsyncResult<Vec<Server>>>;
-pub type DisconnectReceiver = mpsc::Receiver<AsyncResult<()>>;
-pub type CitiesReceiver = mpsc::Receiver<AsyncResult<Vec<crate::vpn::City>>>;
-pub type ConfigReceiver = mpsc::Receiver<AsyncResult<String>>;
 
 pub trait Navigatable {
     fn move_next(&mut self, bounds: usize);
@@ -107,7 +101,7 @@ impl Navigatable for Option<usize> {
 /// - Notification: User notifications and history
 /// - Config: Application settings cache
 pub struct AppState {
-    // === Connection & Async (深い結合) ===
+    // === Connection & Async (delegated to connection_manager) ===
     pub connection: ConnectionState,
     pub vpn_state: Arc<VpnClient>,
     previous_connection: Option<ConnectionState>,
@@ -120,6 +114,9 @@ pub struct AppState {
     pub(crate) pending_cities: HashMap<String, CitiesReceiver>,
     pending_connect_city: Option<ConnectReceiver>,
     pending_config_set: Option<ConfigReceiver>,
+
+    // === Connection Manager (delegation target) ===
+    pub connection_manager: ConnectionManager,
 
     // === Server Data ===
     pub(crate) servers: Vec<Server>,
@@ -166,6 +163,7 @@ impl AppState {
             vpn_state,
             notification_state: NotificationState::new(),
             config_state: ConfigState::new(),
+            connection_manager: ConnectionManager::new(),
             async_manager: AsyncTaskManager::new(),
             async_notifier: Arc::new(AsyncNotifier::new()),
             pending_refresh: None,

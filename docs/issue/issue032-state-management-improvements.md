@@ -53,7 +53,7 @@ This issue covers structural problems with `AppState` and related state manageme
 
 ### Not Implemented
 
-- [ ] Phase 2.4: Connection state delegation
+- [ ] Phase 2.4: Connection state delegation ✅ Done (2026-03-12) - Foundation only
 - [ ] Phase 2.5: Config state delegation ✅ Done (2026-03-12)
 
 ### Technical Notes
@@ -87,6 +87,7 @@ Getter/setter patterns removed per AGENTS.md coding standards. All fields access
 | `is_dark_theme` | `state.ui_state.is_dark_theme` |
 | `filter`, `sort` | `state.ui_state.filter`, `state.ui_state.sort` |
 | `proton_settings_cache` | `state.config_state.proton_settings_cache` |
+| `connection_manager` | `state.connection_manager` (10 async fields) |
 
 ### Previously Implemented
 

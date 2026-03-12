@@ -86,14 +86,14 @@ mod server {
     #[test]
     fn test_server_with_cities() {
         let server = Server {
-            id: "JP".to_string(),
+            code: "JP".to_string(),
             country: "Japan".to_string(),
             cities: vec![
                 VpnCity::new("Tokyo".to_string()),
                 VpnCity::new("Osaka".to_string()),
             ],
         };
-        assert_eq!(server.id, "JP");
+        assert_eq!(server.code, "JP");
         assert_eq!(server.country, "Japan");
         assert_eq!(server.cities.len(), 2);
     }
@@ -101,7 +101,7 @@ mod server {
     #[test]
     fn test_server_with_empty_cities() {
         let server = Server {
-            id: "XX".to_string(),
+            code: "XX".to_string(),
             country: "Unknown".to_string(),
             cities: vec![],
         };
@@ -111,12 +111,12 @@ mod server {
     #[test]
     fn test_server_clone() {
         let original = Server {
-            id: "JP".to_string(),
+            code: "JP".to_string(),
             country: "Japan".to_string(),
             cities: vec![VpnCity::new("Tokyo".to_string())],
         };
         let cloned = original.clone();
-        assert_eq!(original.id, cloned.id);
+        assert_eq!(original.code, cloned.code);
         assert_eq!(original.country, cloned.country);
         assert_eq!(original.cities, cloned.cities);
     }
@@ -124,7 +124,7 @@ mod server {
     #[test]
     fn test_server_serialize() {
         let server = Server {
-            id: "JP".to_string(),
+            code: "JP".to_string(),
             country: "Japan".to_string(),
             cities: vec![VpnCity::new("Tokyo".to_string())],
         };
@@ -136,9 +136,9 @@ mod server {
 
     #[test]
     fn test_server_deserialize() {
-        let json = r#"{"id":"US","country":"United States","cities":[{"name":"New York","features":[]},{"name":"Los Angeles","features":[]}]}"#;
+        let json = r#"{"code":"US","country":"United States","cities":[{"name":"New York","features":[]},{"name":"Los Angeles","features":[]}]}"#;
         let server: Server = serde_json::from_str(json).unwrap();
-        assert_eq!(server.id, "US");
+        assert_eq!(server.code, "US");
         assert_eq!(server.country, "United States");
         assert_eq!(server.cities.len(), 2);
     }
@@ -146,7 +146,7 @@ mod server {
     #[test]
     fn test_server_city_count() {
         let server = Server {
-            id: "JP".to_string(),
+            code: "JP".to_string(),
             country: "Japan".to_string(),
             cities: vec![
                 VpnCity::new("Tokyo".to_string()),

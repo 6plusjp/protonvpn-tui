@@ -50,7 +50,7 @@ mod server_cache {
     #[test]
     fn test_server_serialization_roundtrip() {
         let server = Server {
-            id: "JP".to_string(),
+            code: "JP".to_string(),
             country: "Japan".to_string(),
             cities: vec![City::new("Tokyo".to_string())],
         };
@@ -58,7 +58,7 @@ mod server_cache {
         let serialized = serde_json::to_string(&server).unwrap();
         let deserialized: Server = serde_json::from_str(&serialized).unwrap();
 
-        assert_eq!(server.id, deserialized.id);
+        assert_eq!(server.code, deserialized.code);
         assert_eq!(server.country, deserialized.country);
         assert_eq!(server.cities.len(), deserialized.cities.len());
     }
@@ -66,7 +66,7 @@ mod server_cache {
     #[test]
     fn test_server_multiple_cities_serialization() {
         let server = Server {
-            id: "JP".to_string(),
+            code: "JP".to_string(),
             country: "Japan".to_string(),
             cities: vec![
                 City::new("Tokyo".to_string()),

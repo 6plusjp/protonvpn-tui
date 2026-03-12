@@ -40,7 +40,7 @@ impl City {
 /// VPN server information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Server {
-    pub id: String,        // Country code (e.g., "JP", "US")
+    pub code: String,        // Country code (e.g., "JP", "US")
     pub country: String,   // Full country name
     pub cities: Vec<City>, // City information with features
 }

@@ -80,13 +80,13 @@ fn render_countries_pane(
             let is_selected = state.ui_state.selected_server == Some(idx);
             let is_connected = connected_server_id
                 .as_ref()
-                .map(|cid| cid.starts_with(&server.id) || server.id.starts_with(cid))
+                .map(|cid| cid.starts_with(&server.code) || server.code.starts_with(cid))
                 .unwrap_or(false);
 
             let is_loading_this = state
                 .connection_manager
                 .pending_cities
-                .contains_key(&server.id);
+                .contains_key(&server.code);
 
             let cities_str = if is_loading_this {
                 "◐".to_string()
@@ -119,7 +119,7 @@ fn render_countries_pane(
             };
 
             Row::new(vec![
-                Cell::from(server.id.clone()),
+                Cell::from(server.code.clone()),
                 Cell::from(server.country.clone()),
                 Cell::from(cities_str),
             ])

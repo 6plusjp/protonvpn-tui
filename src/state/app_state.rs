@@ -195,8 +195,8 @@ impl AppState {
 
         if let Some(idx) = self.ui_state.selected_server {
             if let Some(server) = self.filtered_servers().get(idx) {
-                self.current_country_code = Some(server.id.clone());
-                self.fetch_cities(&server.id);
+                self.current_country_code = Some(server.code.clone());
+                self.fetch_cities(&server.code);
             }
         }
     }
@@ -605,7 +605,7 @@ impl AppState {
                 return;
             }
         };
-        let server_id = server.id.clone();
+        let server_id = server.code.clone();
         let server_country = server.country.clone();
 
         tracing::info!("Connecting to server: {}", server_id);
@@ -728,7 +728,7 @@ impl AppState {
                 .iter()
                 .filter(|server| {
                     let q = query.as_str();
-                    let matches_id = server.id.to_lowercase().contains(q);
+                    let matches_id = server.code.to_lowercase().contains(q);
                     let matches_country = server.country.to_lowercase().contains(q);
                     let matches_city = server
                         .cities
@@ -748,10 +748,10 @@ impl AppState {
 
         match (self.ui_state.sort, self.ui_state.sort_direction) {
             (ServerSort::Id, SortDirection::Asc) => {
-                result.sort_by(|a, b| a.id.to_lowercase().cmp(&b.id.to_lowercase()))
+                result.sort_by(|a, b| a.code.to_lowercase().cmp(&b.code.to_lowercase()))
             }
             (ServerSort::Id, SortDirection::Desc) => {
-                result.sort_by(|a, b| b.id.to_lowercase().cmp(&a.id.to_lowercase()))
+                result.sort_by(|a, b| b.code.to_lowercase().cmp(&a.code.to_lowercase()))
             }
             (ServerSort::Country, SortDirection::Asc) => {
                 result.sort_by(|a, b| a.country.to_lowercase().cmp(&b.country.to_lowercase()))
@@ -765,7 +765,7 @@ impl AppState {
             if !connected_id.is_empty() {
                 if let Some(pos) = result
                     .iter()
-                    .position(|s| connected_id.starts_with(&s.id) || s.id.starts_with(connected_id))
+                    .position(|s| connected_id.starts_with(&s.code) || s.code.starts_with(connected_id))
                 {
                     let server = result.remove(pos);
                     result.insert(0, server);
@@ -799,7 +799,7 @@ impl AppState {
         }
 
         for server in servers {
-            if server.id.to_lowercase() == query {
+            if server.code.to_lowercase() == query {
                 variants.push(server.country.to_lowercase());
                 break;
             }
@@ -857,7 +857,7 @@ impl AppState {
     fn switch_cities_to_selected(&mut self) {
         if let Some(idx) = self.ui_state.selected_server {
             if let Some(server) = self.filtered_servers().get(idx) {
-                let country_code = &server.id;
+                let country_code = &server.code;
 
                 if self.current_country_code.as_deref() != Some(country_code) {
                     self.current_cities.clear();
@@ -966,8 +966,8 @@ impl AppState {
             let servers = self.filtered_servers();
             if let Some(server) = servers.get(idx) {
                 self.current_cities.clear();
-                self.current_country_code = Some(server.id.clone());
-                self.fetch_cities(&server.id);
+                self.current_country_code = Some(server.code.clone());
+                self.fetch_cities(&server.code);
             }
         }
         self.ui_state.pane_focus = Pane::Cities;
@@ -1301,7 +1301,7 @@ mod tests {
     fn make_servers() -> Vec<Server> {
         vec![
             Server {
-                id: "JP".to_string(),
+                code: "JP".to_string(),
                 country: "Japan".to_string(),
                 cities: vec![
                     City::new("Tokyo".to_string()),
@@ -1309,22 +1309,22 @@ mod tests {
                 ],
             },
             Server {
-                id: "US".to_string(),
+                code: "US".to_string(),
                 country: "United States".to_string(),
                 cities: vec![City::new("New York".to_string())],
             },
             Server {
-                id: "DE".to_string(),
+                code: "DE".to_string(),
                 country: "Germany".to_string(),
                 cities: vec![City::new("Berlin".to_string())],
             },
             Server {
-                id: "GB".to_string(),
+                code: "GB".to_string(),
                 country: "United Kingdom".to_string(),
                 cities: vec![City::new("London".to_string())],
             },
             Server {
-                id: "FR".to_string(),
+                code: "FR".to_string(),
                 country: "France".to_string(),
                 cities: vec![City::new("Paris".to_string())],
             },
@@ -1354,7 +1354,7 @@ mod tests {
         let result = state.filtered_servers();
 
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].id, "JP");
+        assert_eq!(result[0].code, "JP");
     }
 
     #[test]
@@ -1380,7 +1380,7 @@ mod tests {
         let result = state.filtered_servers();
 
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].id, "JP");
+        assert_eq!(result[0].code, "JP");
     }
 
     #[test]
@@ -1419,8 +1419,8 @@ mod tests {
 
         let result = state.filtered_servers();
 
-        assert_eq!(result[0].id, "DE");
-        assert_eq!(result[4].id, "US");
+        assert_eq!(result[0].code, "DE");
+        assert_eq!(result[4].code, "US");
     }
 
     #[test]
@@ -1433,8 +1433,8 @@ mod tests {
 
         let result = state.filtered_servers();
 
-        assert_eq!(result[0].id, "US");
-        assert_eq!(result[4].id, "DE");
+        assert_eq!(result[0].code, "US");
+        assert_eq!(result[4].code, "DE");
     }
 
     #[test]

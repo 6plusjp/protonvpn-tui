@@ -486,9 +486,9 @@ impl VpnClient {
         let mut cities_map: HashMap<String, Vec<City>> = HashMap::new();
 
         for server in &servers {
-            countries.insert(server.id.clone(), server.country.clone());
+            countries.insert(server.code.clone(), server.country.clone());
             if !server.cities.is_empty() {
-                cities_map.insert(server.id.clone(), server.cities.clone());
+                cities_map.insert(server.code.clone(), server.cities.clone());
             }
         }
 

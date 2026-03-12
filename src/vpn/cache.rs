@@ -106,7 +106,7 @@ pub fn countries_to_servers(
     countries
         .iter()
         .map(|(id, country)| Server {
-            id: id.clone(),
+            code: id.clone(),
             country: country.clone(),
             cities: cities.get(id).cloned().unwrap_or_default(),
         })

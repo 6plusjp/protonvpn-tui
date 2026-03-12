@@ -5,6 +5,7 @@ use crate::constants::state::PAGE_SIZE;
 use crate::state::async_tasks::{create_channel, AsyncResult, AsyncTaskManager};
 use crate::state::AsyncEvent;
 use crate::state::AsyncNotifier;
+use crate::state::ConfigState;
 use crate::state::ConnectionState;
 use crate::state::InputMode;
 use crate::state::NotificationState;
@@ -137,6 +138,9 @@ pub struct AppState {
     // === Notification (delegated to notification_state) ===
     pub notification_state: NotificationState,
 
+    // === Config (delegated to config_state) ===
+    pub config_state: ConfigState,
+
     // === Config (独立してロード可能) ===
     pub proton_settings_cache: Option<ProtonSettings>,
 }
@@ -161,6 +165,7 @@ impl AppState {
             current_country_code: None,
             vpn_state,
             notification_state: NotificationState::new(),
+            config_state: ConfigState::new(),
             async_manager: AsyncTaskManager::new(),
             async_notifier: Arc::new(AsyncNotifier::new()),
             pending_refresh: None,
@@ -1138,7 +1143,7 @@ impl AppState {
             return;
         }
 
-        let ps = self.proton_settings_cache.as_ref();
+        let ps = self.config_state.proton_settings_cache.as_ref();
         let result = match key {
             SettingKey::Killswitch => {
                 let current = ps.and_then(|p| p.killswitch);
@@ -1184,7 +1189,7 @@ impl AppState {
                     format!("Setting updated: {}", msg),
                     NotificationType::Success,
                 );
-                self.proton_settings_cache = None;
+                self.config_state.proton_settings_cache = None;
             }
             Err(e) => {
                 tracing::warn!("Failed to update setting: {}", e);
@@ -1203,7 +1208,7 @@ impl AppState {
         };
 
         if key == SettingKey::Dns {
-            let ps = self.proton_settings_cache.as_ref();
+            let ps = self.config_state.proton_settings_cache.as_ref();
             let dns_enabled = ps.map(|p| p.custom_dns.enabled).unwrap_or(false);
             if dns_enabled {
                 match self.vpn_state.disable_custom_dns() {
@@ -1212,7 +1217,7 @@ impl AppState {
                             format!("DNS disabled: {}", msg),
                             NotificationType::Success,
                         );
-                        self.proton_settings_cache = None;
+                        self.config_state.proton_settings_cache = None;
                     }
                     Err(e) => {
                         self.show_notification(
@@ -1257,7 +1262,7 @@ impl AppState {
         match result {
             Ok(msg) => {
                 self.show_notification(format!("DNS updated: {}", msg), NotificationType::Success);
-                self.proton_settings_cache = None;
+                self.config_state.proton_settings_cache = None;
             }
             Err(e) => {
                 self.show_notification(
@@ -1275,7 +1280,7 @@ impl AppState {
     }
 
     pub fn clear_settings_cache(&mut self) {
-        self.proton_settings_cache = ProtonSettings::load();
+        self.config_state.clear_cache();
     }
 }
 

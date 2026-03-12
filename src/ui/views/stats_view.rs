@@ -12,7 +12,7 @@ pub fn render_stats_view(state: &mut crate::AppState, f: &mut Frame<'_>, area: R
     let theme = state.get_theme();
     let block = centered_block("Statistics", &theme);
 
-    let proton_settings = state.proton_settings_cache.as_ref();
+    let proton_settings = state.config_state.proton_settings_cache.as_ref();
 
     let mut stats = Vec::new();
 

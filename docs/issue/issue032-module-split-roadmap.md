@@ -10,7 +10,7 @@ AppState (after split)
 ├── Server Data (5 fields)          → Phase 2.3 ✅ Done
 ├── UI State (16 fields)            → Phase 2.1 ✅ Done
 ├── Notification (2 fields)          → Phase 2.2 ✅ Done
-└── Config (1 field)                 → Phase 2.5 ⏳
+└── Config (1 field)                 → Phase 2.5 ✅ Done
 ```
 
 ---
@@ -222,6 +222,5 @@ Phase 2.4 (High) ┘
 | 2.1 UI State | Medium | ✅ Done | 16 fields moved to UiState |
 | 2.2 Notification | Low | ✅ Done | 2 fields moved to NotificationState |
 | 2.3 Server Data | Low | ✅ Done | Foundation added, 4 fields in ServerDataState |
+| 2.5 Config | Low | ✅ Done | 1 field + methods moved to ConfigState |
 | 2.4 Connection | High | ⏳ Pending | 12 fields + async |
-| 2.4 Connection | High | ⏳ Pending | 12 fields + async |
-| 2.5 Config | Low | ⏳ Pending | 1 field + methods |

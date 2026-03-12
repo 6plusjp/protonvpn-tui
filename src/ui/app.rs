@@ -872,6 +872,7 @@ impl TuiApp {
 
         let protocol = self
             .state
+            .config_state
             .proton_settings_cache
             .as_ref()
             .and_then(|ps| ps.protocol.clone());

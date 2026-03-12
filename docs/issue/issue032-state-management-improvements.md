@@ -65,46 +65,58 @@ Many getters/setters already exist. Progress incrementally:
 
 ## Module Split Plan
 
-### Implemented
-- [x] `previous_connection` field - connection rollback on failure
-- [x] Add AppState Unit Tests (58 tests: Navigatable, ConnectionState)
-- [x] Encapsulate UI state fields (selected_*, pane_focus, current_view)
-- [x] Encapsulate settings/logs fields
+### Goal
 
-### Not Implemented
-- [ ] Module split (incremental approach)
-
----
-
-## Module Split Plan
+Split `app_state.rs` (1817 lines) by responsibility.
 
 ### Proposed Structure
 
 ```
 src/state/
-├── mod.rs              # Re-exports
-├── app_state.rs        # Main struct (~200 lines)
-├── ui_state.rs         # UI state fields + navigation
-├── notifications.rs    # Notification management
-├── server_data.rs     # Server list + filtering
-├── connection.rs     # Connection + async
-└── config.rs         # Settings cache
+├── mod.rs
+├── app_state.rs        # AppState struct, new(), vpn_state, Navigatable trait
+├── ui_state.rs         # InputMode + UI fields + navigation methods
+├── notifications.rs   # NotificationType, Notification, ToastNotification + methods
+├── server_data.rs     # Server fields + filtered_servers + filter/sort methods
+├── connection.rs      # AsyncEvent, AsyncNotifier + connection methods
+└── config.rs         # proton_settings_cache
 ```
+
+### What to Move
+
+| Module | Types to Move | Fields to Move | Methods to Move |
+|--------|---------------|----------------|-----------------|
+| `ui_state.rs` | `InputMode` | current_view, selected_*, pane_focus, settings_*, logs_*, filter, sort, search_query, is_dark_theme, input_mode, dns_input | navigation methods |
+| `notifications.rs` | `NotificationType`, `Notification`, `ToastNotification` | notifications, notification_log | show/clear/tick methods |
+| `server_data.rs` | - | servers, filtered_servers_cache, current_cities, current_country_code | filtered_servers(), filter/sort methods |
+| `connection.rs` | `AsyncEvent`, `AsyncNotifier` | connection, previous_connection, async_manager, async_notifier, pending_* | connect/disconnect, async methods |
+| `config.rs` | - | proton_settings_cache | settings methods |
+| `app_state.rs` | - | vpn_state (keep here) | new(), default(), Navigatable impl |
 
 ### Incremental Approach
 
-#### Phase 1: Create module files (code move only)
+#### Phase 1: Move type definitions (low risk)
 
-| Step | File | Contents | Risk |
-|------|------|----------|------|
-| 1.1 | `ui_state.rs` | UI fields + navigation methods | Low |
-| 1.2 | `notifications.rs` | Notification types + methods | Low |
-| 1.3 | `server_data.rs` | Server fields + filter methods | Medium |
-| 1.4 | `connection.rs` | ConnectionState + async | Medium |
+| Step | File | Types to Move |
+|------|------|---------------|
+| 1.1 | `ui_state.rs` | `InputMode` |
+| 1.2 | `notifications.rs` | `NotificationType`, `Notification`, `ToastNotification` |
+| 1.3 | `connection.rs` | `AsyncEvent`, `AsyncNotifier` |
 
-#### Phase 2: Update imports & tests
+#### Phase 2: Move fields (medium risk)
 
-#### Phase 3 (Optional): Make fields truly private
+Move fields to corresponding modules one by one.
+
+#### Phase 3: Move methods (medium risk)
+
+Move methods to corresponding modules.
+
+#### Phase 4: Update imports & tests
+
+### Notes
+
+- `vpn_state: Arc<VpnClient>` stays in `app_state.rs` (used for VPN access)
+- Keep all methods that need access to multiple field groups in `app_state.rs`
 
 | Priority | Item | Effort | Status |
 |----------|------|--------|--------|

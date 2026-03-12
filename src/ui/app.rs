@@ -669,11 +669,6 @@ impl TuiApp {
             self.render_footer(f, chunks[3]);
         }
 
-        // Show loading popup overlay during initialization
-        if !self.state.server_data.is_initialized {
-            self.render_loading(f, area, &theme);
-        }
-
         // Render notification as popup last (on top)
         if !self.state.notification_state.notifications.is_empty() {
             self.render_notification_popup(f);
@@ -752,33 +747,6 @@ impl TuiApp {
         if area.width > cursor as u16 + 2 {
             f.set_cursor(area.x + cursor as u16 + 1, area.y + 1);
         }
-    }
-
-    fn render_loading(&self, f: &mut Frame<'_>, area: Rect, theme: &Theme) {
-        let lines = vec![
-            Line::from("ProtonVPN TUI"),
-            Line::from(""),
-            Line::from("Loading servers..."),
-        ];
-
-        let block = Block::bordered()
-            .title(" Loading ")
-            .border_style(Style::default().fg(theme.warning))
-            .style(Style::default().fg(theme.foreground).bg(theme.background));
-
-        let paragraph = Paragraph::new(lines)
-            .block(block)
-            .alignment(ratatui::layout::Alignment::Center)
-            .style(Style::default().fg(theme.foreground));
-
-        let width = 25u16;
-        let height = 5u16;
-        let x = (area.width.saturating_sub(width)) / 2;
-        let y = (area.height.saturating_sub(height)) / 2;
-        let loading_area = Rect::new(x, y, width, height);
-
-        f.render_widget(Clear, loading_area);
-        f.render_widget(paragraph, loading_area);
     }
 
     fn render_notification_popup(&self, f: &mut Frame<'_>) {

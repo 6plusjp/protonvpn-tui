@@ -137,7 +137,7 @@ impl TuiApp {
             KeyCode::Char('q') => Some(AppAction::Quit),
             KeyCode::Tab => Some(AppAction::SwitchView),
             KeyCode::Char('?') => {
-                self.state.current_view = AppView::Help;
+                self.state.set_current_view(AppView::Help);
                 None
             }
             KeyCode::Char('/') => {

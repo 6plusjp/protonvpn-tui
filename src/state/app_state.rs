@@ -327,6 +327,11 @@ impl AppState {
         self.current_view
     }
 
+    /// Set current view
+    pub fn set_current_view(&mut self, view: crate::state::AppView) {
+        self.current_view = view;
+    }
+
     /// Get current pane focus
     pub fn get_pane_focus(&self) -> Pane {
         self.pane_focus

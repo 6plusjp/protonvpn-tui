@@ -38,10 +38,16 @@ Many getters/setters already exist. Progress incrementally:
 | `filter` | - | `set_filter()`, `cycle_filter()` | ✅ |
 | `theme` | `get_theme()` | - | ✅ |
 | `connection` | `get_connection()` | - | ✅ |
-| `current_view` | `get_current_view()` | - | ✅ |
+| `current_view` | `get_current_view()` | `set_current_view()` | ✅ (2026-03-12) |
 | `pane_focus` | `get_pane_focus()` | - | ✅ |
 | `selected_server` | `get_selected_server()` | - | ✅ |
 | `selected_city` | `get_selected_city()` | - | ✅ |
+
+### Completed Encapsulation (2026-03-12)
+
+- [x] Add `set_current_view()` setter
+- [x] Update `servers_view.rs` to use getters (`get_pane_focus()`, `get_selected_server()`, `get_selected_city()`, `get_connection()`)
+- [x] Update `app.rs` to use `set_current_view()`
 
 ### Remaining Fields to Encapsulate
 

@@ -110,19 +110,17 @@ pub struct AppState {
     pub current_cities: Vec<crate::vpn::City>,
     pub current_country_code: Option<String>,
 
-    // === Server Data (delegated to server_data) ===
+    // === Server Data  ===
     pub server_data: ServerDataState,
 
-    // === UI State (delegated to ui_state) ===
+    // === UI State  ===
     pub ui_state: UiState,
 
-    // === Notification (delegated to notification_state) ===
+    // === Notification  ===
     pub notification_state: NotificationState,
 
-    // === Config (delegated to config_state) ===
+    // === Config  ===
     pub config_state: ConfigState,
-
-    // === Config (独立してロード可能) ===
     pub proton_settings_cache: Option<ProtonSettings>,
 }
 

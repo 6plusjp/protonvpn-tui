@@ -142,7 +142,7 @@ impl TuiApp {
             }
             KeyCode::Char('/') => {
                 self.filter_mode = true;
-                self.filter_input = self.state.search_query.clone();
+                self.filter_input = self.state.search_query.query.clone();
                 None
             }
             KeyCode::Esc => {

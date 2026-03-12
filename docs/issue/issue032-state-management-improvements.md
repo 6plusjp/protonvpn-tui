@@ -75,8 +75,8 @@ Split `app_state.rs` (1817 lines) by responsibility.
 src/state/
 ├── mod.rs
 ├── app_state.rs        # AppState struct, new(), vpn_state, Navigatable trait
-├── ui_state.rs         # InputMode + UI fields + navigation methods
-├── notifications.rs   # NotificationType, Notification, ToastNotification + methods
+├── ui_state.rs         # InputMode, SearchQuery + UI fields
+├── notifications.rs   # NotificationType, Notification, ToastNotification + NotificationManager
 ├── server_data.rs     # Server fields + filtered_servers + filter/sort methods
 ├── connection.rs      # AsyncEvent, AsyncNotifier + connection methods
 └── config.rs         # proton_settings_cache
@@ -102,6 +102,20 @@ src/state/
 | 1.1 | `ui_state.rs` | `InputMode` | ✅ Done |
 | 1.2 | `notifications.rs` | `NotificationType`, `Notification`, `ToastNotification` | ✅ Done |
 | 1.3 | `connection.rs` | `AsyncEvent`, `AsyncNotifier` | ✅ Done |
+
+### Refactoring for Future Extraction (DONE) ✅
+
+To make future module extraction easier, added wrapper types:
+
+| Type | File | Purpose |
+|------|------|---------|
+| `SearchQuery` | `ui_state.rs` | Encapsulates search_query + search_query_lower |
+| `NotificationManager` | `notifications.rs` | Handles notification state mutations |
+
+**Benefits**:
+- Ensures related fields stay in sync (e.g., query + query_lower)
+- Provides clean API for future field extraction
+- Reduces coupling in AppState
 
 #### Phase 2: Move fields (POSTPONED)
 
@@ -129,11 +143,16 @@ src/state/
 | Medium | Encapsulate UI state fields (selected_*, pane_focus, current_view) | Medium | ✅ Done |
 | Low | Encapsulate settings/logs fields | Medium | ✅ Done |
 | Low | Module split - Type definitions | Low | ✅ Done (Phase 1) |
+| Low | Refactoring for extraction (SearchQuery, NotificationManager) | Low | ✅ Done |
 | Low | Module split - Fields & Methods | High | ⏸️ Postponed (complexity) |
 
 ### Future Work Required
 
 Phase 2 (fields) and Phase 3 (methods) are still required but postponed due to complexity.
+
+**Completed prep work**:
+- ✅ SearchQuery wrapper (reduces search_query + search_query_lower coupling)
+- ✅ NotificationManager (prepares notification method extraction)
 
 **When to revisit**:
 - After other refactoring simplifies dependencies

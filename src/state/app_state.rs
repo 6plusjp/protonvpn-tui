@@ -4,6 +4,7 @@ use crate::config::{ProtonSettings, SettingKey};
 use crate::constants::state::PAGE_SIZE;
 use crate::state::async_tasks::create_channel;
 use crate::state::AsyncEvent;
+use crate::state::AsyncResult;
 use crate::state::ConfigState;
 use crate::state::ConnectionManager;
 use crate::state::ConnectionState;
@@ -18,8 +19,10 @@ use crate::state::ServerSort;
 use crate::state::SortDirection;
 use crate::state::UiState;
 use crate::ui::styles::Theme;
+use crate::vpn::ConnectResult;
 use crate::vpn::Server;
 use crate::vpn::VpnClient;
+use std::sync::mpsc;
 use std::sync::Arc;
 
 pub trait Navigatable {
@@ -382,17 +385,20 @@ impl AppState {
             if let Some(rx) = self.connection_manager.pending_connect.as_mut() {
                 if let Ok(result) = rx.try_recv() {
                     match result {
-                        Ok((server, ip, city, country)) => {
+                        Ok(conn_result) => {
                             self.show_notification(
-                                format!("Connected to {}", &server),
+                                format!("Connected to {}", &conn_result.server_id),
                                 NotificationType::Success,
                             );
-                            tracing::info!("Successfully connected to server: {}", server);
+                            tracing::info!(
+                                "Successfully connected to server: {}",
+                                conn_result.server_id
+                            );
                             self.connection_manager.connection = ConnectionState::Connected {
-                                server,
-                                ip: ip.unwrap_or_default(),
-                                city,
-                                country,
+                                server: conn_result.server_id,
+                                ip: conn_result.ip.unwrap_or_default(),
+                                city: conn_result.city,
+                                country: conn_result.country,
                             };
                             self.connection_manager.previous_connection = None;
                             self.connection_manager.pending_connect = None;
@@ -497,21 +503,21 @@ impl AppState {
         if let Some(rx) = self.connection_manager.pending_connect_city.as_mut() {
             if let Ok(result) = rx.try_recv() {
                 match result {
-                    Ok((server, ip, city, country)) => {
+                    Ok(conn_result) => {
                         self.show_notification(
-                            format!("Connected to {}", &server),
+                            format!("Connected to {}", &conn_result.server_id),
                             NotificationType::Success,
                         );
                         notification_shown = true;
                         tracing::info!(
                             "Successfully connected to server (connect_city): {}",
-                            server
+                            conn_result.server_id
                         );
                         self.connection_manager.connection = ConnectionState::Connected {
-                            server,
-                            ip: ip.unwrap_or_default(),
-                            city,
-                            country,
+                            server: conn_result.server_id,
+                            ip: conn_result.ip.unwrap_or_default(),
+                            city: conn_result.city,
+                            country: conn_result.country,
                         };
                         self.connection_manager.previous_connection = None;
                         self.connection_manager.pending_connect_city = None;
@@ -627,7 +633,10 @@ impl AppState {
             NotificationType::Info,
         );
 
-        let (tx, rx) = create_channel();
+        let (tx, rx): (
+            mpsc::Sender<AsyncResult<ConnectResult>>,
+            mpsc::Receiver<AsyncResult<ConnectResult>>,
+        ) = create_channel();
         self.connection_manager.pending_connect = Some(rx);
         self.connection_manager
             .async_manager
@@ -644,7 +653,10 @@ impl AppState {
             NotificationType::Info,
         );
 
-        let (tx, rx) = create_channel();
+        let (tx, rx): (
+            mpsc::Sender<AsyncResult<ConnectResult>>,
+            mpsc::Receiver<AsyncResult<ConnectResult>>,
+        ) = create_channel();
         self.connection_manager.pending_connect = Some(rx);
         self.connection_manager
             .async_manager
@@ -692,7 +704,10 @@ impl AppState {
         self.connection_manager.connection = ConnectionState::Connecting;
         self.show_notification(format!("Connecting to {}...", city), NotificationType::Info);
 
-        let (tx, rx) = create_channel();
+        let (tx, rx): (
+            mpsc::Sender<AsyncResult<ConnectResult>>,
+            mpsc::Receiver<AsyncResult<ConnectResult>>,
+        ) = create_channel();
         self.connection_manager.pending_connect_city = Some(rx);
         self.connection_manager
             .async_manager

@@ -1,5 +1,6 @@
 //! Connection-related async types
 
+use crate::vpn::ConnectResult;
 use crate::vpn::Server;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -62,7 +63,6 @@ impl Default for AsyncNotifier {
 }
 
 /// Receiver types for async operations
-pub type ConnectResult = (String, Option<String>, Option<String>, Option<String>);
 pub type ConnectReceiver = std::sync::mpsc::Receiver<crate::state::AsyncResult<ConnectResult>>;
 pub type ServerReceiver = std::sync::mpsc::Receiver<crate::state::AsyncResult<Vec<Server>>>;
 pub type DisconnectReceiver = std::sync::mpsc::Receiver<crate::state::AsyncResult<()>>;

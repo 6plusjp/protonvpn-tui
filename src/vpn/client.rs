@@ -17,7 +17,7 @@ use chrono::Utc;
 
 use super::cache::{countries_to_servers, ServerCache};
 use super::types::{
-    parse_cities_with_features, parse_connect_output, parse_countries, City, Server,
+    parse_cities_with_features, parse_connect_output, parse_countries, City, ConnectResult, Server,
 };
 
 use crate::error::{AppError, AppResult};
@@ -110,10 +110,7 @@ impl VpnClient {
     }
 
     /// Connect to a server by country code
-    pub fn connect_country(
-        &self,
-        target: &str,
-    ) -> AppResult<(String, Option<String>, Option<String>, Option<String>)> {
+    pub fn connect_country(&self, target: &str) -> AppResult<ConnectResult> {
         let output = Command::new(&self.cli_path)
             .args(["connect", "--country", target])
             .output()
@@ -125,23 +122,26 @@ impl VpnClient {
 
         self.check_cli_error(&output, &stdout, &stderr)?;
 
-        let (server_id, ip, city, country) = parse_connect_output(&stdout);
+        let result = parse_connect_output(&stdout);
 
-        let final_server = if !server_id.is_empty() {
-            server_id
+        let final_server = if !result.server_id.is_empty() {
+            result.server_id.clone()
         } else {
             target.to_string()
         };
-        self.with_cache(|c| c.set_connected(final_server.clone(), ip.clone()))?;
+        self.with_cache(|c| c.set_connected(final_server.clone(), result.ip.clone()))?;
         self.save_cache()?;
 
-        Ok((final_server, ip, city, country))
+        Ok(ConnectResult {
+            server_id: final_server,
+            ip: result.ip,
+            city: result.city,
+            country: result.country,
+        })
     }
 
     /// Connect to a random server
-    pub fn connect_random(
-        &self,
-    ) -> AppResult<(String, Option<String>, Option<String>, Option<String>)> {
+    pub fn connect_random(&self) -> AppResult<ConnectResult> {
         let output = Command::new(&self.cli_path)
             .args(["connect", "--random"])
             .output()
@@ -153,24 +153,26 @@ impl VpnClient {
 
         self.check_cli_error(&output, &stdout, &stderr)?;
 
-        let (server_id, ip, city, country) = parse_connect_output(&stdout);
+        let result = parse_connect_output(&stdout);
 
-        let final_server = if !server_id.is_empty() {
-            server_id
+        let final_server = if !result.server_id.is_empty() {
+            result.server_id.clone()
         } else {
             "Random Server".to_string()
         };
-        self.with_cache(|c| c.set_connected(final_server.clone(), ip.clone()))?;
+        self.with_cache(|c| c.set_connected(final_server.clone(), result.ip.clone()))?;
         self.save_cache()?;
 
-        Ok((final_server, ip, city, country))
+        Ok(ConnectResult {
+            server_id: final_server,
+            ip: result.ip,
+            city: result.city,
+            country: result.country,
+        })
     }
 
     /// Connect to a server by city name
-    pub fn connect_city(
-        &self,
-        city_arg: &str,
-    ) -> AppResult<(String, Option<String>, Option<String>, Option<String>)> {
+    pub fn connect_city(&self, city_arg: &str) -> AppResult<ConnectResult> {
         let output = Command::new(&self.cli_path)
             .args(["connect", "--city", city_arg])
             .output()
@@ -182,17 +184,22 @@ impl VpnClient {
 
         self.check_cli_error(&output, &stdout, &stderr)?;
 
-        let (server_id, ip, city, country) = parse_connect_output(&stdout);
+        let result = parse_connect_output(&stdout);
 
-        let final_server = if !server_id.is_empty() {
-            server_id.clone()
+        let final_server = if !result.server_id.is_empty() {
+            result.server_id.clone()
         } else {
-            city.clone().unwrap_or_else(|| city_arg.to_string())
+            result.city.clone().unwrap_or_else(|| city_arg.to_string())
         };
-        self.with_cache(|c| c.set_connected(final_server.clone(), ip.clone()))?;
+        self.with_cache(|c| c.set_connected(final_server.clone(), result.ip.clone()))?;
         self.save_cache()?;
 
-        Ok((final_server, ip, city, country))
+        Ok(ConnectResult {
+            server_id: final_server,
+            ip: result.ip,
+            city: result.city,
+            country: result.country,
+        })
     }
 
     fn check_cli_error(

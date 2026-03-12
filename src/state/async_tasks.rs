@@ -4,6 +4,7 @@
 //! This significantly reduces overhead for frequent VPN operations.
 
 use crate::error::AppError;
+use crate::vpn::ConnectResult;
 use crate::vpn::{City, VpnClient};
 use std::collections::VecDeque;
 use std::sync::mpsc;
@@ -17,7 +18,7 @@ pub type AsyncResult<T> = Result<T, AppError>;
 #[derive(Debug)]
 pub enum AsyncOperation {
     RefreshComplete(Result<Vec<crate::vpn::Server>, AppError>),
-    ConnectComplete(Result<(String, Option<String>, Option<String>, Option<String>), AppError>),
+    ConnectComplete(Result<ConnectResult, AppError>),
     DisconnectComplete(Result<(), AppError>),
     CitiesComplete(Result<Vec<City>, AppError>),
 }
@@ -30,7 +31,7 @@ enum Job {
     Connect {
         vpn_state: Arc<VpnClient>,
         server_id: String,
-        sender: mpsc::Sender<AsyncResult<(String, Option<String>, Option<String>, Option<String>)>>,
+        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
     },
     Disconnect {
         vpn_state: Arc<VpnClient>,
@@ -38,7 +39,7 @@ enum Job {
     },
     ConnectRandom {
         vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<(String, Option<String>, Option<String>, Option<String>)>>,
+        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
     },
     Cities {
         vpn_state: Arc<VpnClient>,
@@ -48,7 +49,7 @@ enum Job {
     ConnectCity {
         vpn_state: Arc<VpnClient>,
         city: String,
-        sender: mpsc::Sender<AsyncResult<(String, Option<String>, Option<String>, Option<String>)>>,
+        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
     },
     ConfigSet {
         vpn_state: Arc<VpnClient>,
@@ -229,7 +230,7 @@ impl AsyncTaskManager {
         &self,
         vpn_state: Arc<VpnClient>,
         server_id: String,
-        sender: mpsc::Sender<AsyncResult<(String, Option<String>, Option<String>, Option<String>)>>,
+        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
     ) {
         self.pool.submit(Job::Connect {
             vpn_state,
@@ -249,7 +250,7 @@ impl AsyncTaskManager {
     pub fn spawn_connect_random(
         &self,
         vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<(String, Option<String>, Option<String>, Option<String>)>>,
+        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
     ) {
         self.pool.submit(Job::ConnectRandom { vpn_state, sender });
     }
@@ -271,7 +272,7 @@ impl AsyncTaskManager {
         &self,
         vpn_state: Arc<VpnClient>,
         city: String,
-        sender: mpsc::Sender<AsyncResult<(String, Option<String>, Option<String>, Option<String>)>>,
+        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
     ) {
         self.pool.submit(Job::ConnectCity {
             vpn_state,

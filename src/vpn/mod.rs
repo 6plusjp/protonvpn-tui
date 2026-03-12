@@ -4,6 +4,7 @@ mod client;
 pub use client::*;
 
 mod types;
+pub use types::ConnectResult;
 pub use types::*;
 
 mod cache;

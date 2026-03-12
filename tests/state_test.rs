@@ -328,6 +328,8 @@ mod connection_state {
         let state = ConnectionState::Connected {
             server: "JP".to_string(),
             ip: "1.2.3.4".to_string(),
+            city: None,
+            country: None,
         };
         assert!(state.is_connected());
     }
@@ -373,6 +375,8 @@ mod connection_state {
         let state = ConnectionState::Connected {
             server: "JP".to_string(),
             ip: "1.2.3.4".to_string(),
+            city: None,
+            country: None,
         };
         assert!(!state.can_connect());
     }
@@ -406,6 +410,8 @@ mod connection_state {
         let state = ConnectionState::Connected {
             server: "JP".to_string(),
             ip: "1.2.3.4".to_string(),
+            city: None,
+            country: None,
         };
         assert!(!state.is_disconnected());
     }
@@ -415,10 +421,14 @@ mod connection_state {
         let state1 = ConnectionState::Connected {
             server: "JP".to_string(),
             ip: "1.2.3.4".to_string(),
+            city: None,
+            country: None,
         };
         let state2 = ConnectionState::Connected {
             server: "JP".to_string(),
             ip: "1.2.3.4".to_string(),
+            city: None,
+            country: None,
         };
         assert_eq!(state1, state2);
     }

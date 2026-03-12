@@ -21,8 +21,48 @@ This issue covers structural problems with `AppState` and related state manageme
 
 ### Not Implemented
 
-- [ ] Add AppState Unit Tests
-- [ ] Encapsulate AppState fields (getter/setter)
+- [ ] Encapsulate AppState fields (getter/setter) - incremental approach
+
+---
+
+## Encapsulation Plan: Incremental Approach
+
+Many getters/setters already exist. Progress incrementally:
+
+### Already Implemented
+
+| Field | Getter | Setter | Action |
+|-------|--------|--------|--------|
+| `search_query` | - | `set_search_query()` | ✅ |
+| `servers` | - | `set_servers()` | ✅ |
+| `filter` | - | `set_filter()`, `cycle_filter()` | ✅ |
+| `theme` | `get_theme()` | - | ✅ |
+| `connection` | `get_connection()` | - | ✅ |
+| `current_view` | `get_current_view()` | - | ✅ |
+| `pane_focus` | `get_pane_focus()` | - | ✅ |
+| `selected_server` | `get_selected_server()` | - | ✅ |
+| `selected_city` | `get_selected_city()` | - | ✅ |
+
+### Remaining Fields to Encapsulate
+
+Prioritize UI state fields that change frequently:
+
+| Priority | Fields | Rationale |
+|----------|--------|-----------|
+| Medium | `selected_server`, `selected_city`, `pane_focus`, `current_view` | Frequent access from views, high impact |
+| Low | `settings_selected`, `settings_expanded`, `settings_option_selected` | Settings view only |
+| Low | `logs_selected` | Logs view only |
+| Low | `filter`, `sort`, `sort_direction` | Already have action methods |
+| Low | `is_dark_theme`, `input_mode`, `dns_input` | Rarely changed |
+| Low | `notifications`, `notification_log` | Notification system |
+
+### Implementation Steps
+
+1. **Identify direct access points**: Find all `state.field = ...` and `state.field` reads
+2. **Add getters** (if missing) for remaining fields
+3. **Add setters/actions** with validation if needed
+4. **Make fields private** incrementally, starting with highest priority
+5. **Update tests** to use methods instead of direct field access
 - [ ] Split AppState into modules
 
 ---
@@ -199,7 +239,8 @@ impl AsyncManager {
 |----------|------|--------|--------|
 | High | `previous_connection` implementation | Low | ✅ Done |
 | Medium | Add AppState Unit Tests | Medium | ✅ Done (58 tests) |
-| Medium | Encapsulate AppState fields (getter/setter) | Medium | Pending |
+| Medium | Encapsulate UI state fields (selected_*, pane_focus, current_view) | Medium | Pending |
+| Low | Encapsulate remaining fields (settings, logs, etc.) | Medium | Pending |
 | Low | Split AppState into modules | High | Pending |
 
 ---

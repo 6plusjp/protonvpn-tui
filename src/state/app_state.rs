@@ -13,6 +13,7 @@ use crate::state::NotificationType;
 use crate::state::Pane;
 use crate::state::SearchQuery;
 use crate::state::ServerCache;
+use crate::state::ServerDataState;
 use crate::state::ServerFilter;
 use crate::state::ServerSort;
 use crate::state::SortDirection;
@@ -125,9 +126,13 @@ pub struct AppState {
     // === Server Data ===
     pub(crate) servers: Vec<Server>,
     server_cache: ServerCache,
+    #[allow(dead_code)]
     is_initialized: bool,
     pub(crate) current_cities: Vec<crate::vpn::City>,
     pub(crate) current_country_code: Option<String>,
+
+    // === Server Data (delegated to server_data) ===
+    server_data: ServerDataState,
 
     // === UI State (delegated to ui_state) ===
     ui_state: UiState,
@@ -153,6 +158,7 @@ impl AppState {
         Self {
             connection: ConnectionState::Disconnected,
             ui_state: UiState::new(),
+            server_data: ServerDataState::new(),
             servers,
             current_cities: Vec::new(),
             current_country_code: None,
@@ -196,7 +202,27 @@ impl AppState {
 
     /// Check if state is initialized
     pub fn is_initialized(&self) -> bool {
-        self.is_initialized
+        self.server_data.is_initialized()
+    }
+
+    /// Set initialized state
+    pub fn set_initialized(&mut self, initialized: bool) {
+        self.server_data.set_initialized(initialized);
+    }
+
+    /// Get all servers
+    pub fn get_servers(&self) -> &Vec<Server> {
+        self.server_data.get_servers()
+    }
+
+    /// Get current cities
+    pub fn get_current_cities(&self) -> &Vec<crate::vpn::City> {
+        self.server_data.get_current_cities()
+    }
+
+    /// Get current country code
+    pub fn get_current_country_code(&self) -> &Option<String> {
+        self.server_data.get_current_country_code()
     }
 
     /// Wait for async events with timeout (event-driven)
@@ -327,6 +353,7 @@ impl AppState {
 
     pub fn set_servers(&mut self, servers: Vec<Server>) {
         self.servers = servers;
+        self.server_data.set_servers(self.servers.clone());
         self.invalidate_filtered_cache();
 
         if let Some(idx) = self.ui_state.selected_server {
@@ -385,7 +412,7 @@ impl AppState {
                 AsyncEvent::ServersRefreshed(servers) => {
                     self.set_servers(servers);
                     tracing::info!("Server list refreshed: {} servers", self.servers.len());
-                    self.is_initialized = true;
+                    self.set_initialized(true);
                     if self.vpn_state.is_cli_unavailable() {
                         self.show_notification(
                             "ProtonVPN CLI unavailable. VPN functionality disabled.".to_string(),
@@ -402,7 +429,7 @@ impl AppState {
                 }
                 AsyncEvent::ServersRefreshFailed(e) => {
                     tracing::warn!("Server list refresh failed: {}", e);
-                    self.is_initialized = true;
+                    self.set_initialized(true);
                     self.show_notification(
                         format!("Refresh failed: {}", e),
                         NotificationType::Error,
@@ -506,7 +533,7 @@ impl AppState {
                     Ok(servers) => {
                         self.set_servers(servers);
                         tracing::info!("Server list refreshed: {} servers", self.servers.len());
-                        self.is_initialized = true;
+                        self.set_initialized(true);
 
                         if self.vpn_state.is_cli_unavailable() {
                             self.show_notification(
@@ -524,7 +551,7 @@ impl AppState {
                     }
                     Err(e) => {
                         tracing::warn!("Server list refresh failed: {}", e);
-                        self.is_initialized = true;
+                        self.set_initialized(true);
                         self.show_notification(
                             format!("Refresh failed: {}", e),
                             NotificationType::Error,

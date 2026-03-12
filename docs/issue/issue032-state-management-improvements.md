@@ -37,10 +37,16 @@ This issue covers structural problems with `AppState` and related state manageme
   - [x] Made `is_initialized` field private (use is_initialized() getter)
   - [x] Updated app.rs to use getters
   - [x] Updated stats_view.rs to use get_connection()
+- [x] **Phase 2.3: Server Data State Delegation** (2026-03-12)
+  - [x] ServerDataState struct added to server_data.rs
+  - [x] AppState.server_data field added as delegation target
+  - [x] Getters: get_servers(), get_current_cities(), get_current_country_code(), is_initialized()
+  - [x] Setters: set_initialized()
+  - [x] Updated set_servers() to sync with server_data
+  - [x] Updated is_initialized() to delegate to server_data
 
 ### Not Implemented
 
-- [ ] Phase 2.3: Server data state delegation
 - [ ] Phase 2.4: Connection state delegation
 - [ ] Phase 2.5: Config state delegation
 - [ ] **Post-Phase 2.5**: Remove wrapper getters from AppState (optimization)

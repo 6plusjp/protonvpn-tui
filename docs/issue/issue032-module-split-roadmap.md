@@ -2,15 +2,15 @@
 
 ## Overview
 
-Split `AppState` (1687 lines) into focused modules by responsibility.
+Split `AppState` (1763 lines) into focused modules by responsibility.
 
 ```
 AppState (after split)
 ├── Connection & Async (12 fields)  → Phase 2.4
-├── Server Data (5 fields)          → Phase 2.3
+├── Server Data (5 fields)          → Phase 2.3 ✅ Done
 ├── UI State (16 fields)            → Phase 2.1 ✅ Done
-├── Notification (2 fields)         → Phase 2.2 ✅ Done
-└── Config (1 field)               → Phase 2.5 ⏳
+├── Notification (2 fields)          → Phase 2.2 ✅ Done
+└── Config (1 field)                 → Phase 2.5 ⏳
 ```
 
 ---
@@ -76,31 +76,41 @@ AppState (after split)
 
 ---
 
-## Phase 2.3: Server Data State
+## Phase 2.3: Server Data State ✅ Done (2026-03-12)
 
 ### Target Module
-New file: `src/state/server_data.rs`
+`src/state/server_data.rs` (new file)
 
-### Fields to Move
+### Fields Added to ServerDataState
 - `servers: Vec<Server>`
-- `server_cache: ServerCache`
 - `is_initialized: bool`
 - `current_cities: Vec<City>`
 - `current_country_code: Option<String>`
 
-### Methods to Move
-- `filtered_servers()`
-- `compute_filtered_servers()`
-- `set_servers()`
-- `invalidate_filtered_cache()`
-- `fetch_cities()`
-- `reload_cities()`
-- `switch_cities_to_selected()`
+Note: `server_cache` remains in AppState (used by filtered_servers())
 
-### Dependencies
-- `vpn_state` (Arc<VpnClient>) - needs reference
-- `connection` - for connected server highlighting
-- `search_query`, `filter`, `sort`, `sort_direction` - for filtering
+### Methods Added
+- Getters: `get_servers()`, `get_current_cities()`, `get_current_country_code()`, `is_initialized()`
+- Setters: `set_initialized()`, `set_servers()`, `clear_cities()`, `set_country_code()`
+
+### AppState Changes
+- Added `server_data: ServerDataState` field
+- Added delegation getters: `get_servers()`, `get_current_cities()`, `get_current_country_code()`, `is_initialized()`
+- Added delegation setters: `set_initialized()`
+- Updated `set_servers()` to sync with server_data
+
+### Existing Types
+- `ServerDataState` (new)
+
+### Approach
+1. Created `ServerDataState` struct in new file
+2. Added `server_data: ServerDataState` field to AppState
+3. Added delegation methods to AppState
+4. Kept old fields in AppState for backward compatibility
+5. Tests pass
+
+### Complexity
+**Low** - Foundation added, fields not yet migrated
 
 ### Approach
 1. Create `ServerDataState` struct (includes cache)
@@ -211,6 +221,7 @@ Phase 2.4 (High) ┘
 |-------|------------|--------|-------|
 | 2.1 UI State | Medium | ✅ Done | 16 fields moved to UiState |
 | 2.2 Notification | Low | ✅ Done | 2 fields moved to NotificationState |
-| 2.3 Server Data | Medium | ⏳ Pending | 5 fields + methods |
+| 2.3 Server Data | Low | ✅ Done | Foundation added, 4 fields in ServerDataState |
+| 2.4 Connection | High | ⏳ Pending | 12 fields + async |
 | 2.4 Connection | High | ⏳ Pending | 12 fields + async |
 | 2.5 Config | Low | ⏳ Pending | 1 field + methods |

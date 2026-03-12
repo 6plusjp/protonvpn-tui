@@ -95,21 +95,25 @@ src/state/
 
 ### Incremental Approach
 
-#### Phase 1: Move type definitions (low risk)
+#### Phase 1: Move type definitions (DONE) ✅
 
-| Step | File | Types to Move |
-|------|------|---------------|
-| 1.1 | `ui_state.rs` | `InputMode` |
-| 1.2 | `notifications.rs` | `NotificationType`, `Notification`, `ToastNotification` |
-| 1.3 | `connection.rs` | `AsyncEvent`, `AsyncNotifier` |
+| Step | File | Types to Move | Status |
+|------|------|---------------|--------|
+| 1.1 | `ui_state.rs` | `InputMode` | ✅ Done |
+| 1.2 | `notifications.rs` | `NotificationType`, `Notification`, `ToastNotification` | ✅ Done |
+| 1.3 | `connection.rs` | `AsyncEvent`, `AsyncNotifier` | ✅ Done |
 
-#### Phase 2: Move fields (medium risk)
+#### Phase 2: Move fields (POSTPONED)
 
-Move fields to corresponding modules one by one.
+**Reason**: High complexity due to:
+- Many fields are tightly coupled (e.g., search_query + search_query_lower)
+- filter/sort fields tied to server_data
+- Moving fields requires moving all methods that use them
+- Risk of breaking existing functionality
 
-#### Phase 3: Move methods (medium risk)
+**Current state**: 82 lines reduced (1817 → 1735), types organized into modules
 
-Move methods to corresponding modules.
+#### Phase 3: Move methods (POSTPONED)
 
 #### Phase 4: Update imports & tests
 
@@ -124,7 +128,8 @@ Move methods to corresponding modules.
 | Medium | Add AppState Unit Tests | Medium | ✅ Done (58 tests) |
 | Medium | Encapsulate UI state fields (selected_*, pane_focus, current_view) | Medium | ✅ Done |
 | Low | Encapsulate settings/logs fields | Medium | ✅ Done |
-| Low | Split AppState into modules | High | Pending |
+| Low | Module split - Type definitions | Low | ✅ Done (Phase 1) |
+| Low | Module split - Fields & Methods | High | ⏸️ Postponed (complexity) |
 
 ---
 

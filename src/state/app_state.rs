@@ -177,6 +177,15 @@ impl AppState {
     pub fn set_search_query(&mut self, query: String) {
         self.ui_state.search_query.set(query);
         self.invalidate_filtered_cache();
+
+        let filtered_len = self.filtered_servers().len();
+        if let Some(idx) = self.ui_state.selected_server {
+            if idx >= filtered_len {
+                self.ui_state.selected_server = Some(0);
+            }
+        }
+
+        self.switch_cities_to_selected();
     }
 
     pub fn set_servers(&mut self, servers: Vec<Server>) {

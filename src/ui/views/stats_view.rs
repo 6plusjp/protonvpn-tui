@@ -37,7 +37,7 @@ pub fn render_stats_view(state: &mut crate::AppState, f: &mut Frame<'_>, area: R
         "Session Time: 00:00:00".to_string(),
     ]);
 
-    if let ConnectionState::Connected { ref server, ref ip } = state.connection {
+    if let ConnectionState::Connected { ref server, ref ip } = state.connection_manager.connection {
         stats.push(format!("Server: {}", server));
         if !ip.is_empty() {
             stats.push(format!("IP: {}", ip));

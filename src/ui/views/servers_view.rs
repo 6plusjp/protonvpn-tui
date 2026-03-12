@@ -39,7 +39,7 @@ fn render_countries_pane(
 
     let servers = state.filtered_servers();
 
-    let connected_server_id = match &state.connection {
+    let connected_server_id = match &state.connection_manager.connection {
         ConnectionState::Connected { server, .. } => Some(server.clone()),
         _ => None,
     };
@@ -83,7 +83,10 @@ fn render_countries_pane(
                 .map(|cid| cid.starts_with(&server.id) || server.id.starts_with(cid))
                 .unwrap_or(false);
 
-            let is_loading_this = state.pending_cities.contains_key(&server.id);
+            let is_loading_this = state
+                .connection_manager
+                .pending_cities
+                .contains_key(&server.id);
 
             let cities_str = if is_loading_this {
                 "◐".to_string()
@@ -155,6 +158,7 @@ fn render_cities_pane(
     let is_focused = state.ui_state.pane_focus == Pane::Cities;
 
     let is_loading = state
+        .connection_manager
         .pending_cities
         .contains_key(state.current_country_code.as_deref().unwrap_or(""));
 

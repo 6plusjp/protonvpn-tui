@@ -159,7 +159,7 @@ impl TuiApp {
     fn handle_servers_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
         match key_event.code {
             KeyCode::Char('c') => {
-                match self.state.connection {
+                match self.state.connection_manager.connection {
                     crate::state::ConnectionState::Connecting => {
                         self.state.show_notification(
                             "Connection in progress...".to_string(),
@@ -216,7 +216,7 @@ impl TuiApp {
                 None
             }
             KeyCode::Char('d') => {
-                match self.state.connection {
+                match self.state.connection_manager.connection {
                     crate::state::ConnectionState::Disconnected => {
                         self.state.show_notification(
                             "Not connected".to_string(),
@@ -241,7 +241,7 @@ impl TuiApp {
                         self.state.reload_cities();
                     }
                     Pane::Countries => {
-                        if self.state.pending_refresh.is_some() {
+                        if self.state.connection_manager.pending_refresh.is_some() {
                             self.state.show_notification(
                                 "Refresh in progress...".to_string(),
                                 crate::state::NotificationType::Warning,
@@ -274,7 +274,7 @@ impl TuiApp {
                 None
             }
             KeyCode::Char('x') => {
-                match self.state.connection {
+                match self.state.connection_manager.connection {
                     crate::state::ConnectionState::Connecting => {
                         self.state.show_notification(
                             "Connection in progress...".to_string(),
@@ -849,26 +849,27 @@ impl TuiApp {
     fn render_header(&mut self, f: &mut Frame<'_>, area: Rect) {
         let theme = self.get_theme();
 
-        let (status_text, status_color): (String, _) = match &self.state.connection {
-            crate::state::ConnectionState::Disconnected => {
-                ("Disconnected".to_string(), theme.foreground)
-            }
-            crate::state::ConnectionState::Connecting => {
-                ("Connecting...".to_string(), theme.warning)
-            }
-            crate::state::ConnectionState::Connected { server, ip } => {
-                let info = if ip.is_empty() {
-                    server.clone()
-                } else {
-                    format!("{} ({})", server, ip)
-                };
-                (info, theme.success)
-            }
-            crate::state::ConnectionState::Disconnecting => {
-                ("Disconnecting...".to_string(), theme.warning)
-            }
-            crate::state::ConnectionState::Error(e) => (e.clone(), theme.error),
-        };
+        let (status_text, status_color): (String, _) =
+            match &self.state.connection_manager.connection {
+                crate::state::ConnectionState::Disconnected => {
+                    ("Disconnected".to_string(), theme.foreground)
+                }
+                crate::state::ConnectionState::Connecting => {
+                    ("Connecting...".to_string(), theme.warning)
+                }
+                crate::state::ConnectionState::Connected { server, ip } => {
+                    let info = if ip.is_empty() {
+                        server.clone()
+                    } else {
+                        format!("{} ({})", server, ip)
+                    };
+                    (info, theme.success)
+                }
+                crate::state::ConnectionState::Disconnecting => {
+                    ("Disconnecting...".to_string(), theme.warning)
+                }
+                crate::state::ConnectionState::Error(e) => (e.clone(), theme.error),
+            };
 
         let protocol = self
             .state
@@ -879,7 +880,7 @@ impl TuiApp {
 
         let title = " ProtonVPN TUI ";
 
-        let status_indicator = match self.state.connection {
+        let status_indicator = match self.state.connection_manager.connection {
             crate::state::ConnectionState::Connected { .. } => "●",
             crate::state::ConnectionState::Connecting
             | crate::state::ConnectionState::Disconnecting => "◐",
@@ -976,7 +977,7 @@ impl TuiApp {
 
     fn get_footer_action_hints(&self) -> Vec<Span<'_>> {
         let theme = self.get_theme();
-        let is_disconnected = self.state.connection.is_disconnected();
+        let is_disconnected = self.state.connection_manager.connection.is_disconnected();
 
         match (
             self.state.ui_state.current_view,

@@ -223,4 +223,4 @@ Phase 2.4 (High) ┘
 | 2.2 Notification | Low | ✅ Done | 2 fields moved to NotificationState |
 | 2.3 Server Data | Low | ✅ Done | Foundation added, 4 fields in ServerDataState |
 | 2.5 Config | Low | ✅ Done | 1 field + methods moved to ConfigState |
-| 2.4 Connection | High | ✅ Done (Foundation) | ConnectionManager struct added, 10 fields |
+| 2.4 Connection | High | ✅ Done (Full) | 10 fields moved to ConnectionManager |

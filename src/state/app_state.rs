@@ -2,9 +2,8 @@
 
 use crate::config::{ProtonSettings, SettingKey};
 use crate::constants::state::PAGE_SIZE;
-use crate::state::async_tasks::{create_channel, AsyncTaskManager};
+use crate::state::async_tasks::create_channel;
 use crate::state::AsyncEvent;
-use crate::state::AsyncNotifier;
 use crate::state::ConfigState;
 use crate::state::ConnectionManager;
 use crate::state::ConnectionState;
@@ -18,13 +17,9 @@ use crate::state::ServerFilter;
 use crate::state::ServerSort;
 use crate::state::SortDirection;
 use crate::state::UiState;
-use crate::state::{
-    CitiesReceiver, ConfigReceiver, ConnectReceiver, DisconnectReceiver, ServerReceiver,
-};
 use crate::ui::styles::Theme;
 use crate::vpn::Server;
 use crate::vpn::VpnClient;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 pub trait Navigatable {
@@ -101,21 +96,10 @@ impl Navigatable for Option<usize> {
 /// - Notification: User notifications and history
 /// - Config: Application settings cache
 pub struct AppState {
-    // === Connection & Async (delegated to connection_manager) ===
-    pub connection: ConnectionState,
+    // === VPN State (needed by connection methods) ===
     pub vpn_state: Arc<VpnClient>,
-    previous_connection: Option<ConnectionState>,
-    async_manager: AsyncTaskManager,
-    async_notifier: Arc<AsyncNotifier>,
-    #[allow(clippy::type_complexity)]
-    pub pending_refresh: Option<ServerReceiver>,
-    pending_connect: Option<ConnectReceiver>,
-    pending_disconnect: Option<DisconnectReceiver>,
-    pub(crate) pending_cities: HashMap<String, CitiesReceiver>,
-    pending_connect_city: Option<ConnectReceiver>,
-    pending_config_set: Option<ConfigReceiver>,
 
-    // === Connection Manager (delegation target) ===
+    // === Connection Manager ===
     pub connection_manager: ConnectionManager,
 
     // === Server Data ===
@@ -154,25 +138,15 @@ impl AppState {
         let servers = vpn_state.servers();
 
         Self {
-            connection: ConnectionState::Disconnected,
+            vpn_state,
+            connection_manager: ConnectionManager::new(),
             ui_state: UiState::new(),
             server_data: ServerDataState::new(),
             servers,
             current_cities: Vec::new(),
             current_country_code: None,
-            vpn_state,
             notification_state: NotificationState::new(),
             config_state: ConfigState::new(),
-            connection_manager: ConnectionManager::new(),
-            async_manager: AsyncTaskManager::new(),
-            async_notifier: Arc::new(AsyncNotifier::new()),
-            pending_refresh: None,
-            previous_connection: None,
-            pending_connect: None,
-            pending_disconnect: None,
-            pending_cities: HashMap::new(),
-            pending_connect_city: None,
-            pending_config_set: None,
             proton_settings_cache: ProtonSettings::load(),
             server_cache: ServerCache::new(),
             is_initialized: false,
@@ -193,7 +167,7 @@ impl AppState {
     /// Wait for async events with timeout (event-driven)
     /// Returns true if any events were processed
     pub fn wait_for_async_events(&mut self, timeout: std::time::Duration) -> bool {
-        let events = self.async_notifier.wait_timeout(timeout);
+        let events = self.connection_manager.async_notifier.wait_timeout(timeout);
         if events.is_empty() {
             return false;
         }
@@ -230,7 +204,7 @@ impl AppState {
 
     /// Process async events notified via Condvar (event-driven)
     pub fn process_async_events(&mut self) -> bool {
-        let events = self.async_notifier.try_recv_all();
+        let events = self.connection_manager.async_notifier.try_recv_all();
         if events.is_empty() {
             return false;
         }
@@ -253,7 +227,7 @@ impl AppState {
                         );
                     }
                     notification_shown = true;
-                    self.pending_refresh = None;
+                    self.connection_manager.pending_refresh = None;
                 }
                 AsyncEvent::ServersRefreshFailed(e) => {
                     tracing::warn!("Server list refresh failed: {}", e);
@@ -263,7 +237,7 @@ impl AppState {
                         NotificationType::Error,
                     );
                     notification_shown = true;
-                    self.pending_refresh = None;
+                    self.connection_manager.pending_refresh = None;
                 }
                 AsyncEvent::Connected(server, ip) => {
                     self.show_notification(
@@ -271,34 +245,34 @@ impl AppState {
                         NotificationType::Success,
                     );
                     tracing::info!("Successfully connected to server: {}", server);
-                    self.connection = ConnectionState::Connected {
+                    self.connection_manager.connection = ConnectionState::Connected {
                         server,
                         ip: ip.unwrap_or_default(),
                     };
-                    self.previous_connection = None;
-                    self.pending_connect = None;
+                    self.connection_manager.previous_connection = None;
+                    self.connection_manager.pending_connect = None;
                     notification_shown = true;
                 }
                 AsyncEvent::ConnectFailed(e) => {
-                    if let Some(prev) = self.previous_connection.take() {
-                        self.connection = prev;
+                    if let Some(prev) = self.connection_manager.previous_connection.take() {
+                        self.connection_manager.connection = prev;
                     } else {
-                        self.connection = ConnectionState::Disconnected;
+                        self.connection_manager.connection = ConnectionState::Disconnected;
                     }
                     tracing::warn!("Connection failed: {}", e);
                     self.show_notification(
                         format!("Connection failed: {}", e),
                         NotificationType::Error,
                     );
-                    self.pending_connect = None;
+                    self.connection_manager.pending_connect = None;
                     notification_shown = true;
                 }
                 AsyncEvent::Disconnected => {
                     self.show_notification("Disconnected".to_string(), NotificationType::Info);
                     tracing::info!("Disconnected from VPN");
-                    self.connection = ConnectionState::Disconnected;
-                    self.previous_connection = None;
-                    self.pending_disconnect = None;
+                    self.connection_manager.connection = ConnectionState::Disconnected;
+                    self.connection_manager.previous_connection = None;
+                    self.connection_manager.pending_disconnect = None;
                     notification_shown = true;
                 }
                 AsyncEvent::DisconnectFailed(e) => {
@@ -307,10 +281,10 @@ impl AppState {
                         format!("Disconnect failed: {}", e),
                         NotificationType::Error,
                     );
-                    if let Some(prev) = self.previous_connection.take() {
-                        self.connection = prev;
+                    if let Some(prev) = self.connection_manager.previous_connection.take() {
+                        self.connection_manager.connection = prev;
                     }
-                    self.pending_disconnect = None;
+                    self.connection_manager.pending_disconnect = None;
                     notification_shown = true;
                 }
                 AsyncEvent::CitiesLoaded(_, _) => {
@@ -321,25 +295,25 @@ impl AppState {
                         format!("Connected to {}", city),
                         NotificationType::Success,
                     );
-                    self.connection = ConnectionState::Connected {
+                    self.connection_manager.connection = ConnectionState::Connected {
                         server: city,
                         ip: ip.unwrap_or_default(),
                     };
-                    self.previous_connection = None;
-                    self.pending_connect_city = None;
+                    self.connection_manager.previous_connection = None;
+                    self.connection_manager.pending_connect_city = None;
                     notification_shown = true;
                 }
                 AsyncEvent::ConnectCityFailed(e) => {
-                    if let Some(prev) = self.previous_connection.take() {
-                        self.connection = prev;
+                    if let Some(prev) = self.connection_manager.previous_connection.take() {
+                        self.connection_manager.connection = prev;
                     } else {
-                        self.connection = ConnectionState::Disconnected;
+                        self.connection_manager.connection = ConnectionState::Disconnected;
                     }
                     self.show_notification(
                         format!("Connection failed: {}", e),
                         NotificationType::Error,
                     );
-                    self.pending_connect_city = None;
+                    self.connection_manager.pending_connect_city = None;
                     notification_shown = true;
                 }
             }
@@ -355,7 +329,7 @@ impl AppState {
         // Check for notified async events (event-driven)
         notification_shown |= self.process_async_events();
         // Check for pending server refresh result
-        if let Some(rx) = self.pending_refresh.as_mut() {
+        if let Some(rx) = self.connection_manager.pending_refresh.as_mut() {
             if let Ok(result) = rx.try_recv() {
                 match result {
                     Ok(servers) => {
@@ -387,14 +361,14 @@ impl AppState {
                         notification_shown = true;
                     }
                 }
-                self.pending_refresh = None;
+                self.connection_manager.pending_refresh = None;
             }
         }
 
         // Only check pending connection result when connecting
-        if self.connection.is_connecting() {
+        if self.connection_manager.connection.is_connecting() {
             // Try to receive result from background thread
-            if let Some(rx) = self.pending_connect.as_mut() {
+            if let Some(rx) = self.connection_manager.pending_connect.as_mut() {
                 if let Ok(result) = rx.try_recv() {
                     match result {
                         Ok((server, ip)) => {
@@ -403,26 +377,26 @@ impl AppState {
                                 NotificationType::Success,
                             );
                             tracing::info!("Successfully connected to server: {}", server);
-                            self.connection = ConnectionState::Connected {
+                            self.connection_manager.connection = ConnectionState::Connected {
                                 server,
                                 ip: ip.unwrap_or_default(),
                             };
-                            self.previous_connection = None;
-                            self.pending_connect = None;
+                            self.connection_manager.previous_connection = None;
+                            self.connection_manager.pending_connect = None;
                             return true;
                         }
                         Err(e) => {
-                            if let Some(prev) = self.previous_connection.take() {
-                                self.connection = prev;
+                            if let Some(prev) = self.connection_manager.previous_connection.take() {
+                                self.connection_manager.connection = prev;
                             } else {
-                                self.connection = ConnectionState::Disconnected;
+                                self.connection_manager.connection = ConnectionState::Disconnected;
                             }
                             tracing::warn!("Connection failed: {}", e);
                             self.show_notification(
                                 format!("Connection failed: {}", e),
                                 NotificationType::Error,
                             );
-                            self.pending_connect = None;
+                            self.connection_manager.pending_connect = None;
                             return true;
                         }
                     }
@@ -430,31 +404,31 @@ impl AppState {
             }
         }
 
-        if self.connection.is_disconnecting() {
-            if let Some(rx) = self.pending_disconnect.as_mut() {
+        if self.connection_manager.connection.is_disconnecting() {
+            if let Some(rx) = self.connection_manager.pending_disconnect.as_mut() {
                 if let Ok(result) = rx.try_recv() {
-                    let server_info = match &self.connection {
+                    let server_info = match &self.connection_manager.connection {
                         ConnectionState::Connecting => Some("unknown server".to_string()),
                         ConnectionState::Connected { server, .. } => Some(server.clone()),
                         _ => None,
                     };
                     match result {
                         Ok(()) => {
-                            self.connection = ConnectionState::Disconnected;
+                            self.connection_manager.connection = ConnectionState::Disconnected;
                             tracing::info!("Successfully disconnected from VPN");
                             let msg = server_info
                                 .map(|s| format!("Disconnected from {}", s))
                                 .unwrap_or_else(|| "Disconnected".to_string());
                             self.show_notification(msg, NotificationType::Info);
                             notification_shown = true;
-                            self.previous_connection = None;
-                            self.pending_disconnect = None;
+                            self.connection_manager.previous_connection = None;
+                            self.connection_manager.pending_disconnect = None;
                         }
                         Err(e) => {
-                            if let Some(prev) = self.previous_connection.take() {
-                                self.connection = prev;
+                            if let Some(prev) = self.connection_manager.previous_connection.take() {
+                                self.connection_manager.connection = prev;
                             } else {
-                                self.connection = ConnectionState::Disconnected;
+                                self.connection_manager.connection = ConnectionState::Disconnected;
                             }
                             tracing::warn!("Disconnect failed: {}", e);
                             self.show_notification(
@@ -462,7 +436,7 @@ impl AppState {
                                 NotificationType::Error,
                             );
                             notification_shown = true;
-                            self.pending_disconnect = None;
+                            self.connection_manager.pending_disconnect = None;
                         }
                     }
                 }
@@ -471,7 +445,7 @@ impl AppState {
 
         // Check for pending cities fetch results
         let mut results_to_process = Vec::new();
-        for (country_code, rx) in self.pending_cities.iter_mut() {
+        for (country_code, rx) in self.connection_manager.pending_cities.iter_mut() {
             if let Ok(result) = rx.try_recv() {
                 results_to_process.push((country_code.clone(), result));
             }
@@ -499,15 +473,15 @@ impl AppState {
                     notification_shown = true;
                 }
             }
-            self.pending_cities.remove(&country_code);
+            self.connection_manager.pending_cities.remove(&country_code);
         }
 
-        if !self.pending_cities.is_empty() {
+        if !self.connection_manager.pending_cities.is_empty() {
             self.invalidate_filtered_cache();
         }
 
         // Check for pending connect city result
-        if let Some(rx) = self.pending_connect_city.as_mut() {
+        if let Some(rx) = self.connection_manager.pending_connect_city.as_mut() {
             if let Ok(result) = rx.try_recv() {
                 match result {
                     Ok((server, ip)) => {
@@ -520,18 +494,18 @@ impl AppState {
                             "Successfully connected to server (connect_city): {}",
                             server
                         );
-                        self.connection = ConnectionState::Connected {
+                        self.connection_manager.connection = ConnectionState::Connected {
                             server,
                             ip: ip.unwrap_or_default(),
                         };
-                        self.previous_connection = None;
-                        self.pending_connect_city = None;
+                        self.connection_manager.previous_connection = None;
+                        self.connection_manager.pending_connect_city = None;
                     }
                     Err(e) => {
-                        if let Some(prev) = self.previous_connection.take() {
-                            self.connection = prev;
+                        if let Some(prev) = self.connection_manager.previous_connection.take() {
+                            self.connection_manager.connection = prev;
                         } else {
-                            self.connection = ConnectionState::Disconnected;
+                            self.connection_manager.connection = ConnectionState::Disconnected;
                         }
                         tracing::warn!("Connection failed (connect_city): {}", e);
                         self.show_notification(
@@ -539,14 +513,14 @@ impl AppState {
                             NotificationType::Error,
                         );
                         notification_shown = true;
-                        self.pending_connect_city = None;
+                        self.connection_manager.pending_connect_city = None;
                     }
                 }
             }
         }
 
         // Check for pending config_set result
-        if let Some(rx) = self.pending_config_set.as_mut() {
+        if let Some(rx) = self.connection_manager.pending_config_set.as_mut() {
             if let Ok(result) = rx.try_recv() {
                 match result {
                     Ok(msg) => {
@@ -564,19 +538,21 @@ impl AppState {
                         );
                     }
                 }
-                self.pending_config_set = None;
+                self.connection_manager.pending_config_set = None;
             }
         }
 
         // When already connected, don't keep checking system state
         // This prevents flickering between connected/disconnected
-        if self.connection.is_connected() {
+        if self.connection_manager.connection.is_connected() {
             return notification_shown;
         }
 
         // When disconnected, check if externally connected
-        if self.connection == ConnectionState::Disconnected && self.vpn_state.is_connected() {
-            self.connection = ConnectionState::Connected {
+        if self.connection_manager.connection == ConnectionState::Disconnected
+            && self.vpn_state.is_connected()
+        {
+            self.connection_manager.connection = ConnectionState::Connected {
                 server: "Unknown".to_string(),
                 ip: String::new(),
             };
@@ -595,13 +571,14 @@ impl AppState {
         self.show_notification("Refreshing servers...".to_string(), NotificationType::Info);
 
         let (tx, rx) = create_channel();
-        self.pending_refresh = Some(rx);
-        self.async_manager
+        self.connection_manager.pending_refresh = Some(rx);
+        self.connection_manager
+            .async_manager
             .spawn_refresh_servers(self.vpn_state.clone(), tx);
     }
 
     pub fn connect(&mut self) {
-        if self.connection.is_connecting() {
+        if self.connection_manager.connection.is_connecting() {
             self.show_notification(
                 "Still connecting, please wait...".to_string(),
                 NotificationType::Info,
@@ -625,60 +602,66 @@ impl AppState {
         let server_country = server.country.clone();
 
         tracing::info!("Connecting to server: {}", server_id);
-        self.previous_connection = Some(self.connection.clone());
-        self.connection = ConnectionState::Connecting;
+        self.connection_manager.previous_connection =
+            Some(self.connection_manager.connection.clone());
+        self.connection_manager.connection = ConnectionState::Connecting;
         self.show_notification(
             format!("Connecting to {}...", server_country),
             NotificationType::Info,
         );
 
         let (tx, rx) = create_channel();
-        self.pending_connect = Some(rx);
-        self.async_manager
+        self.connection_manager.pending_connect = Some(rx);
+        self.connection_manager
+            .async_manager
             .spawn_connect(self.vpn_state.clone(), server_id, tx);
     }
 
     pub fn connect_random(&mut self) {
         tracing::info!("Connecting to random server");
-        self.previous_connection = Some(self.connection.clone());
-        self.connection = ConnectionState::Connecting;
+        self.connection_manager.previous_connection =
+            Some(self.connection_manager.connection.clone());
+        self.connection_manager.connection = ConnectionState::Connecting;
         self.show_notification(
             "Connecting to random server...".to_string(),
             NotificationType::Info,
         );
 
         let (tx, rx) = create_channel();
-        self.pending_connect = Some(rx);
-        self.async_manager
+        self.connection_manager.pending_connect = Some(rx);
+        self.connection_manager
+            .async_manager
             .spawn_connect_random(self.vpn_state.clone(), tx);
     }
 
     pub fn disconnect(&mut self) {
-        if self.connection.is_disconnected() {
+        if self.connection_manager.connection.is_disconnected() {
             return;
         }
 
-        let server_info = match &self.connection {
+        let server_info = match &self.connection_manager.connection {
             ConnectionState::Connected { server, .. } => server.clone(),
             _ => String::from("VPN"),
         };
 
         tracing::info!("Disconnecting from {}", server_info);
-        self.previous_connection = Some(self.connection.clone());
-        self.connection = ConnectionState::Disconnecting;
+        self.connection_manager.previous_connection =
+            Some(self.connection_manager.connection.clone());
+        self.connection_manager.connection = ConnectionState::Disconnecting;
         self.show_notification(
             format!("Disconnecting from {}...", server_info),
             NotificationType::Info,
         );
 
         let (tx, rx) = create_channel();
-        self.pending_disconnect = Some(rx);
-        self.async_manager
+        self.connection_manager.pending_disconnect = Some(rx);
+        self.connection_manager
+            .async_manager
             .spawn_disconnect(self.vpn_state.clone(), tx);
     }
 
     pub fn connect_city(&mut self, city: &str) {
-        if self.connection.is_connecting() {
+        if self.connection_manager.connection.is_connecting() {
             self.show_notification(
                 "Still connecting, please wait...".to_string(),
                 NotificationType::Info,
@@ -687,21 +670,27 @@ impl AppState {
         }
 
         let city = city.to_string();
-        self.previous_connection = Some(self.connection.clone());
-        self.connection = ConnectionState::Connecting;
+        self.connection_manager.previous_connection =
+            Some(self.connection_manager.connection.clone());
+        self.connection_manager.connection = ConnectionState::Connecting;
         self.show_notification(format!("Connecting to {}...", city), NotificationType::Info);
 
         let (tx, rx) = create_channel();
-        self.pending_connect_city = Some(rx);
-        self.async_manager
+        self.connection_manager.pending_connect_city = Some(rx);
+        self.connection_manager
+            .async_manager
             .spawn_connect_city(self.vpn_state.clone(), city, tx);
     }
 
     pub fn spawn_config_set(&mut self, key: String, value: String) {
         let (tx, rx) = create_channel();
-        self.pending_config_set = Some(rx);
-        self.async_manager
-            .spawn_config_set(self.vpn_state.clone(), key, value, tx);
+        self.connection_manager.pending_config_set = Some(rx);
+        self.connection_manager.async_manager.spawn_config_set(
+            self.vpn_state.clone(),
+            key,
+            value,
+            tx,
+        );
     }
 
     /// Get filtered and sorted server list
@@ -718,7 +707,7 @@ impl AppState {
     pub(crate) fn compute_filtered_servers(&self) -> Vec<Server> {
         let query = &self.ui_state.search_query.query_lower;
 
-        let connected_server_id = match &self.connection {
+        let connected_server_id = match &self.connection_manager.connection {
             ConnectionState::Connected { server, .. } => Some(server.clone()),
             _ => None,
         };
@@ -886,9 +875,14 @@ impl AppState {
         );
 
         let (tx, rx) = create_channel();
-        self.pending_cities.insert(country_code.clone(), rx);
-        self.async_manager
-            .spawn_cities(self.vpn_state.clone(), country_code, tx);
+        self.connection_manager
+            .pending_cities
+            .insert(country_code.clone(), rx);
+        self.connection_manager.async_manager.spawn_cities(
+            self.vpn_state.clone(),
+            country_code,
+            tx,
+        );
     }
 
     pub fn reload_cities(&mut self) {
@@ -905,9 +899,14 @@ impl AppState {
             );
 
             let (tx, rx) = create_channel();
-            self.pending_cities.insert(country_code.clone(), rx);
-            self.async_manager
-                .spawn_cities(self.vpn_state.clone(), country_code, tx);
+            self.connection_manager
+                .pending_cities
+                .insert(country_code.clone(), rx);
+            self.connection_manager.async_manager.spawn_cities(
+                self.vpn_state.clone(),
+                country_code,
+                tx,
+            );
         }
     }
 

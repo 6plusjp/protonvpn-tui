@@ -1,4 +1,4 @@
-use protonvpn_tui::state::{ServerFilter, ServerSort, SortDirection};
+use protonvpn_tui::state::{ConnectionState, Navigatable, ServerFilter, ServerSort, SortDirection};
 
 mod server_filter {
     use super::*;
@@ -136,5 +136,304 @@ mod server_sort {
             sort = sort.next();
         }
         assert_eq!(sort, ServerSort::Id);
+    }
+}
+
+mod navigatable {
+    use super::*;
+
+    mod move_next {
+        use super::*;
+
+        #[test]
+        fn test_move_next_from_none() {
+            let mut selected: Option<usize> = None;
+            selected.move_next(10);
+            assert_eq!(selected, Some(0));
+        }
+
+        #[test]
+        fn test_move_next_from_middle() {
+            let mut selected = Some(5);
+            selected.move_next(10);
+            assert_eq!(selected, Some(6));
+        }
+
+        #[test]
+        fn test_move_next_at_last() {
+            let mut selected = Some(9);
+            selected.move_next(10);
+            assert_eq!(selected, Some(9)); // Stays at max
+        }
+
+        #[test]
+        fn test_move_next_zero_bounds() {
+            let mut selected: Option<usize> = None;
+            selected.move_next(0);
+            assert_eq!(selected, None); // No movement
+        }
+
+        #[test]
+        fn test_move_next_wraps_to_last() {
+            let mut selected = Some(9);
+            selected.move_next(10);
+            assert_eq!(selected, Some(9));
+        }
+    }
+
+    mod move_prev {
+        use super::*;
+
+        #[test]
+        fn test_move_prev_from_none() {
+            let mut selected: Option<usize> = None;
+            selected.move_prev(10);
+            assert_eq!(selected, Some(0));
+        }
+
+        #[test]
+        fn test_move_prev_from_middle() {
+            let mut selected = Some(5);
+            selected.move_prev(10);
+            assert_eq!(selected, Some(4));
+        }
+
+        #[test]
+        fn test_move_prev_at_first() {
+            let mut selected = Some(0);
+            selected.move_prev(10);
+            assert_eq!(selected, Some(0)); // Stays at first
+        }
+
+        #[test]
+        fn test_move_prev_zero_bounds() {
+            let mut selected: Option<usize> = None;
+            selected.move_prev(0);
+            assert_eq!(selected, None);
+        }
+    }
+
+    mod move_first {
+        use super::*;
+
+        #[test]
+        fn test_move_first() {
+            let mut selected = Some(5);
+            selected.move_first(10);
+            assert_eq!(selected, Some(0));
+        }
+
+        #[test]
+        fn test_move_first_zero_bounds() {
+            let mut selected = Some(5);
+            selected.move_first(0);
+            assert_eq!(selected, Some(5)); // No change
+        }
+    }
+
+    mod move_last {
+        use super::*;
+
+        #[test]
+        fn test_move_last() {
+            let mut selected = Some(5);
+            selected.move_last(10);
+            assert_eq!(selected, Some(9));
+        }
+
+        #[test]
+        fn test_move_last_zero_bounds() {
+            let mut selected = Some(5);
+            selected.move_last(0);
+            assert_eq!(selected, Some(5)); // No change
+        }
+    }
+
+    mod move_page_down {
+        use super::*;
+
+        #[test]
+        fn test_move_page_down_from_middle() {
+            let mut selected = Some(5);
+            selected.move_page_down(100);
+            assert_eq!(selected, Some(15));
+        }
+
+        #[test]
+        fn test_move_page_down_near_end() {
+            let mut selected = Some(95);
+            selected.move_page_down(100);
+            assert_eq!(selected, Some(99)); // Clamps to max
+        }
+
+        #[test]
+        fn test_move_page_down_zero_bounds() {
+            let mut selected = Some(5);
+            selected.move_page_down(0);
+            assert_eq!(selected, Some(5)); // No change
+        }
+
+        #[test]
+        fn test_move_page_down_from_none() {
+            let mut selected: Option<usize> = None;
+            selected.move_page_down(100);
+            assert_eq!(selected, Some(0));
+        }
+    }
+
+    mod move_page_up {
+        use super::*;
+
+        #[test]
+        fn test_move_page_up_from_middle() {
+            let mut selected = Some(50);
+            selected.move_page_up(100);
+            assert_eq!(selected, Some(40));
+        }
+
+        #[test]
+        fn test_move_page_up_near_start() {
+            let mut selected = Some(5);
+            selected.move_page_up(100);
+            assert_eq!(selected, Some(0)); // Clamps to 0
+        }
+
+        #[test]
+        fn test_move_page_up_zero_bounds() {
+            let mut selected = Some(5);
+            selected.move_page_up(0);
+            assert_eq!(selected, Some(5)); // No change
+        }
+
+        #[test]
+        fn test_move_page_up_from_none() {
+            let mut selected: Option<usize> = None;
+            selected.move_page_up(100);
+            assert_eq!(selected, Some(0));
+        }
+    }
+}
+
+mod connection_state {
+    use super::*;
+
+    #[test]
+    fn test_default_disconnected() {
+        let state = ConnectionState::default();
+        assert_eq!(state, ConnectionState::Disconnected);
+    }
+
+    #[test]
+    fn test_is_connected_true() {
+        let state = ConnectionState::Connected {
+            server: "JP".to_string(),
+            ip: "1.2.3.4".to_string(),
+        };
+        assert!(state.is_connected());
+    }
+
+    #[test]
+    fn test_is_connected_false_disconnected() {
+        let state = ConnectionState::Disconnected;
+        assert!(!state.is_connected());
+    }
+
+    #[test]
+    fn test_is_connected_false_connecting() {
+        let state = ConnectionState::Connecting;
+        assert!(!state.is_connected());
+    }
+
+    #[test]
+    fn test_is_connecting_true() {
+        let state = ConnectionState::Connecting;
+        assert!(state.is_connecting());
+    }
+
+    #[test]
+    fn test_is_connecting_false() {
+        let state = ConnectionState::Disconnected;
+        assert!(!state.is_connecting());
+    }
+
+    #[test]
+    fn test_can_connect_when_disconnected() {
+        let state = ConnectionState::Disconnected;
+        assert!(state.can_connect());
+    }
+
+    #[test]
+    fn test_can_connect_when_error() {
+        let state = ConnectionState::Error("timeout".to_string());
+        assert!(state.can_connect());
+    }
+
+    #[test]
+    fn test_can_connect_false_when_connected() {
+        let state = ConnectionState::Connected {
+            server: "JP".to_string(),
+            ip: "1.2.3.4".to_string(),
+        };
+        assert!(!state.can_connect());
+    }
+
+    #[test]
+    fn test_can_connect_false_when_connecting() {
+        let state = ConnectionState::Connecting;
+        assert!(!state.can_connect());
+    }
+
+    #[test]
+    fn test_can_connect_false_when_disconnecting() {
+        let state = ConnectionState::Disconnecting;
+        assert!(!state.can_connect());
+    }
+
+    #[test]
+    fn test_is_disconnecting_true() {
+        let state = ConnectionState::Disconnecting;
+        assert!(state.is_disconnecting());
+    }
+
+    #[test]
+    fn test_is_disconnected_true() {
+        let state = ConnectionState::Disconnected;
+        assert!(state.is_disconnected());
+    }
+
+    #[test]
+    fn test_is_disconnected_false_when_connected() {
+        let state = ConnectionState::Connected {
+            server: "JP".to_string(),
+            ip: "1.2.3.4".to_string(),
+        };
+        assert!(!state.is_disconnected());
+    }
+
+    #[test]
+    fn test_connected_state_equality() {
+        let state1 = ConnectionState::Connected {
+            server: "JP".to_string(),
+            ip: "1.2.3.4".to_string(),
+        };
+        let state2 = ConnectionState::Connected {
+            server: "JP".to_string(),
+            ip: "1.2.3.4".to_string(),
+        };
+        assert_eq!(state1, state2);
+    }
+
+    #[test]
+    fn test_error_state_equality() {
+        let state1 = ConnectionState::Error("timeout".to_string());
+        let state2 = ConnectionState::Error("timeout".to_string());
+        assert_eq!(state1, state2);
+    }
+
+    #[test]
+    fn test_error_state_inequality() {
+        let state1 = ConnectionState::Error("timeout".to_string());
+        let state2 = ConnectionState::Error("auth failed".to_string());
+        assert_ne!(state1, state2);
     }
 }

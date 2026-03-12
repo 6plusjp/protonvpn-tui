@@ -12,11 +12,12 @@ This issue covers structural problems with `AppState` and related state manageme
 
 ---
 
-## Status: Partially Implemented (2026-03-11)
+## Status: Partially Implemented (2026-03-12)
 
 ### Implemented
 
 - [x] `previous_connection` field - Already implemented and used for connection rollback on failure
+- [x] Add AppState Unit Tests (58 tests for Navigatable, ConnectionState)
 
 ### Not Implemented
 
@@ -197,7 +198,7 @@ impl AsyncManager {
 | Priority | Item | Effort | Status |
 |----------|------|--------|--------|
 | High | `previous_connection` implementation | Low | ✅ Done |
-| Medium | Add AppState Unit Tests | Medium | Pending |
+| Medium | Add AppState Unit Tests | Medium | ✅ Done (58 tests) |
 | Medium | Encapsulate AppState fields (getter/setter) | Medium | Pending |
 | Low | Split AppState into modules | High | Pending |
 

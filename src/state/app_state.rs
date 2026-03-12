@@ -202,27 +202,27 @@ impl AppState {
 
     /// Check if state is initialized
     pub fn is_initialized(&self) -> bool {
-        self.server_data.is_initialized()
+        self.server_data.is_initialized
     }
 
     /// Set initialized state
     pub fn set_initialized(&mut self, initialized: bool) {
-        self.server_data.set_initialized(initialized);
+        self.server_data.is_initialized = initialized;
     }
 
     /// Get all servers
     pub fn get_servers(&self) -> &Vec<Server> {
-        self.server_data.get_servers()
+        &self.server_data.servers
     }
 
     /// Get current cities
     pub fn get_current_cities(&self) -> &Vec<crate::vpn::City> {
-        self.server_data.get_current_cities()
+        &self.server_data.current_cities
     }
 
     /// Get current country code
     pub fn get_current_country_code(&self) -> &Option<String> {
-        self.server_data.get_current_country_code()
+        &self.server_data.current_country_code
     }
 
     /// Wait for async events with timeout (event-driven)
@@ -237,57 +237,57 @@ impl AppState {
 
     /// Get current view
     pub fn get_current_view(&self) -> crate::state::AppView {
-        self.ui_state.get_current_view()
+        self.ui_state.current_view
     }
 
     /// Set current view
     pub fn set_current_view(&mut self, view: crate::state::AppView) {
-        self.ui_state.set_current_view(view);
+        self.ui_state.current_view = view;
     }
 
     /// Get current pane focus
     pub fn get_pane_focus(&self) -> Pane {
-        self.ui_state.get_pane_focus()
+        self.ui_state.pane_focus
     }
 
     /// Get selected server index
     pub fn get_selected_server(&self) -> Option<usize> {
-        self.ui_state.get_selected_server()
+        self.ui_state.selected_server
     }
 
     /// Get selected city index
     pub fn get_selected_city(&self) -> Option<usize> {
-        self.ui_state.get_selected_city()
+        self.ui_state.selected_city
     }
 
     /// Get settings selected index
     pub fn get_settings_selected(&self) -> Option<usize> {
-        self.ui_state.get_settings_selected()
+        self.ui_state.settings_selected
     }
 
     /// Get settings expanded state
     pub fn is_settings_expanded(&self) -> bool {
-        self.ui_state.is_settings_expanded()
+        self.ui_state.settings_expanded
     }
 
     /// Get settings option selected index
     pub fn get_settings_option_selected(&self) -> usize {
-        self.ui_state.get_settings_option_selected()
+        self.ui_state.settings_option_selected
     }
 
     /// Get logs selected index
     pub fn get_logs_selected(&self) -> Option<usize> {
-        self.ui_state.get_logs_selected()
+        self.ui_state.logs_selected
     }
 
     /// Set settings expanded state
     pub fn set_settings_expanded(&mut self, expanded: bool) {
-        self.ui_state.set_settings_expanded(expanded);
+        self.ui_state.settings_expanded = expanded;
     }
 
     /// Set settings option selected index
     pub fn set_settings_option_selected(&mut self, index: usize) {
-        self.ui_state.set_settings_option_selected(index);
+        self.ui_state.settings_option_selected = index;
     }
 
     /// Reset settings expanded and option selected
@@ -298,12 +298,12 @@ impl AppState {
     // === Dark theme ===
 
     pub fn is_dark_theme(&self) -> bool {
-        self.ui_state.is_dark_theme()
+        self.ui_state.is_dark_theme
     }
 
     pub fn set_is_dark_theme(&mut self, dark: bool) {
         self.ui_state.toggle_theme();
-        if dark != self.ui_state.is_dark_theme() {
+        if dark != self.ui_state.is_dark_theme {
             self.ui_state.toggle_theme();
         }
     }
@@ -311,39 +311,39 @@ impl AppState {
     // === Input mode ===
 
     pub fn get_input_mode(&self) -> InputMode {
-        self.ui_state.get_input_mode()
+        self.ui_state.input_mode
     }
 
     pub fn set_input_mode(&mut self, mode: InputMode) {
-        self.ui_state.set_input_mode(mode);
+        self.ui_state.input_mode = mode;
     }
 
     // === DNS input ===
 
     pub fn get_dns_input(&self) -> &str {
-        self.ui_state.get_dns_input()
+        &self.ui_state.dns_input
     }
 
     pub fn set_dns_input(&mut self, input: String) {
-        self.ui_state.set_dns_input(input);
+        self.ui_state.dns_input = input;
     }
 
     pub fn clear_dns_input(&mut self) {
-        self.ui_state.clear_dns_input();
+        self.ui_state.dns_input.clear();
     }
 
     pub fn push_dns_char(&mut self, c: char) {
-        self.ui_state.push_dns_char(c);
+        self.ui_state.dns_input.push(c);
     }
 
     pub fn pop_dns_char(&mut self) {
-        self.ui_state.pop_dns_char();
+        self.ui_state.dns_input.pop();
     }
 
     // === Search query ===
 
     pub fn get_search_query(&self) -> &SearchQuery {
-        self.ui_state.get_search_query()
+        &self.ui_state.search_query
     }
 
     pub fn set_search_query(&mut self, query: String) {
@@ -353,7 +353,7 @@ impl AppState {
 
     pub fn set_servers(&mut self, servers: Vec<Server>) {
         self.servers = servers;
-        self.server_data.set_servers(self.servers.clone());
+        self.server_data.servers = self.servers.clone();
         self.invalidate_filtered_cache();
 
         if let Some(idx) = self.ui_state.selected_server {
@@ -383,7 +383,7 @@ impl AppState {
     }
 
     pub fn clear_notifications(&mut self) {
-        self.notification_state.clear();
+        self.notification_state.notifications.clear();
     }
 
     pub fn tick_notifications(&mut self) {
@@ -393,11 +393,11 @@ impl AppState {
     // === Getters for notification state (backward compatibility) ===
 
     pub fn get_notifications(&self) -> &Vec<ToastNotification> {
-        self.notification_state.get_notifications()
+        &self.notification_state.notifications
     }
 
     pub fn get_notification_log(&self) -> &Vec<Notification> {
-        self.notification_state.get_notification_log()
+        &self.notification_state.notification_log
     }
 
     /// Process async events notified via Condvar (event-driven)
@@ -878,12 +878,12 @@ impl AppState {
 
     /// Get filtered and sorted server list
     pub fn filtered_servers(&self) -> Vec<Server> {
-        if let Some(cached) = self.server_cache.try_get_cached() {
+        if let Some(cached) = self.server_cache.get_cached() {
             return cached;
         }
 
         let result = self.compute_filtered_servers();
-        self.server_cache.try_set_cached(result.clone());
+        self.server_cache.set_cached(result.clone());
         result
     }
 

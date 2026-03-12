@@ -13,6 +13,7 @@ use crate::state::NotificationManager;
 use crate::state::NotificationType;
 use crate::state::Pane;
 use crate::state::SearchQuery;
+use crate::state::ServerCache;
 use crate::state::ServerFilter;
 use crate::state::ServerSort;
 use crate::state::SortDirection;
@@ -23,7 +24,6 @@ use crate::vpn::VpnClient;
 use std::collections::HashMap;
 use std::sync::mpsc;
 use std::sync::Arc;
-use std::sync::RwLock;
 
 /// Async event types for event-driven notification
 /// Notifier for async task completion (event-driven wakeup)
@@ -125,8 +125,7 @@ pub struct AppState {
 
     // === Server Data ===
     pub(crate) servers: Vec<Server>,
-    filtered_servers_cache: RwLock<Option<(Vec<Server>, u64)>>,
-    filtered_servers_version: u64,
+    server_cache: ServerCache,
     pub is_initialized: bool,
     pub(crate) current_cities: Vec<crate::vpn::City>,
     pub(crate) current_country_code: Option<String>,
@@ -200,8 +199,7 @@ impl AppState {
             pending_connect_city: None,
             pending_config_set: None,
             proton_settings_cache: ProtonSettings::load(),
-            filtered_servers_cache: RwLock::new(None),
-            filtered_servers_version: 0,
+            server_cache: ServerCache::new(),
             is_initialized: false,
         }
     }
@@ -825,32 +823,12 @@ impl AppState {
 
     /// Get filtered and sorted server list
     pub fn filtered_servers(&self) -> Vec<Server> {
-        let version = self.filtered_servers_version;
-
-        {
-            let cached = match self.filtered_servers_cache.read() {
-                Ok(c) => c,
-                Err(e) => {
-                    tracing::warn!("Failed to lock filtered_servers_cache for read: {}", e);
-                    return self.compute_filtered_servers();
-                }
-            };
-            if let Some((ref cached_result, cached_version)) = *cached {
-                if cached_version == version {
-                    return cached_result.clone();
-                }
-            }
+        if let Some(cached) = self.server_cache.try_get_cached() {
+            return cached;
         }
 
         let result = self.compute_filtered_servers();
-        let mut cache = match self.filtered_servers_cache.write() {
-            Ok(c) => c,
-            Err(e) => {
-                tracing::warn!("Failed to lock filtered_servers_cache for write: {}", e);
-                return result;
-            }
-        };
-        *cache = Some((result.clone(), version));
+        self.server_cache.try_set_cached(result.clone());
         result
     }
 
@@ -952,7 +930,7 @@ impl AppState {
     }
 
     fn invalidate_filtered_cache(&mut self) {
-        self.filtered_servers_version = self.filtered_servers_version.wrapping_add(1);
+        self.server_cache.invalidate();
     }
 
     pub fn filtered_servers_count(&self) -> usize {

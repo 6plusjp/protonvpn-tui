@@ -44,27 +44,50 @@ This issue covers structural problems with `AppState` and related state manageme
   - [x] Setters: set_initialized()
   - [x] Updated set_servers() to sync with server_data
   - [x] Updated is_initialized() to delegate to server_data
+- [x] **Phase 2.6: Getter/Setter Removal** (2026-03-12)
+  - [x] Remove unnecessary getter/setter methods per AGENTS.md coding standards
+  - [x] Use pub fields instead of getter/setter patterns
+  - [x] Make ui_state, server_data, notification_state pub in AppState
+  - [x] Make connection, current_cities, current_country_code, proton_settings_cache, pending_refresh pub
+  - [x] Update callers to use direct field access: `state.ui_state.field`
 
 ### Not Implemented
 
 - [ ] Phase 2.4: Connection state delegation
 - [ ] Phase 2.5: Config state delegation
-- [ ] **Post-Phase 2.5**: Remove wrapper getters from AppState (optimization)
 
 ### Technical Notes
 
-**Current Delegation Pattern**:
-- AppState has wrapper getters that delegate to sub-state structs
-- Maintains backward compatibility during migration
-- After all phases complete: remove wrappers, callers use `state.ui_state.get_xxx()` directly
+**Current Architecture (After Getter/Setter Removal)**:
+- AppState has public fields for sub-state structs: `ui_state`, `server_data`, `notification_state`
+- Callers access fields directly: `state.ui_state.current_view`
+- No wrapper getters/setters - follows AGENTS.md coding standards
 
 ---
 
-## Encapsulation Plan: Incremental Approach
+---
 
-Many getters/setters already exist. Progress incrementally:
+## Encapsulation Plan: COMPLETED (2026-03-12)
 
-### Already Implemented
+Getter/setter patterns removed per AGENTS.md coding standards. All fields accessed directly.
+
+### Completed (2026-03-12)
+
+| Field | Access Pattern |
+|-------|---------------|
+| `ui_state` | `state.ui_state.field` |
+| `server_data` | `state.server_data.field` |
+| `notification_state` | `state.notification_state.field` |
+| `connection` | `state.connection` |
+| `current_cities` | `state.current_cities` |
+| `current_country_code` | `state.current_country_code` |
+| `proton_settings_cache` | `state.proton_settings_cache` |
+| `pending_refresh` | `state.pending_refresh` |
+| `search_query` | `state.ui_state.search_query` (pub fields in SearchQuery) |
+| `is_dark_theme` | `state.ui_state.is_dark_theme` |
+| `filter`, `sort` | `state.ui_state.filter`, `state.ui_state.sort` |
+
+### Previously Implemented
 
 | Field | Getter | Setter | Action |
 |-------|--------|--------|--------|
@@ -81,20 +104,6 @@ Many getters/setters already exist. Progress incrementally:
 | `settings_expanded` | `is_settings_expanded()` | `set_settings_expanded()` | ✅ |
 | `settings_option_selected` | `get_settings_option_selected()` | `set_settings_option_selected()` | ✅ |
 | `logs_selected` | `get_logs_selected()` | - | ✅ |
-
-### Completed Encapsulation (2026-03-12)
-
-- [x] Add `set_current_view()` setter
-- [x] Update `servers_view.rs` to use getters (`get_pane_focus()`, `get_selected_server()`, `get_selected_city()`, `get_connection()`)
-- [x] Update `app.rs` to use `set_current_view()`
-
-#### Completed Settings & Logs (2026-03-12)
-
-- [x] Add getters: `get_settings_selected()`, `is_settings_expanded()`, `get_settings_option_selected()`, `get_logs_selected()`
-- [x] Add setters: `set_settings_expanded()`, `set_settings_option_selected()`, `reset_settings_selection()`
-- [x] Update `settings_view.rs` to use getters
-- [x] Update `logs_view.rs` to use getters
-- [x] Update `app.rs` to use getters/setters for settings fields
 
 ---
 

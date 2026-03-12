@@ -39,7 +39,7 @@ fn render_countries_pane(
 
     let servers = state.filtered_servers();
 
-    let connected_server_id = match state.get_connection() {
+    let connected_server_id = match &state.connection {
         ConnectionState::Connected { server, .. } => Some(server.clone()),
         _ => None,
     };

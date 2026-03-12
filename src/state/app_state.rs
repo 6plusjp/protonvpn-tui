@@ -107,13 +107,13 @@ impl Navigatable for Option<usize> {
 /// - Config: Application settings cache
 pub struct AppState {
     // === Connection & Async (深い結合) ===
-    connection: ConnectionState,
+    pub connection: ConnectionState,
     pub vpn_state: Arc<VpnClient>,
     previous_connection: Option<ConnectionState>,
     async_manager: AsyncTaskManager,
     async_notifier: Arc<AsyncNotifier>,
     #[allow(clippy::type_complexity)]
-    pending_refresh: Option<ServerReceiver>,
+    pub pending_refresh: Option<ServerReceiver>,
     pending_connect: Option<ConnectReceiver>,
     pending_disconnect: Option<DisconnectReceiver>,
     pub(crate) pending_cities: HashMap<String, CitiesReceiver>,
@@ -125,8 +125,8 @@ pub struct AppState {
     server_cache: ServerCache,
     #[allow(dead_code)]
     is_initialized: bool,
-    pub(crate) current_cities: Vec<crate::vpn::City>,
-    pub(crate) current_country_code: Option<String>,
+    pub current_cities: Vec<crate::vpn::City>,
+    pub current_country_code: Option<String>,
 
     // === Server Data (delegated to server_data) ===
     pub server_data: ServerDataState,
@@ -138,7 +138,7 @@ pub struct AppState {
     pub notification_state: NotificationState,
 
     // === Config (独立してロード可能) ===
-    proton_settings_cache: Option<ProtonSettings>,
+    pub proton_settings_cache: Option<ProtonSettings>,
 }
 
 impl Default for AppState {
@@ -187,41 +187,6 @@ impl AppState {
 
     // === Getters for tight coupling reduction ===
 
-    /// Get current connection state
-    pub fn get_connection(&self) -> &ConnectionState {
-        &self.connection
-    }
-
-    /// Check if server list refresh is in progress
-    pub fn is_refreshing(&self) -> bool {
-        self.pending_refresh.is_some()
-    }
-
-    /// Check if state is initialized
-    pub fn is_initialized(&self) -> bool {
-        self.server_data.is_initialized
-    }
-
-    /// Set initialized state
-    pub fn set_initialized(&mut self, initialized: bool) {
-        self.server_data.is_initialized = initialized;
-    }
-
-    /// Get all servers
-    pub fn get_servers(&self) -> &Vec<Server> {
-        &self.server_data.servers
-    }
-
-    /// Get current cities
-    pub fn get_current_cities(&self) -> &Vec<crate::vpn::City> {
-        &self.server_data.current_cities
-    }
-
-    /// Get current country code
-    pub fn get_current_country_code(&self) -> &Option<String> {
-        &self.server_data.current_country_code
-    }
-
     /// Wait for async events with timeout (event-driven)
     /// Returns true if any events were processed
     pub fn wait_for_async_events(&mut self, timeout: std::time::Duration) -> bool {
@@ -230,56 +195,6 @@ impl AppState {
             return false;
         }
         self.process_async_events()
-    }
-
-    /// Set current view
-    pub fn set_current_view(&mut self, view: crate::state::AppView) {
-        self.ui_state.current_view = view;
-    }
-
-    /// Get settings expanded state
-    pub fn is_settings_expanded(&self) -> bool {
-        self.ui_state.settings_expanded
-    }
-
-    /// Set settings expanded state
-    pub fn set_settings_expanded(&mut self, expanded: bool) {
-        self.ui_state.settings_expanded = expanded;
-    }
-
-    /// Set settings option selected index
-    pub fn set_settings_option_selected(&mut self, index: usize) {
-        self.ui_state.settings_option_selected = index;
-    }
-
-    /// Reset settings expanded and option selected
-    pub fn reset_settings_selection(&mut self) {
-        self.ui_state.reset_settings_selection();
-    }
-
-    // === Dark theme ===
-
-    pub fn is_dark_theme(&self) -> bool {
-        self.ui_state.is_dark_theme
-    }
-
-    pub fn set_is_dark_theme(&mut self, dark: bool) {
-        self.ui_state.toggle_theme();
-        if dark != self.ui_state.is_dark_theme {
-            self.ui_state.toggle_theme();
-        }
-    }
-
-    // === Input mode ===
-
-    pub fn set_input_mode(&mut self, mode: InputMode) {
-        self.ui_state.input_mode = mode;
-    }
-
-    // === DNS input ===
-
-    pub fn set_dns_input(&mut self, input: String) {
-        self.ui_state.dns_input = input;
     }
 
     // === Search query ===
@@ -302,26 +217,12 @@ impl AppState {
         }
     }
 
-    pub fn get_proton_settings(&self) -> Option<&ProtonSettings> {
-        self.proton_settings_cache.as_ref()
-    }
-
-    pub fn get_proton_protocol(&self) -> Option<String> {
-        self.proton_settings_cache
-            .as_ref()
-            .and_then(|ps| ps.protocol.clone())
-    }
-
     pub fn switch_view(&mut self) {
         self.ui_state.current_view = self.ui_state.current_view.next();
     }
 
     pub fn show_notification(&mut self, message: String, notification_type: NotificationType) {
         self.notification_state.show(message, notification_type);
-    }
-
-    pub fn tick_notifications(&mut self) {
-        self.notification_state.tick();
     }
 
     /// Process async events notified via Condvar (event-driven)
@@ -336,7 +237,7 @@ impl AppState {
                 AsyncEvent::ServersRefreshed(servers) => {
                     self.set_servers(servers);
                     tracing::info!("Server list refreshed: {} servers", self.servers.len());
-                    self.set_initialized(true);
+                    self.server_data.is_initialized = true;
                     if self.vpn_state.is_cli_unavailable() {
                         self.show_notification(
                             "ProtonVPN CLI unavailable. VPN functionality disabled.".to_string(),
@@ -353,7 +254,7 @@ impl AppState {
                 }
                 AsyncEvent::ServersRefreshFailed(e) => {
                     tracing::warn!("Server list refresh failed: {}", e);
-                    self.set_initialized(true);
+                    self.server_data.is_initialized = true;
                     self.show_notification(
                         format!("Refresh failed: {}", e),
                         NotificationType::Error,
@@ -457,7 +358,7 @@ impl AppState {
                     Ok(servers) => {
                         self.set_servers(servers);
                         tracing::info!("Server list refreshed: {} servers", self.servers.len());
-                        self.set_initialized(true);
+                        self.server_data.is_initialized = true;
 
                         if self.vpn_state.is_cli_unavailable() {
                             self.show_notification(
@@ -475,7 +376,7 @@ impl AppState {
                     }
                     Err(e) => {
                         tracing::warn!("Server list refresh failed: {}", e);
-                        self.set_initialized(true);
+                        self.server_data.is_initialized = true;
                         self.show_notification(
                             format!("Refresh failed: {}", e),
                             NotificationType::Error,
@@ -912,10 +813,6 @@ impl AppState {
         self.server_cache.invalidate();
     }
 
-    pub fn filtered_servers_count(&self) -> usize {
-        self.filtered_servers().len()
-    }
-
     pub fn cycle_filter(&mut self) {
         self.ui_state.filter = self.ui_state.filter.next();
         self.invalidate_filtered_cache();
@@ -1241,7 +1138,7 @@ impl AppState {
             return;
         }
 
-        let ps = self.get_proton_settings();
+        let ps = self.proton_settings_cache.as_ref();
         let result = match key {
             SettingKey::Killswitch => {
                 let current = ps.and_then(|p| p.killswitch);
@@ -1306,7 +1203,7 @@ impl AppState {
         };
 
         if key == SettingKey::Dns {
-            let ps = self.get_proton_settings();
+            let ps = self.proton_settings_cache.as_ref();
             let dns_enabled = ps.map(|p| p.custom_dns.enabled).unwrap_or(false);
             if dns_enabled {
                 match self.vpn_state.disable_custom_dns() {
@@ -1608,7 +1505,7 @@ mod notification_tests {
         state.show_notification("Test".to_string(), NotificationType::Info);
 
         for _ in 0..NOTIFICATION_TIMER_DEFAULT {
-            state.tick_notifications();
+            state.notification_state.tick();
         }
 
         assert!(state.notification_state.notifications.is_empty());
@@ -1621,7 +1518,7 @@ mod notification_tests {
         state.show_notification("Test 1".to_string(), NotificationType::Info);
         state.show_notification("Test 2".to_string(), NotificationType::Info);
 
-        state.tick_notifications();
+        state.notification_state.tick();
 
         assert_eq!(state.notification_state.notifications.len(), 2);
         assert!(state

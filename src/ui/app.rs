@@ -53,7 +53,7 @@ impl TuiApp {
     }
 
     pub fn get_theme(&self) -> Theme {
-        if self.state.is_dark_theme() {
+        if self.state.ui_state.is_dark_theme {
             Theme::dark()
         } else {
             Theme::light()
@@ -76,10 +76,10 @@ impl TuiApp {
             // Sync remaining connection state (polling fallback)
             let notification_shown = self.state.sync_connection_state();
 
-            self.state.tick_notifications();
+            self.state.notification_state.tick();
 
             // Always redraw on first iteration to show loading screen
-            let is_first_render = self.state.is_initialized();
+            let is_first_render = self.state.server_data.is_initialized;
             if !is_first_render || async_processed || notification_shown {
                 terminal.draw(|f| self.render(f))?;
             }
@@ -137,7 +137,7 @@ impl TuiApp {
             KeyCode::Char('q') => Some(AppAction::Quit),
             KeyCode::Tab => Some(AppAction::SwitchView),
             KeyCode::Char('?') => {
-                self.state.set_current_view(AppView::Help);
+                self.state.ui_state.current_view = AppView::Help;
                 None
             }
             KeyCode::Char('/') => {
@@ -146,7 +146,7 @@ impl TuiApp {
                 None
             }
             KeyCode::Esc => {
-                if !self.state.ui_state.search_query.is_empty() {
+                if !self.state.ui_state.search_query.query.is_empty() {
                     self.state.set_search_query(String::new());
                     self.filter_input.clear();
                 }
@@ -159,7 +159,7 @@ impl TuiApp {
     fn handle_servers_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
         match key_event.code {
             KeyCode::Char('c') => {
-                match self.state.get_connection() {
+                match self.state.connection {
                     crate::state::ConnectionState::Connecting => {
                         self.state.show_notification(
                             "Connection in progress...".to_string(),
@@ -216,7 +216,7 @@ impl TuiApp {
                 None
             }
             KeyCode::Char('d') => {
-                match self.state.get_connection() {
+                match self.state.connection {
                     crate::state::ConnectionState::Disconnected => {
                         self.state.show_notification(
                             "Not connected".to_string(),
@@ -241,7 +241,7 @@ impl TuiApp {
                         self.state.reload_cities();
                     }
                     Pane::Countries => {
-                        if self.state.is_refreshing() {
+                        if self.state.pending_refresh.is_some() {
                             self.state.show_notification(
                                 "Refresh in progress...".to_string(),
                                 crate::state::NotificationType::Warning,
@@ -274,7 +274,7 @@ impl TuiApp {
                 None
             }
             KeyCode::Char('x') => {
-                match self.state.get_connection() {
+                match self.state.connection {
                     crate::state::ConnectionState::Connecting => {
                         self.state.show_notification(
                             "Connection in progress...".to_string(),
@@ -298,12 +298,12 @@ impl TuiApp {
     }
 
     fn handle_settings_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
-        let expanded = self.state.is_settings_expanded();
+        let expanded = self.state.ui_state.settings_expanded;
 
         match (expanded, key_event.code) {
             (false, KeyCode::Enter) => {
-                self.state.set_settings_expanded(true);
-                self.state.set_settings_option_selected(0);
+                self.state.ui_state.settings_expanded = true;
+                self.state.ui_state.settings_option_selected = 0;
                 None
             }
             (false, KeyCode::Char(' ') | KeyCode::Char('t')) => {
@@ -346,15 +346,15 @@ impl TuiApp {
                     let key = match SettingKey::from_index(idx) {
                         Some(k) => k,
                         None => {
-                            self.state.set_settings_expanded(false);
+                            self.state.ui_state.settings_expanded = false;
                             return None;
                         }
                     };
 
                     if key == SettingKey::Dns {
-                        self.state.set_settings_expanded(false);
-                        self.state.set_input_mode(InputMode::DnsInput);
-                        self.state.set_dns_input(String::new());
+                        self.state.ui_state.settings_expanded = false;
+                        self.state.ui_state.input_mode = InputMode::DnsInput;
+                        self.state.ui_state.dns_input = String::new();
                         self.state.show_notification(
                             "Enter DNS IPs (e.g., 1.1.1.1,9.9.9.9)".to_string(),
                             crate::state::NotificationType::Info,
@@ -363,12 +363,12 @@ impl TuiApp {
                     }
 
                     if key == SettingKey::Theme {
-                        self.state.set_settings_expanded(false);
-                        self.state.set_is_dark_theme(!self.state.is_dark_theme());
+                        self.state.ui_state.settings_expanded = false;
+                        self.state.ui_state.toggle_theme();
                         self.state.show_notification(
                             format!(
                                 "Theme changed to {}",
-                                if self.state.is_dark_theme() {
+                                if self.state.ui_state.is_dark_theme {
                                     "Dark"
                                 } else {
                                     "Light"
@@ -389,32 +389,30 @@ impl TuiApp {
                         );
                     }
                 }
-                self.state.set_settings_expanded(false);
+                self.state.ui_state.settings_expanded = false;
                 None
             }
             (true, KeyCode::Esc) => {
-                self.state.set_settings_expanded(false);
+                self.state.ui_state.settings_expanded = false;
                 None
             }
             (true, KeyCode::Char('j') | KeyCode::Down) => {
                 if let Some(idx) = self.state.ui_state.settings_selected {
                     if let Some(key) = SettingKey::from_index(idx) {
                         let opt_count = key.selectable_option_count();
-                        self.state.set_settings_option_selected(
+                        self.state.ui_state.settings_option_selected =
                             (self.state.ui_state.settings_option_selected + 1)
-                                .min(opt_count.saturating_sub(1)),
-                        );
+                                .min(opt_count.saturating_sub(1));
                     }
                 }
                 None
             }
             (true, KeyCode::Char('k') | KeyCode::Up) => {
-                self.state.set_settings_option_selected(
-                    self.state
-                        .ui_state
-                        .settings_option_selected
-                        .saturating_sub(1),
-                );
+                self.state.ui_state.settings_option_selected = self
+                    .state
+                    .ui_state
+                    .settings_option_selected
+                    .saturating_sub(1);
                 None
             }
 
@@ -586,7 +584,7 @@ impl TuiApp {
                 self.filter_input.clear();
                 self.state.set_search_query(String::new());
                 if is_dns_input {
-                    self.state.set_input_mode(InputMode::Normal);
+                    self.state.ui_state.input_mode = InputMode::Normal;
                     self.state.ui_state.dns_input.clear();
                 }
                 None
@@ -595,7 +593,7 @@ impl TuiApp {
                 if is_dns_input {
                     let dns_ips = self.state.ui_state.dns_input.to_string();
                     self.state.ui_state.dns_input.clear();
-                    self.state.set_input_mode(InputMode::Normal);
+                    self.state.ui_state.input_mode = InputMode::Normal;
                     if !dns_ips.is_empty() {
                         self.state.apply_dns_setting(&dns_ips);
                     }
@@ -637,7 +635,7 @@ impl TuiApp {
         );
 
         // Always show filter box between header and main view
-        let has_filter_active = !self.state.ui_state.search_query.is_empty();
+        let has_filter_active = !self.state.ui_state.search_query.query.is_empty();
 
         if self.state.ui_state.input_mode == InputMode::DnsInput {
             let chunks = Layout::default()
@@ -672,7 +670,7 @@ impl TuiApp {
         }
 
         // Show loading popup overlay during initialization
-        if !self.state.is_initialized() {
+        if !self.state.server_data.is_initialized {
             self.render_loading(f, area, &theme);
         }
 
@@ -851,7 +849,7 @@ impl TuiApp {
     fn render_header(&mut self, f: &mut Frame<'_>, area: Rect) {
         let theme = self.get_theme();
 
-        let (status_text, status_color): (String, _) = match self.state.get_connection() {
+        let (status_text, status_color): (String, _) = match &self.state.connection {
             crate::state::ConnectionState::Disconnected => {
                 ("Disconnected".to_string(), theme.foreground)
             }
@@ -872,11 +870,15 @@ impl TuiApp {
             crate::state::ConnectionState::Error(e) => (e.clone(), theme.error),
         };
 
-        let protocol = self.state.get_proton_protocol();
+        let protocol = self
+            .state
+            .proton_settings_cache
+            .as_ref()
+            .and_then(|ps| ps.protocol.clone());
 
         let title = " ProtonVPN TUI ";
 
-        let status_indicator = match self.state.get_connection() {
+        let status_indicator = match self.state.connection {
             crate::state::ConnectionState::Connected { .. } => "●",
             crate::state::ConnectionState::Connecting
             | crate::state::ConnectionState::Disconnecting => "◐",
@@ -973,7 +975,7 @@ impl TuiApp {
 
     fn get_footer_action_hints(&self) -> Vec<Span<'_>> {
         let theme = self.get_theme();
-        let is_disconnected = self.state.get_connection().is_disconnected();
+        let is_disconnected = self.state.connection.is_disconnected();
 
         match (
             self.state.ui_state.current_view,

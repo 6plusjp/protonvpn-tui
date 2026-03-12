@@ -96,10 +96,6 @@ impl SearchQuery {
         self.query_lower.clear();
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.query.is_empty()
-    }
-
     pub fn as_str(&self) -> &str {
         &self.query
     }
@@ -128,10 +124,6 @@ impl ServerCache {
 
     pub fn invalidate(&mut self) {
         self.version = self.version.wrapping_add(1);
-    }
-
-    pub fn get_version(&self) -> u64 {
-        self.version
     }
 
     pub fn get_cached(&self) -> Option<Vec<Server>> {

@@ -347,6 +347,42 @@ impl AppState {
         self.selected_city
     }
 
+    /// Get settings selected index
+    pub fn get_settings_selected(&self) -> Option<usize> {
+        self.settings_selected
+    }
+
+    /// Get settings expanded state
+    pub fn is_settings_expanded(&self) -> bool {
+        self.settings_expanded
+    }
+
+    /// Get settings option selected index
+    pub fn get_settings_option_selected(&self) -> usize {
+        self.settings_option_selected
+    }
+
+    /// Get logs selected index
+    pub fn get_logs_selected(&self) -> Option<usize> {
+        self.logs_selected
+    }
+
+    /// Set settings expanded state
+    pub fn set_settings_expanded(&mut self, expanded: bool) {
+        self.settings_expanded = expanded;
+    }
+
+    /// Set settings option selected index
+    pub fn set_settings_option_selected(&mut self, index: usize) {
+        self.settings_option_selected = index;
+    }
+
+    /// Reset settings expanded and option selected
+    pub fn reset_settings_selection(&mut self) {
+        self.settings_expanded = false;
+        self.settings_option_selected = 0;
+    }
+
     pub fn set_search_query(&mut self, query: String) {
         self.search_query_lower = query.to_lowercase();
         self.search_query = query;

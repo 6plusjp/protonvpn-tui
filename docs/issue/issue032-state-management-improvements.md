@@ -42,6 +42,10 @@ Many getters/setters already exist. Progress incrementally:
 | `pane_focus` | `get_pane_focus()` | - | ✅ |
 | `selected_server` | `get_selected_server()` | - | ✅ |
 | `selected_city` | `get_selected_city()` | - | ✅ |
+| `settings_selected` | `get_settings_selected()` | - | ✅ |
+| `settings_expanded` | `is_settings_expanded()` | `set_settings_expanded()` | ✅ |
+| `settings_option_selected` | `get_settings_option_selected()` | `set_settings_option_selected()` | ✅ |
+| `logs_selected` | `get_logs_selected()` | - | ✅ |
 
 ### Completed Encapsulation (2026-03-12)
 
@@ -49,15 +53,22 @@ Many getters/setters already exist. Progress incrementally:
 - [x] Update `servers_view.rs` to use getters (`get_pane_focus()`, `get_selected_server()`, `get_selected_city()`, `get_connection()`)
 - [x] Update `app.rs` to use `set_current_view()`
 
+#### Completed Settings & Logs (2026-03-12)
+
+- [x] Add getters: `get_settings_selected()`, `is_settings_expanded()`, `get_settings_option_selected()`, `get_logs_selected()`
+- [x] Add setters: `set_settings_expanded()`, `set_settings_option_selected()`, `reset_settings_selection()`
+- [x] Update `settings_view.rs` to use getters
+- [x] Update `logs_view.rs` to use getters
+- [x] Update `app.rs` to use getters/setters for settings fields
+
 ### Remaining Fields to Encapsulate
 
-Prioritize UI state fields that change frequently:
+All planned UI state fields have been encapsulated. ✅
 
 | Priority | Fields | Rationale |
 |----------|--------|-----------|
-| Medium | `selected_server`, `selected_city`, `pane_focus`, `current_view` | Frequent access from views, high impact |
-| Low | `settings_selected`, `settings_expanded`, `settings_option_selected` | Settings view only |
-| Low | `logs_selected` | Logs view only |
+| Done | `selected_server`, `selected_city`, `pane_focus`, `current_view` | Encapsulated |
+| Done | `settings_selected`, `settings_expanded`, `settings_option_selected`, `logs_selected` | Encapsulated |
 | Low | `filter`, `sort`, `sort_direction` | Already have action methods |
 | Low | `is_dark_theme`, `input_mode`, `dns_input` | Rarely changed |
 | Low | `notifications`, `notification_log` | Notification system |
@@ -245,8 +256,8 @@ impl AsyncManager {
 |----------|------|--------|--------|
 | High | `previous_connection` implementation | Low | ✅ Done |
 | Medium | Add AppState Unit Tests | Medium | ✅ Done (58 tests) |
-| Medium | Encapsulate UI state fields (selected_*, pane_focus, current_view) | Medium | Pending |
-| Low | Encapsulate remaining fields (settings, logs, etc.) | Medium | Pending |
+| Medium | Encapsulate UI state fields (selected_*, pane_focus, current_view) | Medium | ✅ Done |
+| Low | Encapsulate settings/logs fields | Medium | ✅ Done |
 | Low | Split AppState into modules | High | Pending |
 
 ---

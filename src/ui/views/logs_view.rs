@@ -38,7 +38,7 @@ pub fn render_logs_view(
         .rev()
         .enumerate()
         .map(|(idx, n)| {
-            let selected = state.logs_selected.unwrap_or(0);
+            let selected = state.get_logs_selected().unwrap_or(0);
             let is_selected = idx == selected;
             let (prefix, color) = match n.notification_type {
                 NotificationType::Info => ("  [INFO] ", theme.primary),
@@ -65,7 +65,7 @@ pub fn render_logs_view(
         .collect();
 
     let selected = state
-        .logs_selected
+        .get_logs_selected()
         .map(|idx| idx.min(items.len().saturating_sub(1)))
         .unwrap_or(0)
         .min(items.len().saturating_sub(1));

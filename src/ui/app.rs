@@ -133,11 +133,17 @@ impl TuiApp {
     }
 
     fn handle_common_keys(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
+        let is_help_view = self.state.ui_state.current_view == AppView::Help;
+
         match key_event.code {
             KeyCode::Char('q') => Some(AppAction::Quit),
             KeyCode::Tab => Some(AppAction::SwitchView),
             KeyCode::Char('?') => {
-                self.state.ui_state.current_view = AppView::Help;
+                if is_help_view {
+                    self.state.ui_state.current_view = self.state.ui_state.previous_view;
+                } else {
+                    self.state.ui_state.set_view(AppView::Help);
+                }
                 None
             }
             KeyCode::Char('/') => {
@@ -146,11 +152,16 @@ impl TuiApp {
                 None
             }
             KeyCode::Esc => {
-                if !self.state.ui_state.search_query.query.is_empty() {
+                if is_help_view {
+                    self.state.ui_state.current_view = self.state.ui_state.previous_view;
+                    None
+                } else if !self.state.ui_state.search_query.query.is_empty() {
                     self.state.set_search_query(String::new());
                     self.filter_input.clear();
+                    None
+                } else {
+                    None
                 }
-                None
             }
             _ => None,
         }
@@ -409,8 +420,13 @@ impl TuiApp {
     }
 
     fn handle_help_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
-        let _ = key_event;
-        None
+        match key_event.code {
+            KeyCode::Esc => {
+                self.state.ui_state.current_view = self.state.ui_state.previous_view;
+                None
+            }
+            _ => None,
+        }
     }
 
     fn handle_navigation_down(&mut self) {
@@ -946,18 +962,32 @@ impl TuiApp {
 
         let mut text = Line::from(action_spans);
 
-        text.spans.push(Span::raw(" "));
-        text.spans.extend(vec![
-            Span::raw("["),
-            Span::styled("Tab", Style::default().fg(theme.key_hint)),
-            Span::raw("] switch view "),
-            Span::raw("["),
-            Span::styled("?", Style::default().fg(theme.key_hint)),
-            Span::raw("] help "),
-            Span::raw("["),
-            Span::styled("q", Style::default().fg(theme.key_hint)),
-            Span::raw("] quit"),
-        ]);
+        let is_help_view = self.state.ui_state.current_view == AppView::Help;
+
+        if is_help_view {
+            text.spans.push(Span::raw(" "));
+            text.spans.extend(vec![
+                Span::raw("["),
+                Span::styled("Tab", Style::default().fg(theme.key_hint)),
+                Span::raw("] switch view "),
+                Span::raw("["),
+                Span::styled("q", Style::default().fg(theme.key_hint)),
+                Span::raw("] quit"),
+            ]);
+        } else {
+            text.spans.push(Span::raw(" "));
+            text.spans.extend(vec![
+                Span::raw("["),
+                Span::styled("Tab", Style::default().fg(theme.key_hint)),
+                Span::raw("] switch view "),
+                Span::raw("["),
+                Span::styled("?", Style::default().fg(theme.key_hint)),
+                Span::raw("] help "),
+                Span::raw("["),
+                Span::styled("q", Style::default().fg(theme.key_hint)),
+                Span::raw("] quit"),
+            ]);
+        }
 
         f.render_widget(Paragraph::new(text), area);
     }
@@ -1044,7 +1074,14 @@ impl TuiApp {
                 Span::styled("j/k", Style::default().fg(theme.key_hint)),
                 Span::raw("] scroll"),
             ],
-            (AppView::Help, _) => vec![Span::raw("Press Tab or q to return")],
+            (AppView::Help, _) => vec![
+                Span::raw("["),
+                Span::styled("Esc", Style::default().fg(theme.key_hint)),
+                Span::raw("] return "),
+                Span::raw("["),
+                Span::styled("?", Style::default().fg(theme.key_hint)),
+                Span::raw("] return"),
+            ],
         }
     }
 }

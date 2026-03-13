@@ -1,4 +1,5 @@
-use crate::ui::components::{centered_block, key_span, primary_style};
+use crate::config::KeyBinding;
+use crate::ui::components::{centered_block, key_hint_style};
 use ratatui::{
     layout::Rect,
     text::{Line, Span},
@@ -8,107 +9,149 @@ use ratatui::{
 
 use crate::AppState;
 
+const KEY_WIDTH: usize = 12;
+
+fn format_keybinding(key: &KeyBinding) -> String {
+    let mut s = String::new();
+    if key.modifiers == crate::config::KeyModifier::Control {
+        s.push_str("Ctrl+");
+    }
+    s.push(key.code);
+    s
+}
+
 pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
     let theme = state.get_theme();
     let block = centered_block("Help", &theme);
+    let bindings = &state.key_bindings;
 
-    let help_text = vec![
-        Line::from(vec![
-            key_span("Key", &theme),
-            Span::raw(": "),
-            Span::styled("Action", primary_style(&theme)),
-        ]),
-        Line::from(""),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("c/Enter", &theme),
-            Span::raw(" - Connect to selected server"),
-        ]),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("x", &theme),
-            Span::raw("  - Random connect"),
-        ]),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("d", &theme),
-            Span::raw("  - Disconnect from VPN"),
-        ]),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("r", &theme),
-            Span::raw("  - Refresh server list"),
-        ]),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("s", &theme),
-            Span::raw("  - Toggle direction (asc/desc)"),
-        ]),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("f", &theme),
-            Span::raw("  - Cycle field (ID/Country)"),
-        ]),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("j/k/↑/↓", &theme),
-            Span::raw(" - Navigate server list"),
-        ]),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("g", &theme),
-            Span::raw("  - Go to top (press twice: gg)"),
-        ]),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("G", &theme),
-            Span::raw("  - Go to bottom"),
-        ]),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("Ctrl+d", &theme),
-            Span::raw(" - Page down"),
-        ]),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("Ctrl+u", &theme),
-            Span::raw(" - Page up"),
-        ]),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("l", &theme),
-            Span::raw("  - Move to cities pane"),
-        ]),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("h", &theme),
-            Span::raw("  - Move to countries pane"),
-        ]),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("Tab", &theme),
-            Span::raw("  - Switch view"),
-        ]),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("?", &theme),
-            Span::raw("  - Show this help"),
-        ]),
-        Line::from(vec![
-            Span::raw("  "),
-            key_span("q", &theme),
-            Span::raw("  - Quit"),
-        ]),
-        Line::from(""),
-        Line::from(vec![Span::styled(
-            "Key bindings can be customized in:",
-            primary_style(&theme),
-        )]),
-        Line::from(vec![Span::raw(
-            "  ~/.config/protonvpn-tui/keybindings.json",
-        )]),
+    let categories: Vec<(&str, Vec<(String, String)>)> = vec![
+        (
+            "Connection",
+            vec![
+                (
+                    format_keybinding(&bindings.connect),
+                    "Connect to selected server".to_string(),
+                ),
+                (
+                    format_keybinding(&bindings.random_connect),
+                    "Random connect (fastest)".to_string(),
+                ),
+                (
+                    format_keybinding(&bindings.disconnect),
+                    "Disconnect from VPN".to_string(),
+                ),
+                (
+                    format_keybinding(&bindings.refresh),
+                    "Refresh server list".to_string(),
+                ),
+            ],
+        ),
+        (
+            "Navigation",
+            vec![
+                (
+                    format!(
+                        "{} / {}",
+                        bindings.navigation_up.code, bindings.navigation_down.code
+                    ),
+                    "Navigate up / down".to_string(),
+                ),
+                (
+                    "↑ / ↓".to_string(),
+                    "Navigate up / down (alternative)".to_string(),
+                ),
+                (
+                    format_keybinding(&bindings.go_first),
+                    "Go to top (press twice)".to_string(),
+                ),
+                (
+                    format_keybinding(&bindings.go_last),
+                    "Go to bottom".to_string(),
+                ),
+                (
+                    format_keybinding(&bindings.page_down),
+                    "Page down".to_string(),
+                ),
+                (format_keybinding(&bindings.page_up), "Page up".to_string()),
+                (
+                    format_keybinding(&bindings.pane_next),
+                    "Move to right pane".to_string(),
+                ),
+                (
+                    format_keybinding(&bindings.pane_prev),
+                    "Move to left pane".to_string(),
+                ),
+            ],
+        ),
+        (
+            "Sorting",
+            vec![
+                (
+                    format_keybinding(&bindings.cycle_sort),
+                    "Toggle sort direction (asc/desc)".to_string(),
+                ),
+                (
+                    format_keybinding(&bindings.cycle_sort_field),
+                    "Cycle sort field (Code/Country)".to_string(),
+                ),
+            ],
+        ),
+        (
+            "View",
+            vec![
+                ("Tab".to_string(), "Switch view".to_string()),
+                ("?".to_string(), "Show this help".to_string()),
+                ("Esc".to_string(), "Return to previous view".to_string()),
+                ("/".to_string(), "Open filter".to_string()),
+                ("q".to_string(), "Quit application".to_string()),
+            ],
+        ),
     ];
 
+    let mut help_text = Vec::new();
+
+    let normal_style = ratatui::style::Style::default().fg(theme.foreground);
+
+    for (i, (category_name, keybinds)) in categories.iter().enumerate() {
+        if i > 0 {
+            help_text.push(Line::from(""));
+        }
+
+        help_text.push(Line::from(vec![Span::styled(
+            format!("[{}]", category_name),
+            normal_style,
+        )]));
+        help_text.push(Line::from(""));
+
+        for (key, action) in keybinds {
+            let padded_key = format!("{:<width$}", key, width = KEY_WIDTH);
+            let key_style = key_hint_style(&theme);
+            help_text.push(Line::from(vec![
+                Span::styled("  ", normal_style),
+                Span::styled(padded_key, key_style),
+                Span::styled("  ", normal_style),
+                Span::styled(action.as_str(), normal_style),
+            ]));
+        }
+    }
+
+    help_text.push(Line::from(""));
+    help_text.push(Line::from(vec![Span::styled(
+        "Key bindings can be customized in:",
+        normal_style,
+    )]));
+    help_text.push(Line::from(vec![Span::raw(
+        "  ~/.config/protonvpn-tui/keybindings.json",
+    )]));
+
+    let inner_area = Rect {
+        x: area.x + 1,
+        y: area.y + 1,
+        width: area.width.saturating_sub(2),
+        height: area.height.saturating_sub(2),
+    };
+
     f.render_widget(block, area);
-    f.render_widget(Paragraph::new(help_text), area);
+    f.render_widget(Paragraph::new(help_text), inner_area);
 }

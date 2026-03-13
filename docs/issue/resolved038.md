@@ -1,82 +1,95 @@
-# issue038 - Logs View UI Improvements
+# issue038 - Help View Improvements
 
 ## Summary
 
-Enhance the Logs view with table layout, header, and improved column ordering.
+Improve the help view with better alignment, proper navigation controls, and categorized keybindings.
 
-## Background
+## Status: ✅ COMPLETED
 
-Current implementation uses a simple `List` widget without header. After issue022, logs are scrollable and selectable, but the UI can be improved for better readability and consistency with `servers_view`.
+All items have been implemented.
 
-## Current State
+## Changes Made
 
+### 1. Alignment Fix ✅
+- Added inner padding to help view using `inner_area`
+- Text no longer touches borders
+
+### 2. Return Navigation ✅
+- `Esc` - Return to previous view
+- `?` - Return to previous view (toggle help)
+- `q` - Quit application (always)
+
+### 3. Categorized Keybinds (By Function) ✅
 ```
-> 2m   [ERR]  Connection failed to Japan...
-   5m   [OK]   Connected to Japan #3...
-   10m   [INFO] Refreshing servers...
+[Connection]
+  c           Connect to selected server
+  x           Random connect (fastest)
+  d           Disconnect from VPN
+  r           Refresh server list
+
+[Navigation]
+  j / k       Navigate up / down
+  ↑ / ↓       Navigate up / down (alternative)
+  g           Go to top (press twice)
+  G           Go to bottom
+  Ctrl+d      Page down
+  Ctrl+u      Page up
+  l           Move to cities pane
+  h           Move to countries pane
+
+[Sorting]
+  s           Toggle sort direction (asc/desc)
+  f           Cycle sort field (ID/Country)
+
+[View]
+  Tab         Switch view
+  ?           Show this help / Return
+  Esc         Return to previous view
+  /           Open filter
+  q           Quit application
 ```
 
-- Widget: `List` (not `Table`)
-- Time column: Positioned after selection indicator (2nd)
-- No header
-- Selection shows `>` prefix only
+### 4. Dynamic Keybindings ✅
+- Help view now reads from `state.key_bindings`
+- Reflects actual configurable keybindings from `~/.config/protonvpn-tui/keybindings.json`
 
-## Proposed Changes
+### 5. Color Scheme ✅
+| Element | Color |
+|---------|-------|
+| Category header ([Connection], etc.) | Gray |
+| Key (e.g., "c", "Ctrl+d") | Cyan (key_hint) |
+| Description | White (foreground) |
+| Footer hint | Gray |
 
-### 1. Convert to Table with Header
+## Files Changed
 
-Replace `List` widget with `Table` widget (consistent with `servers_view`).
+| File | Changes |
+|------|---------|
+| `src/ui/views/help_view.rs` | Complete rewrite with categories, dynamic keybindings, colors |
+| `src/state/ui_state.rs` | Added `previous_view` field and `set_view()` method |
+| `src/ui/app.rs` | Updated `handle_common_keys()`, `handle_help_key()`, footer rendering |
 
+## Key Implementation Details
+
+### ui_state.rs
+```rust
+pub struct UiState {
+    pub current_view: AppView,
+    pub previous_view: AppView,
+    // ...
+}
+
+pub fn set_view(&mut self, view: AppView) {
+    self.previous_view = self.current_view;
+    self.current_view = view;
+}
 ```
-+----------+--------------------------------+----------+
-| Type     | Message                        | Time     |
-+----------+--------------------------------+----------+
-| [ERR]    | Connection failed to Japan...  | 2m       |
-| [OK]     | Connected to Japan #3...       | 5m       |
-| [INFO]   | Refreshing servers...          | 10m      |
-+----------+--------------------------------+----------+
-```
 
-### 2. Reorder Columns
+### help_view.rs
+- Uses `format_keybinding()` to read from config
+- Fixed-width key column (12 chars) for alignment
+- Color styles: gray for headers/descriptions, cyan for keys
 
-Move time to the last column (least important for user).
-
-- Current: `> time [TYPE] message`
-- Proposed: `[TYPE] message time`
-
-### 3. Add Header Row
-
-| Column | Width Strategy | Alignment |
-|--------|----------------|-----------|
-| Type | Fixed 6 (`[INFO]`) | Left |
-| Message | Flexible (remaining space) | Left |
-| Time | Dynamic based on max content + 1 padding | Left |
-
-> Note: Time column uses left alignment with consistent width for visual consistency.
-
-## Acceptance Criteria
-
-- [x] Logs view uses `Table` widget instead of `List`
-- [x] Header row displays: `| Type | Message | Time |`
-- [x] Time column is last (rightmost)
-- [x] Time column is right-aligned in header
-- [x] Time values are left-aligned (consistent width)
-- [x] Selection highlight works with table layout (using `highlight_symbol`)
-- [x] Column spacing is 2 (consistent with servers_view)
-- [x] Consistent with `servers_view` table patterns
-- [x] Build passes
-
-## Related
-
-- issue022: Enhanced Logs View (scroll, selection, detailed messages)
-- servers_view.rs: Reference implementation for Table pattern
-
----
-
-## Notes (2026-03-12)
-
-### 未実装（別のissueで検討）
-
-- Long log messages show full content on selection (issue022 未完了)
-- Delete selected log / Clear all logs
-- Filter by type (Info/Success/Warning/Error)
+### app.rs
+- Help view: `Esc` or `?` returns to previous view
+- Footer: Context-aware hints based on current view

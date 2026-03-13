@@ -18,6 +18,7 @@ pub enum InputMode {
 #[derive(Clone)]
 pub struct UiState {
     pub current_view: AppView,
+    pub previous_view: AppView,
     pub selected_server: Option<usize>,
     pub selected_city: Option<usize>,
     pub pane_focus: Pane,
@@ -44,6 +45,7 @@ impl UiState {
     pub fn new() -> Self {
         Self {
             current_view: AppView::Servers,
+            previous_view: AppView::Servers,
             selected_server: Some(0),
             selected_city: Some(0),
             pane_focus: Pane::Countries,
@@ -71,7 +73,13 @@ impl UiState {
     }
 
     pub fn switch_view(&mut self) {
+        self.previous_view = self.current_view;
         self.current_view = self.current_view.next();
+    }
+
+    pub fn set_view(&mut self, view: AppView) {
+        self.previous_view = self.current_view;
+        self.current_view = view;
     }
 }
 

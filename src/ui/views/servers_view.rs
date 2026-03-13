@@ -40,8 +40,11 @@ fn render_countries_pane(
     let servers = state.filtered_servers();
     let all_servers = state.vpn_state.servers();
 
-    let connected_server_id = match &state.connection_manager.connection {
-        ConnectionState::Connected { server, .. } => Some(server.clone()),
+    // Extract country code from connected server (e.g., "US#1" -> "US")
+    let connected_country_code = match &state.connection_manager.connection {
+        ConnectionState::Connected { server, .. } => {
+            server.split('#').next().filter(|c| c.len() >= 2)
+        }
         _ => None,
     };
 
@@ -74,9 +77,9 @@ fn render_countries_pane(
         .enumerate()
         .map(|(idx, server)| {
             let is_selected = state.ui_state.selected_server == Some(idx);
-            let is_connected = connected_server_id
+            let is_connected = connected_country_code
                 .as_ref()
-                .map(|cid| cid.starts_with(&server.code) || server.code.starts_with(cid))
+                .map(|code| server.code.starts_with(code) || code.starts_with(&server.code))
                 .unwrap_or(false);
 
             let is_loading_this = state

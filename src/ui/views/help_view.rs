@@ -35,7 +35,23 @@ pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
                 ),
                 (
                     format_keybinding(&bindings.random_connect),
-                    "Random connect (fastest)".to_string(),
+                    "Random connect".to_string(),
+                ),
+                (
+                    format_keybinding(&bindings.connect_fastest),
+                    "Connect to fastest server".to_string(),
+                ),
+                (
+                    format_keybinding(&bindings.connect_p2p),
+                    "Connect to P2P server".to_string(),
+                ),
+                (
+                    format_keybinding(&bindings.connect_tor),
+                    "Connect to Tor server".to_string(),
+                ),
+                (
+                    format_keybinding(&bindings.securecore),
+                    "Connect to SecureCore server".to_string(),
                 ),
                 (
                     format_keybinding(&bindings.disconnect),
@@ -88,13 +104,14 @@ pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
             "Sorting",
             vec![
                 (
-                    format_keybinding(&bindings.cycle_sort),
-                    "Toggle sort direction (asc/desc)".to_string(),
+                    format_keybinding(&bindings.sort_by_code),
+                    "Sort by code".to_string(),
                 ),
                 (
-                    format_keybinding(&bindings.cycle_sort_field),
-                    "Cycle sort field (Code/Country)".to_string(),
+                    format_keybinding(&bindings.sort_by_country),
+                    "Sort by country".to_string(),
                 ),
+                ("← / →".to_string(), "Toggle sort direction".to_string()),
             ],
         ),
         (

@@ -184,11 +184,23 @@ impl TuiApp {
         let is_pane_prev = bindings
             .pane_prev
             .matches(key_event.code, key_event.modifiers);
-        let is_cycle_sort = bindings
-            .cycle_sort
+        let is_sort_by_code = bindings
+            .sort_by_code
             .matches(key_event.code, key_event.modifiers);
-        let is_cycle_sort_field = bindings
-            .cycle_sort_field
+        let is_sort_by_country = bindings
+            .sort_by_country
+            .matches(key_event.code, key_event.modifiers);
+        let is_connect_fastest = bindings
+            .connect_fastest
+            .matches(key_event.code, key_event.modifiers);
+        let is_connect_p2p = bindings
+            .connect_p2p
+            .matches(key_event.code, key_event.modifiers);
+        let is_connect_tor = bindings
+            .connect_tor
+            .matches(key_event.code, key_event.modifiers);
+        let is_securecore = bindings
+            .securecore
             .matches(key_event.code, key_event.modifiers);
 
         if is_connect {
@@ -286,12 +298,20 @@ impl TuiApp {
                 }
                 None
             }
-            _ if is_cycle_sort => {
-                self.handle_cycle_sort();
+            _ if is_sort_by_code => {
+                self.state.set_sort_by_code();
                 None
             }
-            _ if is_cycle_sort_field => {
-                self.handle_cycle_sort_field();
+            _ if is_sort_by_country => {
+                self.state.set_sort_by_country();
+                None
+            }
+            KeyCode::Left => {
+                self.state.toggle_sort_direction();
+                None
+            }
+            KeyCode::Right => {
+                self.state.toggle_sort_direction();
                 None
             }
             _ if is_random_connect => {
@@ -310,6 +330,86 @@ impl TuiApp {
                     }
                     _ => {
                         self.handle_connect_random();
+                    }
+                }
+                None
+            }
+            _ if is_connect_fastest => {
+                match self.state.connection_manager.connection {
+                    crate::state::ConnectionState::Connecting => {
+                        self.state.show_notification(
+                            "Connection in progress...".to_string(),
+                            crate::state::NotificationType::Warning,
+                        );
+                    }
+                    crate::state::ConnectionState::Disconnecting => {
+                        self.state.show_notification(
+                            "Disconnecting...".to_string(),
+                            crate::state::NotificationType::Warning,
+                        );
+                    }
+                    _ => {
+                        self.handle_connect_fastest();
+                    }
+                }
+                None
+            }
+            _ if is_connect_p2p => {
+                match self.state.connection_manager.connection {
+                    crate::state::ConnectionState::Connecting => {
+                        self.state.show_notification(
+                            "Connection in progress...".to_string(),
+                            crate::state::NotificationType::Warning,
+                        );
+                    }
+                    crate::state::ConnectionState::Disconnecting => {
+                        self.state.show_notification(
+                            "Disconnecting...".to_string(),
+                            crate::state::NotificationType::Warning,
+                        );
+                    }
+                    _ => {
+                        self.handle_connect_p2p();
+                    }
+                }
+                None
+            }
+            _ if is_connect_tor => {
+                match self.state.connection_manager.connection {
+                    crate::state::ConnectionState::Connecting => {
+                        self.state.show_notification(
+                            "Connection in progress...".to_string(),
+                            crate::state::NotificationType::Warning,
+                        );
+                    }
+                    crate::state::ConnectionState::Disconnecting => {
+                        self.state.show_notification(
+                            "Disconnecting...".to_string(),
+                            crate::state::NotificationType::Warning,
+                        );
+                    }
+                    _ => {
+                        self.handle_connect_tor();
+                    }
+                }
+                None
+            }
+            _ if is_securecore => {
+                match self.state.connection_manager.connection {
+                    crate::state::ConnectionState::Connecting => {
+                        self.state.show_notification(
+                            "Connection in progress...".to_string(),
+                            crate::state::NotificationType::Warning,
+                        );
+                    }
+                    crate::state::ConnectionState::Disconnecting => {
+                        self.state.show_notification(
+                            "Disconnecting...".to_string(),
+                            crate::state::NotificationType::Warning,
+                        );
+                    }
+                    _ => {
+                        self.handle_connect_securecore();
                     }
                 }
                 None
@@ -642,12 +742,20 @@ impl TuiApp {
         self.state.refresh_servers();
     }
 
-    fn handle_cycle_sort(&mut self) {
-        self.state.cycle_sort();
+    fn handle_connect_fastest(&mut self) {
+        self.state.connect_fastest();
     }
 
-    fn handle_cycle_sort_field(&mut self) {
-        self.state.cycle_sort_field();
+    fn handle_connect_p2p(&mut self) {
+        self.state.connect_p2p();
+    }
+
+    fn handle_connect_tor(&mut self) {
+        self.state.connect_tor();
+    }
+
+    fn handle_connect_securecore(&mut self) {
+        self.state.connect_securecore();
     }
 
     fn handle_filter_input(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
@@ -1079,11 +1187,17 @@ impl TuiApp {
                     Span::styled("r", Style::default().fg(theme.key_hint)),
                     Span::raw("] refresh "),
                     Span::raw("["),
-                    Span::styled("s", Style::default().fg(theme.key_hint)),
-                    Span::raw("] sort "),
-                    Span::raw("["),
                     Span::styled("f", Style::default().fg(theme.key_hint)),
-                    Span::raw("] field"),
+                    Span::raw("] fastest "),
+                    Span::raw("["),
+                    Span::styled("p", Style::default().fg(theme.key_hint)),
+                    Span::raw("] p2p "),
+                    Span::raw("["),
+                    Span::styled("t", Style::default().fg(theme.key_hint)),
+                    Span::raw("] tor "),
+                    Span::raw("["),
+                    Span::styled("s", Style::default().fg(theme.key_hint)),
+                    Span::raw("] sc"),
                 ]);
                 hints
             }

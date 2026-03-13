@@ -80,6 +80,7 @@ impl UiState {
     pub fn set_view(&mut self, view: AppView) {
         self.previous_view = self.current_view;
         self.current_view = view;
+        self.pane_focus = view.default_pane();
     }
 }
 

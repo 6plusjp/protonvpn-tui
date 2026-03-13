@@ -1,8 +1,7 @@
 use crate::config::SettingKey;
-use crate::ui::components::{centered_block, styled_list_item};
 use ratatui::{
     layout::Rect,
-    style::{Style, Stylize},
+    style::{Modifier, Style, Stylize},
     text::Line,
     widgets::{List, ListItem, ListState},
     Frame,
@@ -15,9 +14,9 @@ pub fn render_settings_view(
     list_state: &mut ListState,
     f: &mut Frame<'_>,
     area: Rect,
+    is_focused: bool,
 ) {
     let theme = state.get_theme();
-    let block = centered_block("Settings", &theme);
 
     let proton_settings = state.config_state.proton_settings_cache.as_ref();
     let selected = state.ui_state.settings_selected.unwrap_or(0);
@@ -39,7 +38,7 @@ pub fn render_settings_view(
             format!("  {} {}", label.trim(), value)
         };
 
-        all_items.push(styled_list_item(&main_line, is_selected, true, &theme));
+        all_items.push(ListItem::new(main_line));
 
         if is_expanded {
             let options = key.selectable_options();
@@ -70,8 +69,16 @@ pub fn render_settings_view(
     let items_len = all_items.len();
 
     let list = List::new(all_items)
-        .block(block)
-        .style(Style::default().fg(theme.foreground));
+        .style(Style::default().fg(theme.foreground))
+        .highlight_style(if is_focused {
+            Style::default()
+                .fg(theme.foreground)
+                .bg(theme.selection)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(theme.foreground)
+        })
+        .highlight_symbol("> ");
 
     let selected = selected.min(items_len.saturating_sub(1));
     list_state.select(Some(selected));

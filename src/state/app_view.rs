@@ -8,10 +8,8 @@ pub enum AppView {
     /// Server list / country selection view
     #[default]
     Servers,
-    /// Settings view
-    Settings,
-    /// Logs view (notification history)
-    Logs,
+    /// Settings + Logs split view
+    SettingsAndLogs,
     /// Help view (only accessible via ?)
     Help,
 }
@@ -19,20 +17,31 @@ pub enum AppView {
 /// Represents which pane has focus in split-pane view
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum Pane {
-    /// Left pane - countries list
+    /// Left pane - countries list (Servers view)
     #[default]
     Countries,
-    /// Right pane - cities list
+    /// Right pane - cities list (Servers view)
     Cities,
+    /// Left pane - settings list (SettingsAndLogs view)
+    Settings,
+    /// Right pane - logs table (SettingsAndLogs view)
+    Logs,
 }
 
 impl Pane {
-    /// Toggle between panes
+    /// Toggle between panes within the current view
     pub fn toggle(&mut self) {
         *self = match self {
             Self::Countries => Self::Cities,
             Self::Cities => Self::Countries,
+            Self::Settings => Self::Logs,
+            Self::Logs => Self::Settings,
         };
+    }
+
+    /// Check if this pane is a left pane
+    pub fn is_left(&self) -> bool {
+        matches!(self, Self::Countries | Self::Settings)
     }
 }
 
@@ -40,9 +49,8 @@ impl AppView {
     /// Get next view in cycle (excludes Help)
     pub fn next(&self) -> Self {
         match self {
-            Self::Servers => Self::Settings,
-            Self::Settings => Self::Logs,
-            Self::Logs => Self::Servers,
+            Self::Servers => Self::SettingsAndLogs,
+            Self::SettingsAndLogs => Self::Servers,
             Self::Help => Self::Servers,
         }
     }
@@ -50,10 +58,18 @@ impl AppView {
     /// Get previous view in cycle (excludes Help)
     pub fn prev(&self) -> Self {
         match self {
-            Self::Servers => Self::Logs,
-            Self::Settings => Self::Servers,
-            Self::Logs => Self::Settings,
+            Self::Servers => Self::SettingsAndLogs,
+            Self::SettingsAndLogs => Self::Servers,
             Self::Help => Self::Servers,
+        }
+    }
+
+    /// Get default pane for this view
+    pub fn default_pane(&self) -> Pane {
+        match self {
+            Self::Servers => Pane::Countries,
+            Self::SettingsAndLogs => Pane::Settings,
+            Self::Help => Pane::Countries,
         }
     }
 }

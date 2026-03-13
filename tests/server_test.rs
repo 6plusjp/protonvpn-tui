@@ -20,36 +20,24 @@ mod app_view {
     #[test]
     fn test_app_view_next_from_servers() {
         let view = AppView::Servers;
-        assert_eq!(view.next(), AppView::Settings);
+        assert_eq!(view.next(), AppView::SettingsAndLogs);
     }
 
     #[test]
-    fn test_app_view_next_from_settings() {
-        let view = AppView::Settings;
-        assert_eq!(view.next(), AppView::Logs);
-    }
-
-    #[test]
-    fn test_app_view_next_from_logs() {
-        let view = AppView::Logs;
+    fn test_app_view_next_from_settings_and_logs() {
+        let view = AppView::SettingsAndLogs;
         assert_eq!(view.next(), AppView::Servers);
     }
 
     #[test]
     fn test_app_view_prev_from_servers() {
         let view = AppView::Servers;
-        assert_eq!(view.prev(), AppView::Logs);
+        assert_eq!(view.prev(), AppView::SettingsAndLogs);
     }
 
     #[test]
-    fn test_app_view_prev_from_logs() {
-        let view = AppView::Logs;
-        assert_eq!(view.prev(), AppView::Settings);
-    }
-
-    #[test]
-    fn test_app_view_prev_from_settings() {
-        let view = AppView::Settings;
+    fn test_app_view_prev_from_settings_and_logs() {
+        let view = AppView::SettingsAndLogs;
         assert_eq!(view.prev(), AppView::Servers);
     }
 
@@ -62,12 +50,7 @@ mod app_view {
 
     #[test]
     fn test_app_view_all_variants() {
-        let views = [
-            AppView::Servers,
-            AppView::Settings,
-            AppView::Help,
-            AppView::Logs,
-        ];
+        let views = [AppView::Servers, AppView::SettingsAndLogs, AppView::Help];
 
         for (i, v1) in views.iter().enumerate() {
             for (j, v2) in views.iter().enumerate() {

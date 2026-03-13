@@ -8,10 +8,11 @@ The `vpn/` module provides a Rust wrapper around the ProtonVPN CLI. It is design
 
 ```
 src/vpn/
-├── mod.rs      # Module root - re-exports public APIs
-├── client.rs   # CLI execution layer
-├── cache.rs    # Server cache management
-└── types.rs    # Data types + parsing functions
+├── mod.rs          # Module root - re-exports public APIs
+├── async_tasks.rs  # Async task management (thread pool for VPN operations)
+├── client.rs       # CLI execution layer
+├── cache.rs        # Server cache management
+└── types.rs        # Data types + parsing functions
 ```
 
 ## Design Principles
@@ -22,6 +23,7 @@ Each file has one clear purpose:
 
 | File | Responsibility |
 |------|----------------|
+| `async_tasks.rs` | Thread pool for async VPN operations (connect, disconnect, refresh) |
 | `client.rs` | Execute `protonvpn` CLI commands, manage thread-safe cache access |
 | `cache.rs` | Server data structure, caching logic, persistence |
 | `types.rs` | Data types (Server, City, etc.) + CLI output parsing |
@@ -105,6 +107,17 @@ pub fn new_cli_command(&self, args: &str) -> AppResult<Output> {
 }
 ```
 
+### Async VPN operations? → Use `async_tasks.rs`
+
+The `AsyncTaskManager` provides a thread pool for non-blocking VPN operations:
+
+```rust
+// src/vpn/async_tasks.rs
+
+let manager = AsyncTaskManager::new();
+manager.spawn_connect(vpn_client, server_id, sender);
+```
+
 ## Public API (from mod.rs)
 
 ```rust
@@ -112,6 +125,9 @@ pub fn new_cli_command(&self, args: &str) -> AppResult<Output> {
 pub use client::{VpnClient, ServerCache};
 pub use types::{City, Server, ServerFeatures};
 pub use cache::countries_to_servers;
+
+// Re-exported from async_tasks.rs
+pub use async_tasks::{AsyncTaskManager, AsyncResult, create_channel};
 ```
 
 ## Testing

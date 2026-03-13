@@ -2,6 +2,8 @@ use ratatui::layout::Constraint;
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::Row;
 
+use crate::state::{ServerSort, SortDirection};
+
 #[derive(Clone, Copy)]
 pub enum ColumnAlign {
     Left,
@@ -156,6 +158,18 @@ impl PaneTable {
 
     /// Returns a Row for ratatui Table header
     pub fn header_row(&self, dynamic_widths: &[usize]) -> Row<'static> {
+        self.header_row_with_sort(dynamic_widths, None, SortDirection::Asc)
+    }
+
+    /// Returns a Row for ratatui Table header with sort indicator
+    pub fn header_row_with_sort(
+        &self,
+        dynamic_widths: &[usize],
+        sort_by: Option<ServerSort>,
+        sort_direction: SortDirection,
+    ) -> Row<'static> {
+        let sort_indicator = sort_direction.label();
+
         let cells: Vec<ratatui::widgets::Cell> = self
             .columns
             .iter()
@@ -167,19 +181,38 @@ impl PaneTable {
                 } else {
                     col.width as usize
                 };
+
+                // Add sort indicator for the sorted column
+                let text_with_indicator = match (i, sort_by) {
+                    (0, Some(ServerSort::Code)) => {
+                        format!("{} {}", content, sort_indicator)
+                    }
+                    (1, Some(ServerSort::Country)) => {
+                        format!("{} {}", content, sort_indicator)
+                    }
+                    _ => content.to_string(),
+                };
+
                 let text = match col.align {
-                    ColumnAlign::Left => format!("{:<width$}", content, width = width),
+                    ColumnAlign::Left => {
+                        format!("{:<width$}", text_with_indicator, width = width)
+                    }
                     ColumnAlign::Center => {
-                        let len = content.len();
+                        let len = text_with_indicator.len();
                         if len >= width {
-                            content.to_string()
+                            text_with_indicator
                         } else {
                             let pad = (width - len) / 2;
-                            format!("{}{:width$}", " ".repeat(pad), content, width = width)
+                            format!(
+                                "{}{:width$}",
+                                " ".repeat(pad),
+                                text_with_indicator,
+                                width = width
+                            )
                         }
                     }
                     ColumnAlign::Right => {
-                        format!("{:>width$}", content, width = width)
+                        format!("{:>width$}", text_with_indicator, width = width)
                     }
                 };
                 ratatui::widgets::Cell::from(text).style(Style::new().bold())
@@ -194,7 +227,7 @@ pub struct CountriesTable;
 impl CountriesTable {
     pub fn table() -> PaneTable {
         PaneTable::new("Countries").with_columns(vec![
-            Column::left("Code", 4),
+            Column::left("Code", 6),
             Column::left("Country", 0),
             Column::left("Cities", 0),
         ])

@@ -126,7 +126,7 @@ impl TuiApp {
 
         match self.state.ui_state.current_view {
             AppView::Servers => self.handle_servers_key(key_event),
-            AppView::SettingsAndLogs => self.handle_settings_and_logs_key(key_event),
+            AppView::Tools => self.handle_settings_and_logs_key(key_event),
             AppView::Help => self.handle_help_key(key_event),
         }
     }
@@ -484,8 +484,8 @@ impl TuiApp {
         ) {
             (AppView::Servers, Pane::Cities) => self.state.city_select_next(),
             (AppView::Servers, Pane::Countries) => self.state.select_next(),
-            (AppView::SettingsAndLogs, Pane::Settings) => self.state.settings_select_next(),
-            (AppView::SettingsAndLogs, Pane::Logs) => self.state.logs_select_next(),
+            (AppView::Tools, Pane::Settings) => self.state.settings_select_next(),
+            (AppView::Tools, Pane::Logs) => self.state.logs_select_next(),
             _ => {}
         }
     }
@@ -498,8 +498,8 @@ impl TuiApp {
         ) {
             (AppView::Servers, Pane::Cities) => self.state.city_select_prev(),
             (AppView::Servers, Pane::Countries) => self.state.select_prev(),
-            (AppView::SettingsAndLogs, Pane::Settings) => self.state.settings_select_prev(),
-            (AppView::SettingsAndLogs, Pane::Logs) => self.state.logs_select_prev(),
+            (AppView::Tools, Pane::Settings) => self.state.settings_select_prev(),
+            (AppView::Tools, Pane::Logs) => self.state.logs_select_prev(),
             _ => {}
         }
     }
@@ -512,8 +512,8 @@ impl TuiApp {
         ) {
             (AppView::Servers, Pane::Cities) => self.state.city_select_page_down(),
             (AppView::Servers, Pane::Countries) => self.state.select_page_down(),
-            (AppView::SettingsAndLogs, Pane::Settings) => self.state.settings_select_page_down(),
-            (AppView::SettingsAndLogs, Pane::Logs) => self.state.logs_select_page_down(),
+            (AppView::Tools, Pane::Settings) => self.state.settings_select_page_down(),
+            (AppView::Tools, Pane::Logs) => self.state.logs_select_page_down(),
             _ => {}
         }
     }
@@ -526,8 +526,8 @@ impl TuiApp {
         ) {
             (AppView::Servers, Pane::Cities) => self.state.city_select_page_up(),
             (AppView::Servers, Pane::Countries) => self.state.select_page_up(),
-            (AppView::SettingsAndLogs, Pane::Settings) => self.state.settings_select_page_up(),
-            (AppView::SettingsAndLogs, Pane::Logs) => self.state.logs_select_page_up(),
+            (AppView::Tools, Pane::Settings) => self.state.settings_select_page_up(),
+            (AppView::Tools, Pane::Logs) => self.state.logs_select_page_up(),
             _ => {}
         }
     }
@@ -540,8 +540,8 @@ impl TuiApp {
             ) {
                 (AppView::Servers, Pane::Cities) => self.state.city_select_first(),
                 (AppView::Servers, Pane::Countries) => self.state.select_first(),
-                (AppView::SettingsAndLogs, Pane::Settings) => self.state.settings_select_first(),
-                (AppView::SettingsAndLogs, Pane::Logs) => self.state.logs_select_first(),
+                (AppView::Tools, Pane::Settings) => self.state.settings_select_first(),
+                (AppView::Tools, Pane::Logs) => self.state.logs_select_first(),
                 _ => {}
             }
             self.pending_g = false;
@@ -558,8 +558,8 @@ impl TuiApp {
         ) {
             (AppView::Servers, Pane::Cities) => self.state.city_select_last(),
             (AppView::Servers, Pane::Countries) => self.state.select_last(),
-            (AppView::SettingsAndLogs, Pane::Settings) => self.state.settings_select_last(),
-            (AppView::SettingsAndLogs, Pane::Logs) => self.state.logs_select_last(),
+            (AppView::Tools, Pane::Settings) => self.state.settings_select_last(),
+            (AppView::Tools, Pane::Logs) => self.state.logs_select_last(),
             _ => {}
         }
     }
@@ -998,15 +998,13 @@ impl TuiApp {
                 f,
                 area,
             ),
-            AppView::SettingsAndLogs => {
-                views::settings_and_logs_view::render_settings_and_logs_view(
-                    &mut self.state,
-                    &mut self.settings_list_state,
-                    &mut self.logs_list_state,
-                    f,
-                    area,
-                )
-            }
+            AppView::Tools => views::tools_view::render_tools_view(
+                &mut self.state,
+                &mut self.settings_list_state,
+                &mut self.logs_list_state,
+                f,
+                area,
+            ),
             AppView::Help => views::help_view::render_help_view(&self.state, f, area),
         }
     }
@@ -1111,7 +1109,7 @@ impl TuiApp {
                 ]);
                 hints
             }
-            (AppView::SettingsAndLogs, Pane::Settings) | (AppView::SettingsAndLogs, Pane::Logs) => {
+            (AppView::Tools, Pane::Settings) | (AppView::Tools, Pane::Logs) => {
                 vec![]
             }
             (AppView::Help, _) => vec![

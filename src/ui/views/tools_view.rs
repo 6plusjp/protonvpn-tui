@@ -7,7 +7,7 @@ use ratatui::{
     Frame,
 };
 
-pub fn render_settings_and_logs_view(
+pub fn render_tools_view(
     state: &mut AppState,
     settings_list_state: &mut ratatui::widgets::ListState,
     logs_list_state: &mut ratatui::widgets::TableState,

@@ -8,8 +8,8 @@ pub enum AppView {
     /// Server list / country selection view
     #[default]
     Servers,
-    /// Settings + Logs split view
-    SettingsAndLogs,
+    /// Tools view
+    Tools,
     /// Help view (only accessible via ?)
     Help,
 }
@@ -22,9 +22,9 @@ pub enum Pane {
     Countries,
     /// Right pane - cities list (Servers view)
     Cities,
-    /// Left pane - settings list (SettingsAndLogs view)
+    /// Left pane - settings list (Tools view)
     Settings,
-    /// Right pane - logs table (SettingsAndLogs view)
+    /// Right pane - logs table (Tools view)
     Logs,
 }
 
@@ -49,8 +49,8 @@ impl AppView {
     /// Get next view in cycle (excludes Help)
     pub fn next(&self) -> Self {
         match self {
-            Self::Servers => Self::SettingsAndLogs,
-            Self::SettingsAndLogs => Self::Servers,
+            Self::Servers => Self::Tools,
+            Self::Tools => Self::Servers,
             Self::Help => Self::Servers,
         }
     }
@@ -58,8 +58,8 @@ impl AppView {
     /// Get previous view in cycle (excludes Help)
     pub fn prev(&self) -> Self {
         match self {
-            Self::Servers => Self::SettingsAndLogs,
-            Self::SettingsAndLogs => Self::Servers,
+            Self::Servers => Self::Tools,
+            Self::Tools => Self::Servers,
             Self::Help => Self::Servers,
         }
     }
@@ -68,7 +68,7 @@ impl AppView {
     pub fn default_pane(&self) -> Pane {
         match self {
             Self::Servers => Pane::Countries,
-            Self::SettingsAndLogs => Pane::Settings,
+            Self::Tools => Pane::Settings,
             Self::Help => Pane::Countries,
         }
     }

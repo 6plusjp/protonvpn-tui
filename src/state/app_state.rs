@@ -207,7 +207,10 @@ impl AppState {
     }
 
     pub fn switch_view(&mut self) {
-        self.ui_state.current_view = self.ui_state.current_view.next();
+        let new_view = self.ui_state.current_view.next();
+        self.ui_state.previous_view = self.ui_state.current_view;
+        self.ui_state.current_view = new_view;
+        self.ui_state.pane_focus = new_view.default_pane();
     }
 
     pub fn show_notification(&mut self, message: String, notification_type: NotificationType) {

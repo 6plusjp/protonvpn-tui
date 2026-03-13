@@ -66,8 +66,7 @@ pub fn render_logs_view(
     let selected_idx = state.ui_state.logs_selected.unwrap_or(0);
 
     let rows: Vec<Row> = logs_iter
-        .enumerate()
-        .map(|(_idx, n)| {
+        .map(|n| {
             let (type_str, color) = match n.notification_type {
                 NotificationType::Info => ("[INFO] ", theme.primary),
                 NotificationType::Success => ("[OK]   ", theme.success),

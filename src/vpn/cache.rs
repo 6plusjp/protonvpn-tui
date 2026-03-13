@@ -107,7 +107,9 @@ pub fn countries_to_servers(
         .iter()
         .map(|(id, country)| Server {
             code: id.clone(),
+            code_lower: id.to_lowercase(),
             country: country.clone(),
+            country_lower: country.to_lowercase(),
             cities: cities.get(id).cloned().unwrap_or_default(),
         })
         .collect()

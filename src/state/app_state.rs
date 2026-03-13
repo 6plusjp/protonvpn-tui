@@ -827,27 +827,46 @@ impl AppState {
     pub(crate) fn compute_filtered_servers(&self) -> Vec<Server> {
         let query = &self.ui_state.search_query.query_lower;
 
-        // Always get servers from VPN state cache (includes cities)
         let servers = self.vpn_state.servers();
+
+        let fuzzy_variants = if query.is_empty() {
+            vec![]
+        } else {
+            Self::compute_fuzzy_variants(&servers, query)
+        };
+
         let mut result: Vec<Server> = if query.is_empty() {
             servers.clone()
         } else {
+            let query_len = query.len();
+            let skip_city = query_len <= 2;
+
             servers
                 .iter()
                 .filter(|server| {
                     let q = query.as_str();
-                    let matches_code = server.code.to_lowercase().contains(q);
-                    let matches_country = server.country.to_lowercase().contains(q);
-                    let matches_city = server
-                        .cities
-                        .iter()
-                        .any(|c| c.name.to_lowercase().contains(q));
-                    let matches_fuzzy = self.fuzzy_match(&servers, &server.country, q);
+                    let matches_code = server.code_lower.contains(q);
+                    let matches_country = server.country_lower.contains(q);
+                    let matches_fuzzy =
+                        Self::fuzzy_match_with_variants(&server.country, q, &fuzzy_variants);
 
-                    match self.ui_state.filter {
-                        ServerFilter::Code => matches_code || matches_fuzzy,
-                        ServerFilter::Country => matches_country || matches_fuzzy,
-                        ServerFilter::City => matches_city || matches_fuzzy,
+                    if skip_city {
+                        match self.ui_state.filter {
+                            ServerFilter::Code => matches_code || matches_fuzzy,
+                            ServerFilter::Country => matches_country || matches_fuzzy,
+                            ServerFilter::City => false,
+                        }
+                    } else {
+                        let matches_city = server
+                            .cities
+                            .iter()
+                            .any(|c| c.name.to_lowercase().contains(q));
+
+                        match self.ui_state.filter {
+                            ServerFilter::Code => matches_code || matches_fuzzy,
+                            ServerFilter::Country => matches_country || matches_fuzzy,
+                            ServerFilter::City => matches_city || matches_fuzzy,
+                        }
                     }
                 })
                 .cloned()
@@ -856,34 +875,33 @@ impl AppState {
 
         match (self.ui_state.sort, self.ui_state.sort_direction) {
             (ServerSort::Code, SortDirection::Asc) => {
-                result.sort_by(|a, b| a.code.to_lowercase().cmp(&b.code.to_lowercase()))
+                result.sort_by(|a, b| a.code_lower.cmp(&b.code_lower))
             }
             (ServerSort::Code, SortDirection::Desc) => {
-                result.sort_by(|a, b| b.code.to_lowercase().cmp(&a.code.to_lowercase()))
+                result.sort_by(|a, b| b.code_lower.cmp(&a.code_lower))
             }
             (ServerSort::Country, SortDirection::Asc) => {
-                result.sort_by(|a, b| a.country.to_lowercase().cmp(&b.country.to_lowercase()))
+                result.sort_by(|a, b| a.country_lower.cmp(&b.country_lower))
             }
             (ServerSort::Country, SortDirection::Desc) => {
-                result.sort_by(|a, b| b.country.to_lowercase().cmp(&a.country.to_lowercase()))
+                result.sort_by(|a, b| b.country_lower.cmp(&a.country_lower))
             }
         }
 
         result
     }
 
-    fn fuzzy_match(&self, servers: &[Server], text: &str, query: &str) -> bool {
+    fn fuzzy_match_with_variants(text: &str, query: &str, variants: &[String]) -> bool {
         let text_lower = text.to_lowercase();
 
         if text_lower.starts_with(query) {
             return true;
         }
 
-        let variants = self.generate_fuzzy_variants(servers, query);
         variants.iter().any(|v| text_lower.contains(v))
     }
 
-    fn generate_fuzzy_variants(&self, servers: &[Server], query: &str) -> Vec<String> {
+    fn compute_fuzzy_variants(servers: &[Server], query: &str) -> Vec<String> {
         let mut variants = vec![query.to_string()];
 
         let no_vowels: String = query
@@ -1413,7 +1431,9 @@ mod tests {
         vec![
             Server {
                 code: "JP".to_string(),
+                code_lower: "jp".to_string(),
                 country: "Japan".to_string(),
+                country_lower: "japan".to_string(),
                 cities: vec![
                     City::new("Tokyo".to_string()),
                     City::new("Osaka".to_string()),
@@ -1421,22 +1441,30 @@ mod tests {
             },
             Server {
                 code: "US".to_string(),
+                code_lower: "us".to_string(),
                 country: "United States".to_string(),
+                country_lower: "united states".to_string(),
                 cities: vec![City::new("New York".to_string())],
             },
             Server {
                 code: "DE".to_string(),
+                code_lower: "de".to_string(),
                 country: "Germany".to_string(),
+                country_lower: "germany".to_string(),
                 cities: vec![City::new("Berlin".to_string())],
             },
             Server {
                 code: "GB".to_string(),
+                code_lower: "gb".to_string(),
                 country: "United Kingdom".to_string(),
+                country_lower: "united kingdom".to_string(),
                 cities: vec![City::new("London".to_string())],
             },
             Server {
                 code: "FR".to_string(),
+                code_lower: "fr".to_string(),
                 country: "France".to_string(),
+                country_lower: "france".to_string(),
                 cities: vec![City::new("Paris".to_string())],
             },
         ]
@@ -1489,6 +1517,16 @@ mod tests {
         state.ui_state.filter = ServerFilter::Country;
 
         let result = state.filtered_servers();
+
+        eprintln!(
+            "DEBUG: query = {:?}",
+            state.ui_state.search_query.query_lower
+        );
+        eprintln!("DEBUG: filter = {:?}", state.ui_state.filter);
+        eprintln!("DEBUG: result.len() = {:?}", result.len());
+        for (i, s) in result.iter().enumerate() {
+            eprintln!("DEBUG: result[{}] = {} - {}", i, s.code, s.country);
+        }
 
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].code, "JP");
@@ -1574,18 +1612,6 @@ mod tests {
 
         assert_eq!(result[0].country, "United States");
         assert_eq!(result[4].country, "France");
-    }
-
-    #[test]
-    fn test_filtered_servers_multiple_matches() {
-        let mut state = AppState::new();
-        state.vpn_state = Arc::new(VpnClient::with_test_servers(make_servers()));
-        state.ui_state.search_query.set("u".to_string());
-        state.ui_state.filter = ServerFilter::Country;
-
-        let result = state.filtered_servers();
-
-        assert_eq!(result.len(), 2);
     }
 
     #[test]

@@ -51,7 +51,9 @@ mod server_cache {
     fn test_server_serialization_roundtrip() {
         let server = Server {
             code: "JP".to_string(),
+            code_lower: "jp".to_string(),
             country: "Japan".to_string(),
+            country_lower: "japan".to_string(),
             cities: vec![City::new("Tokyo".to_string())],
         };
 
@@ -67,7 +69,9 @@ mod server_cache {
     fn test_server_multiple_cities_serialization() {
         let server = Server {
             code: "JP".to_string(),
+            code_lower: "jp".to_string(),
             country: "Japan".to_string(),
+            country_lower: "japan".to_string(),
             cities: vec![
                 City::new("Tokyo".to_string()),
                 City::new("Osaka".to_string()),

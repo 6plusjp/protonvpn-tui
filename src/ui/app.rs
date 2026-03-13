@@ -781,7 +781,6 @@ impl TuiApp {
                         self.state.apply_dns_setting(&dns_ips);
                     }
                 } else {
-                    self.state.set_search_query(self.filter_input.clone());
                     self.filter_mode = false;
                 }
                 None

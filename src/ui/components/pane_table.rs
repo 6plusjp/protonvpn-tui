@@ -206,6 +206,6 @@ pub struct CitiesTable;
 impl CitiesTable {
     pub fn table() -> PaneTable {
         PaneTable::new("Cities")
-            .with_columns(vec![Column::left("City", 15), Column::left("Features", 0)])
+            .with_columns(vec![Column::left("City", 19), Column::left("Features", 0)])
     }
 }

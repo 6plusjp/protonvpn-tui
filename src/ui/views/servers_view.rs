@@ -183,12 +183,6 @@ fn render_cities_pane(
         (Some(_), false, false) => cities_table.title_with_indicator(is_focused),
     };
 
-    let max_city_len = state
-        .current_cities
-        .iter()
-        .map(|c| c.name.len())
-        .max()
-        .unwrap_or(20);
     let max_features_len = state
         .current_cities
         .iter()
@@ -201,7 +195,7 @@ fn render_cities_pane(
         })
         .max()
         .unwrap_or(8);
-    let dynamic_widths = [max_city_len, max_features_len];
+    let dynamic_widths = [max_features_len];
 
     let header_row = cities_table.header_row(&dynamic_widths);
     let widths = cities_table.column_widths(&dynamic_widths);

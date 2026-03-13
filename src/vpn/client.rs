@@ -2,10 +2,14 @@
 //!
 //! Uses the new `protonvpn` CLI commands:
 //! - protonvpn countries     -> list countries
-//! - protonvpn cities --country &lt;CC&gt;  -> list cities for a country
+//! - protonvpn cities --country <CC>  -> list cities for a country
 //! - protonvpn connect       -> connect to fastest server
-//! - protonvpn connect --country &lt;CC&gt;  -> connect to a country
-//! - protonvpn connect --city &lt;city&gt;  -> connect to a city
+//! - protonvpn connect --country <CC>  -> connect to a country
+//! - protonvpn connect --city <city>  -> connect to a city
+//! - protonvpn connect --fastest      -> connect to fastest server
+//! - protonvpn connect --p2p          -> connect to fastest P2P server
+//! - protonvpn connect --tor          -> connect to fastest Tor server
+//! - protonvpn connect --securecore    -> connect to fastest Secure Core server
 //! - protonvpn disconnect    -> disconnect
 
 use std::collections::HashMap;

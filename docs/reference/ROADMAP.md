@@ -104,6 +104,7 @@
 | issue006 | Add Logs view with notification logs             | ✅ Resolved |
 | issue007 | Create UI Components Layer and Unify Design      | ✅ Resolved |
 | issue010 | Settings Navigation Refactor                     | ✅ Resolved |
+| issue037 | Centralize Render Logic                          | ✅ Resolved |
 
 ---
 

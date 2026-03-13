@@ -6,7 +6,7 @@
 |------|------|-------|----------|--------|
 | Part 1 | Bug fixes | 12 issues | ✅ Resolved | ✅ Complete |
 | Part 2 | Performance | P1-P5 | High→Low | ✅ 3/5 Complete |
-| Part 3 | Structural | S1-S4 | High→Low | ✅ S1-S2→Done, S3→issue036, S4→issue037 |
+| Part 3 | Structural | S1-S4 | High→Low | ✅ S1-S2→Done, S3→issue036, S4→issue037→Done |
 
 ---
 
@@ -128,11 +128,11 @@
 
 ---
 
-## ⏭️ S4: Centralize Render Logic
+## ✅ S4: Centralize Render Logic
 
-**Status**: ⏭️ Skipped - Moved to issue037
+**Status**: ✅ Completed (issue037)
 
-**Reason**: Requires architectural changes to UI layer.
+**Implementation**: Created `Renderable` trait and `View` enum in `src/ui/render.rs`. Unified all view render functions to use consistent `&mut AppState` signature.
 
 ---
 

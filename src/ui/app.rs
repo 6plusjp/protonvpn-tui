@@ -1,8 +1,8 @@
 use crate::config::SettingKey;
 use crate::constants::ui::{NOTIFICATION_MSG_MAX_LEN, POPUP_WIDTH_MAX, POPUP_WIDTH_MIN};
 use crate::state::{AppState, AppView, InputMode, Pane};
+use crate::ui::render::{Renderable, ServersViewState, ToolsViewState, View};
 use crate::ui::styles::Theme;
-use crate::ui::views;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
     execute,
@@ -13,7 +13,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, ListState, Paragraph, TableState},
+    widgets::{Block, Borders, Clear, Paragraph},
     Frame, Terminal,
 };
 use std::io;
@@ -21,10 +21,7 @@ use std::panic;
 
 pub struct TuiApp {
     state: AppState,
-    countries_list_state: TableState,
-    cities_list_state: TableState,
-    logs_list_state: TableState,
-    settings_list_state: ListState,
+    current_view: View,
     pending_g: bool,
     filter_mode: bool,
     filter_input: String,
@@ -42,10 +39,7 @@ impl TuiApp {
 
         Ok(Self {
             state,
-            countries_list_state: TableState::default(),
-            cities_list_state: TableState::default(),
-            logs_list_state: TableState::default(),
-            settings_list_state: ListState::default(),
+            current_view: View::Servers(ServersViewState::default()),
             pending_g: false,
             filter_mode: false,
             filter_input: String::new(),
@@ -99,6 +93,7 @@ impl TuiApp {
                                 AppAction::Quit => break,
                                 AppAction::SwitchView => {
                                     self.state.switch_view();
+                                    self.sync_view();
                                 }
                                 AppAction::None => {}
                             }
@@ -143,6 +138,7 @@ impl TuiApp {
                 } else {
                     self.state.ui_state.set_view(AppView::Help);
                 }
+                self.sync_view();
                 None
             }
             KeyCode::Char('/') => {
@@ -153,6 +149,7 @@ impl TuiApp {
             KeyCode::Esc => {
                 if is_help_view {
                     self.state.ui_state.current_view = self.state.ui_state.previous_view;
+                    self.sync_view();
                     None
                 } else if !self.state.ui_state.search_query.query.is_empty() {
                     self.state.set_search_query(String::new());
@@ -990,22 +987,26 @@ impl TuiApp {
     }
 
     fn render_main(&mut self, f: &mut Frame<'_>, area: Rect) {
+        self.current_view.render(&mut self.state, f, area);
+    }
+
+    fn sync_view(&mut self) {
         match self.state.ui_state.current_view {
-            AppView::Servers => views::servers_view::render_servers_view(
-                &mut self.state,
-                &mut self.countries_list_state,
-                &mut self.cities_list_state,
-                f,
-                area,
-            ),
-            AppView::Tools => views::tools_view::render_tools_view(
-                &mut self.state,
-                &mut self.settings_list_state,
-                &mut self.logs_list_state,
-                f,
-                area,
-            ),
-            AppView::Help => views::help_view::render_help_view(&self.state, f, area),
+            AppView::Servers => {
+                if !matches!(self.current_view, View::Servers(_)) {
+                    self.current_view = View::Servers(ServersViewState::default());
+                }
+            }
+            AppView::Tools => {
+                if !matches!(self.current_view, View::Tools(_)) {
+                    self.current_view = View::Tools(ToolsViewState::default());
+                }
+            }
+            AppView::Help => {
+                if !matches!(self.current_view, View::Help) {
+                    self.current_view = View::Help;
+                }
+            }
         }
     }
 

@@ -13,76 +13,66 @@ From issue027 (S4):
 > **Status**: Skipped - UI changes required
 > **Reason**: Requires architectural changes to UI layer.
 
-## Current State
+## Completed
 
-Render functions are scattered across 7+ files with inconsistent signatures:
+Render functions have been unified using a `Renderable` trait and `View` enum.
 
-```
-src/ui/
-├── app.rs                    # render_main(), render_header(), render_footer()
-├── views/
-│   ├── servers_view.rs       # render_servers_view(), render_countries_pane(), render_cities_pane()
-│   ├── settings_view.rs      # render_settings_view()
-│   ├── logs_view.rs          # render_logs_view()
-│   ├── stats_view.rs         # render_stats_view()
-│   └── help_view.rs          # render_help_view()
-```
+### Changes Made
 
-Each function has different signature:
-```rust
-// servers_view.rs
-pub fn render_servers_view(state: &mut AppState, ...)
+**Created:**
+- `src/ui/render.rs` - Contains `Renderable` trait and `View` enum
 
-// settings_view.rs  
-pub fn render_settings_view(state: &mut AppState, ...)
+**Deleted:**
+- `src/ui/views/stats_view.rs` - Unused file removed
 
-// logs_view.rs
-pub fn render_logs_view(state: &AppState, ...)  // Note: &AppState, not &mut
-```
+**Modified:**
+- `src/ui/mod.rs` - Added `render` module
+- `src/ui/app.rs` - Simplified to use `Renderable` trait
 
-## Problem
-
-- 7+ files with render functions
-- Inconsistent function signatures
-- Adding new view requires editing multiple files
-
-## Proposed Solution
-
-Create a unified `Renderable` trait:
+### Architecture
 
 ```rust
 // src/ui/render.rs
-
 pub trait Renderable {
     fn render(&mut self, state: &mut AppState, f: &mut Frame<'_>, area: Rect);
 }
 
-impl Renderable for ServersView { ... }
-impl Renderable for SettingsView { ... }
-impl Renderable for LogsView { ... }
+pub enum View {
+    Servers(ServersViewState),
+    Tools(ToolsViewState),
+    Help,
+}
 ```
 
-Then simplify `render_main()`:
+### Before
+
 ```rust
 fn render_main(&mut self, f: &mut Frame<'_>, area: Rect) {
-    self.current_view.render(&mut self.state, f, area)
+    match self.state.ui_state.current_view {
+        AppView::Servers => views::servers_view::render_servers_view(...),
+        AppView::Tools => views::tools_view::render_tools_view(...),
+        AppView::Help => views::help_view::render_help_view(...),
+    }
+}
+```
+
+### After
+
+```rust
+fn render_main(&mut self, f: &mut Frame<'_>, area: Rect) {
+    self.current_view.render(&mut self.state, f, area);
 }
 ```
 
 ## Benefits
 
-- Consistent API for all views
-- Easy to add new views (just impl trait)
-- Better encapsulation
+- Consistent API for all views (all use `&mut AppState`)
+- Easy to add new views (just add variant to `View` enum)
+- View state encapsulated in dedicated structs
+- Simplified `app.rs`
 
-## Priority
+## Status
 
 | Priority | Item | Effort | Status |
 |----------|------|--------|--------|
-| Low | Unify render function signatures | Medium | Pending |
-
-## Files to Change
-
-- Create `src/ui/render.rs` (trait definition)
-- Refactor `src/ui/views/*.rs` (implement trait)
-- Update `src/ui/app.rs` (use trait)
+| Low | Unify render function signatures | Medium | ✅ Completed |

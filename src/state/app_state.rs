@@ -577,13 +577,13 @@ impl AppState {
         if self.connection_manager.connection == ConnectionState::Disconnected
             && self.vpn_state.is_connected()
         {
-            let server = self
+            let (server, ip) = self
                 .vpn_state
-                .get_connected_server_name()
-                .unwrap_or_else(|| "Unknown".to_string());
+                .get_connected_server_info()
+                .unwrap_or_else(|| ("Unknown".to_string(), String::new()));
             self.connection_manager.connection = ConnectionState::Connected {
                 server,
-                ip: String::new(),
+                ip,
                 city: None,
                 country: None,
             };

@@ -310,8 +310,8 @@ impl VpnClient {
         }
     }
 
-    /// Get connected server name from connection_persistence.json
-    pub fn get_connected_server_name(&self) -> Option<String> {
+    /// Get connected server name and IP from connection_persistence.json
+    pub fn get_connected_server_info(&self) -> Option<(String, String)> {
         let persistence_path = dirs::cache_dir()?
             .join("Proton")
             .join("VPN")
@@ -328,10 +328,12 @@ impl VpnClient {
         #[derive(serde::Deserialize)]
         struct ServerInfo {
             server_name: String,
+            #[serde(rename = "server_ip")]
+            server_ip: String,
         }
 
         let persistence: Persistence = serde_json::from_str(&content).ok()?;
-        Some(persistence.server.server_name)
+        Some((persistence.server.server_name, persistence.server.server_ip))
     }
 
     pub fn refresh_countries(&self) -> AppResult<HashMap<String, String>> {

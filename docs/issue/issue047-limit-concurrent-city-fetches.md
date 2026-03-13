@@ -4,6 +4,21 @@
 
 Limit concurrent city fetches to prevent queue buildup when user rapidly navigates country list.
 
+## Status
+
+**[Proposed]** - Pending implementation
+
+### Preliminary Decision
+
+| Parameter | Current | Proposed |
+|-----------|---------|----------|
+| Thread pool workers | 4 | 10 |
+| Max pending city fetches | ∞ (unlimited) | 5 |
+
+**Rationale:**
+- 10 workers: Improves overall VPN operations (connect, disconnect, refresh)
+- 5 pending: Reasonable limit - users unlikely to scroll through 5+ countries faster than fetch completes
+
 ## Context
 
 ### Current Implementation
@@ -95,11 +110,18 @@ fn fetch_cities(&mut self, country_code: &str) {
 - No limit on number of different countries fetched concurrently
 - All requests compete for 4 worker threads
 
+**Edge case concern:**
+If limit is reached, `fetch_cities()` will skip. But:
+- `l` key (Countries→Cities): Needs to always fetch or cities won't display
+- `r` key (reload cities): Should always fetch
+- Normal navigation (j/k): Can skip if limit reached
+
 ### Expected Behavior
 
-- Maximum 1 pending city fetch per country
-- Cancel previous pending request when new country selected
-- OR: Debounce rapid selections to only fetch final selected country
+- Limit concurrent city fetches (max 5)
+- Navigation (j/k): Skip if limit reached (acceptable)
+- Explicit request (l key, r key): Always fetch
+- Same country: Already deduplicated (works)
 
 ## Analysis
 
@@ -113,10 +135,12 @@ fn fetch_cities(&mut self, country_code: &str) {
 
 **Current State**: Same-country deduplication already works.
 
-**Option A: Limit Concurrent Countries (Recommended)**
-- Limit concurrent city fetches to N countries (e.g., 1-2)
-- Check `pending_cities.len()` before submitting new request
-- Skip if too many already pending
+**Option A: Limit Concurrent + Force Flag (Recommended)**
+- Limit concurrent city fetches to N countries (e.g., 5)
+- Add `force` parameter to `fetch_cities()`:
+  - `force=true`: Always fetch (l key, r key)
+  - `force=false`: Skip if limit reached (j/k navigation)
+- This ensures user can always access cities when explicitly requested
 
 **Option B: Debounce Selection**
 - Debounce `switch_cities_to_selected()` calls
@@ -132,11 +156,20 @@ fn fetch_cities(&mut self, country_code: &str) {
 
 ## Implementation Hints
 
-```rust
-// Option A: Limit concurrent countries
-const MAX_PENDING_CITY_FETCHES: usize = 1;
+### 1. Thread Pool: Increase workers to 10
 
-fn fetch_cities(&mut self, country_code: &str) {
+```rust
+// src/state/connection.rs or where AsyncTaskManager is created
+async_manager: AsyncTaskManager::new_with_workers(10),  // was 4
+```
+
+### 2. Limit pending city fetches to 5
+
+```rust
+// In app_state.rs or connection.rs
+const MAX_PENDING_CITY_FETCHES: usize = 5;
+
+fn fetch_cities(&mut self, country_code: &str, force: bool) {
     let country_code = country_code.to_string();
 
     // Check cache
@@ -150,14 +183,21 @@ fn fetch_cities(&mut self, country_code: &str) {
         return;
     }
 
-    // NEW: Limit concurrent different-country fetches
-    if self.connection_manager.pending_cities.len() >= MAX_PENDING_CITY_FETCHES {
+    // Limit concurrent different-country fetches (unless forced)
+    if !force && self.connection_manager.pending_cities.len() >= MAX_PENDING_CITY_FETCHES {
         return;  // Too many pending, skip
     }
 
     // ... rest of existing code
 }
 ```
+
+**force = true calls:**
+- `move_to_cities()` (l key): `fetch_cities(&server.code, true)`
+- `reload_cities()` (r key): `fetch_cities(&country_code, true)`
+
+**force = false calls:**
+- `switch_cities_to_selected()` (j/k navigation): `fetch_cities(country_code, false)`
 
 ```rust
 // Option B: Debounce - requires timer/debounce state
@@ -172,9 +212,9 @@ self.debounce_timer = Some(Instant::now());
 ## Notes
 
 - Same-country deduplication already works via `HashMap::insert`
-- Thread pool limits concurrent *execution* to 4
-- Issue is *different* countries fetched concurrently (no limit)
-- Simplest fix: add `pending_cities.len()` limit check
+- Thread pool: 10 workers (was 4) - benefits all VPN operations
+- Pending limit: 5 countries (was unlimited)
+- force flag ensures explicit requests (l key, r key) always work
 
 ## References
 

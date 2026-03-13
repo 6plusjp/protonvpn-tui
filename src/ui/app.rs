@@ -126,8 +126,7 @@ impl TuiApp {
 
         match self.state.ui_state.current_view {
             AppView::Servers => self.handle_servers_key(key_event),
-            AppView::Settings => self.handle_settings_key(key_event),
-            AppView::Logs => self.handle_logs_key(key_event),
+            AppView::SettingsAndLogs => self.handle_settings_and_logs_key(key_event),
             AppView::Help => self.handle_help_key(key_event),
         }
     }
@@ -277,6 +276,16 @@ impl TuiApp {
                             self.handle_refresh();
                         }
                     }
+                    Pane::Settings | Pane::Logs => {
+                        if self.state.connection_manager.pending_refresh.is_some() {
+                            self.state.show_notification(
+                                "Refresh in progress...".to_string(),
+                                crate::state::NotificationType::Warning,
+                            );
+                        } else {
+                            self.handle_refresh();
+                        }
+                    }
                 }
                 None
             }
@@ -312,7 +321,38 @@ impl TuiApp {
         }
     }
 
-    fn handle_settings_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
+    fn handle_settings_and_logs_key(
+        &mut self,
+        key_event: crossterm::event::KeyEvent,
+    ) -> Option<AppAction> {
+        let pane = self.state.ui_state.pane_focus;
+
+        match key_event.code {
+            KeyCode::Char('h') => {
+                self.state.ui_state.pane_focus = Pane::Settings;
+                None
+            }
+            KeyCode::Char('l') => {
+                self.state.ui_state.pane_focus = Pane::Logs;
+                None
+            }
+            _ => match pane {
+                Pane::Settings => self.handle_settings_pane_key(key_event),
+                Pane::Logs => {
+                    if self.handle_common_navigation(key_event) {
+                        return None;
+                    }
+                    None
+                }
+                _ => None,
+            },
+        }
+    }
+
+    fn handle_settings_pane_key(
+        &mut self,
+        key_event: crossterm::event::KeyEvent,
+    ) -> Option<AppAction> {
         let expanded = self.state.ui_state.settings_expanded;
 
         match (expanded, key_event.code) {
@@ -331,7 +371,22 @@ impl TuiApp {
                 self.handle_connect();
                 None
             }
-            (false, _) if self.handle_common_navigation(key_event) => None,
+            (false, KeyCode::Char('j') | KeyCode::Down) => {
+                self.state.settings_select_next();
+                None
+            }
+            (false, KeyCode::Char('k') | KeyCode::Up) => {
+                self.state.settings_select_prev();
+                None
+            }
+            (false, KeyCode::Char('g')) => {
+                self.state.settings_select_first();
+                None
+            }
+            (false, KeyCode::Char('G')) => {
+                self.state.settings_select_last();
+                None
+            }
 
             (true, KeyCode::Enter) => {
                 if let Some(idx) = self.state.ui_state.settings_selected {
@@ -412,13 +467,6 @@ impl TuiApp {
         }
     }
 
-    fn handle_logs_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
-        if self.handle_common_navigation(key_event) {
-            return None;
-        }
-        None
-    }
-
     fn handle_help_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
         match key_event.code {
             KeyCode::Esc => {
@@ -436,8 +484,8 @@ impl TuiApp {
         ) {
             (AppView::Servers, Pane::Cities) => self.state.city_select_next(),
             (AppView::Servers, Pane::Countries) => self.state.select_next(),
-            (AppView::Settings, _) => self.state.settings_select_next(),
-            (AppView::Logs, _) => self.state.logs_select_next(),
+            (AppView::SettingsAndLogs, Pane::Settings) => self.state.settings_select_next(),
+            (AppView::SettingsAndLogs, Pane::Logs) => self.state.logs_select_next(),
             _ => {}
         }
     }
@@ -450,8 +498,8 @@ impl TuiApp {
         ) {
             (AppView::Servers, Pane::Cities) => self.state.city_select_prev(),
             (AppView::Servers, Pane::Countries) => self.state.select_prev(),
-            (AppView::Settings, _) => self.state.settings_select_prev(),
-            (AppView::Logs, _) => self.state.logs_select_prev(),
+            (AppView::SettingsAndLogs, Pane::Settings) => self.state.settings_select_prev(),
+            (AppView::SettingsAndLogs, Pane::Logs) => self.state.logs_select_prev(),
             _ => {}
         }
     }
@@ -464,8 +512,8 @@ impl TuiApp {
         ) {
             (AppView::Servers, Pane::Cities) => self.state.city_select_page_down(),
             (AppView::Servers, Pane::Countries) => self.state.select_page_down(),
-            (AppView::Settings, _) => self.state.settings_select_page_down(),
-            (AppView::Logs, _) => self.state.logs_select_page_down(),
+            (AppView::SettingsAndLogs, Pane::Settings) => self.state.settings_select_page_down(),
+            (AppView::SettingsAndLogs, Pane::Logs) => self.state.logs_select_page_down(),
             _ => {}
         }
     }
@@ -478,8 +526,8 @@ impl TuiApp {
         ) {
             (AppView::Servers, Pane::Cities) => self.state.city_select_page_up(),
             (AppView::Servers, Pane::Countries) => self.state.select_page_up(),
-            (AppView::Settings, _) => self.state.settings_select_page_up(),
-            (AppView::Logs, _) => self.state.logs_select_page_up(),
+            (AppView::SettingsAndLogs, Pane::Settings) => self.state.settings_select_page_up(),
+            (AppView::SettingsAndLogs, Pane::Logs) => self.state.logs_select_page_up(),
             _ => {}
         }
     }
@@ -492,8 +540,8 @@ impl TuiApp {
             ) {
                 (AppView::Servers, Pane::Cities) => self.state.city_select_first(),
                 (AppView::Servers, Pane::Countries) => self.state.select_first(),
-                (AppView::Settings, _) => self.state.settings_select_first(),
-                (AppView::Logs, _) => self.state.logs_select_first(),
+                (AppView::SettingsAndLogs, Pane::Settings) => self.state.settings_select_first(),
+                (AppView::SettingsAndLogs, Pane::Logs) => self.state.logs_select_first(),
                 _ => {}
             }
             self.pending_g = false;
@@ -510,8 +558,8 @@ impl TuiApp {
         ) {
             (AppView::Servers, Pane::Cities) => self.state.city_select_last(),
             (AppView::Servers, Pane::Countries) => self.state.select_last(),
-            (AppView::Settings, _) => self.state.settings_select_last(),
-            (AppView::Logs, _) => self.state.logs_select_last(),
+            (AppView::SettingsAndLogs, Pane::Settings) => self.state.settings_select_last(),
+            (AppView::SettingsAndLogs, Pane::Logs) => self.state.logs_select_last(),
             _ => {}
         }
     }
@@ -530,6 +578,14 @@ impl TuiApp {
             .navigation_up
             .matches(key_event.code, key_event.modifiers)
         {
+            self.handle_navigation_up();
+            return true;
+        }
+        if key_event.code == KeyCode::Down {
+            self.handle_navigation_down();
+            return true;
+        }
+        if key_event.code == KeyCode::Up {
             self.handle_navigation_up();
             return true;
         }
@@ -942,14 +998,14 @@ impl TuiApp {
                 f,
                 area,
             ),
-            AppView::Settings => views::settings_view::render_settings_view(
-                &mut self.state,
-                &mut self.settings_list_state,
-                f,
-                area,
-            ),
-            AppView::Logs => {
-                views::logs_view::render_logs_view(&self.state, &mut self.logs_list_state, f, area)
+            AppView::SettingsAndLogs => {
+                views::settings_and_logs_view::render_settings_and_logs_view(
+                    &mut self.state,
+                    &mut self.settings_list_state,
+                    &mut self.logs_list_state,
+                    f,
+                    area,
+                )
             }
             AppView::Help => views::help_view::render_help_view(&self.state, f, area),
         }
@@ -1050,30 +1106,14 @@ impl TuiApp {
                 }
                 hints.extend([
                     Span::raw("["),
-                    Span::styled("h/Backspace", Style::default().fg(theme.key_hint)),
-                    Span::raw("] countries "),
-                    Span::raw("["),
-                    Span::styled("r", Style::default().fg(theme.key_hint)),
-                    Span::raw("] reload"),
+                    Span::styled("h", Style::default().fg(theme.key_hint)),
+                    Span::raw("] countries"),
                 ]);
                 hints
             }
-            (AppView::Settings, _) => vec![
-                Span::raw("["),
-                Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                Span::raw("] move "),
-                Span::raw("["),
-                Span::styled("Enter", Style::default().fg(theme.key_hint)),
-                Span::raw("] toggle/input "),
-                Span::raw("["),
-                Span::styled("Space", Style::default().fg(theme.key_hint)),
-                Span::raw("] off"),
-            ],
-            (AppView::Logs, _) => vec![
-                Span::raw("["),
-                Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                Span::raw("] scroll"),
-            ],
+            (AppView::SettingsAndLogs, Pane::Settings) | (AppView::SettingsAndLogs, Pane::Logs) => {
+                vec![]
+            }
             (AppView::Help, _) => vec![
                 Span::raw("["),
                 Span::styled("Esc", Style::default().fg(theme.key_hint)),
@@ -1082,6 +1122,7 @@ impl TuiApp {
                 Span::styled("?", Style::default().fg(theme.key_hint)),
                 Span::raw("] return"),
             ],
+            _ => vec![],
         }
     }
 }

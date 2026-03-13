@@ -245,7 +245,7 @@ impl Default for KeyBindings {
             page_down: KeyBinding::new('d', KeyModifier::Control),
             page_up: KeyBinding::new('u', KeyModifier::Control),
             go_first: KeyBinding::new('g', KeyModifier::None),
-            go_last: KeyBinding::new('G', KeyModifier::None),
+            go_last: KeyBinding::new('G', KeyModifier::Shift),
             connect: KeyBinding::new('c', KeyModifier::None),
             disconnect: KeyBinding::new('d', KeyModifier::None),
             refresh: KeyBinding::new('r', KeyModifier::None),

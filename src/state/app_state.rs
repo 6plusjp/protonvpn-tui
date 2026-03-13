@@ -827,11 +827,6 @@ impl AppState {
     pub(crate) fn compute_filtered_servers(&self) -> Vec<Server> {
         let query = &self.ui_state.search_query.query_lower;
 
-        let connected_server_id = match &self.connection_manager.connection {
-            ConnectionState::Connected { server, .. } => Some(server.clone()),
-            _ => None,
-        };
-
         // Always get servers from VPN state cache (includes cities)
         let servers = self.vpn_state.servers();
         let mut result: Vec<Server> = if query.is_empty() {
@@ -871,17 +866,6 @@ impl AppState {
             }
             (ServerSort::Country, SortDirection::Desc) => {
                 result.sort_by(|a, b| b.country.to_lowercase().cmp(&a.country.to_lowercase()))
-            }
-        }
-
-        if let Some(ref connected_id) = connected_server_id {
-            if !connected_id.is_empty() {
-                if let Some(pos) = result.iter().position(|s| {
-                    connected_id.starts_with(&s.code) || s.code.starts_with(connected_id)
-                }) {
-                    let server = result.remove(pos);
-                    result.insert(0, server);
-                }
             }
         }
 

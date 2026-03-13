@@ -1,8 +1,9 @@
 use ratatui::layout::Constraint;
-use ratatui::style::{Style, Stylize};
+use ratatui::prelude::{Line, Modifier, Span, Style, Stylize};
 use ratatui::widgets::Row;
 
 use crate::state::{ServerSort, SortDirection};
+use crate::ui::styles::Theme;
 
 #[derive(Clone, Copy)]
 pub enum ColumnAlign {
@@ -158,15 +159,17 @@ impl PaneTable {
 
     /// Returns a Row for ratatui Table header
     pub fn header_row(&self, dynamic_widths: &[usize]) -> Row<'static> {
-        self.header_row_with_sort(dynamic_widths, None, SortDirection::Asc)
+        self.header_row_with_sort(dynamic_widths, None, SortDirection::Asc, None)
     }
 
     /// Returns a Row for ratatui Table header with sort indicator
+    /// If theme is provided, key numbers (1, 2) will be colored with key_hint
     pub fn header_row_with_sort(
         &self,
         dynamic_widths: &[usize],
         sort_by: Option<ServerSort>,
         sort_direction: SortDirection,
+        theme: Option<&Theme>,
     ) -> Row<'static> {
         let sort_indicator = sort_direction.label();
 
@@ -182,6 +185,13 @@ impl PaneTable {
                     col.width as usize
                 };
 
+                // Add key number prefix only for sortable columns that are currently sorted
+                let key_num: Option<&str> = match (i, sort_by) {
+                    (0, Some(ServerSort::Country)) => Some("¹"),
+                    (1, Some(ServerSort::Code)) => Some("²"),
+                    _ => None,
+                };
+
                 // Add sort indicator for the sorted column
                 let text_with_indicator = match (i, sort_by) {
                     (0, Some(ServerSort::Code)) => {
@@ -193,29 +203,31 @@ impl PaneTable {
                     _ => content.to_string(),
                 };
 
-                let text = match col.align {
-                    ColumnAlign::Left => {
-                        format!("{:<width$}", text_with_indicator, width = width)
-                    }
-                    ColumnAlign::Center => {
-                        let len = text_with_indicator.len();
-                        if len >= width {
-                            text_with_indicator
-                        } else {
-                            let pad = (width - len) / 2;
-                            format!(
-                                "{}{:width$}",
-                                " ".repeat(pad),
-                                text_with_indicator,
-                                width = width
-                            )
-                        }
-                    }
-                    ColumnAlign::Right => {
-                        format!("{:>width$}", text_with_indicator, width = width)
-                    }
-                };
-                ratatui::widgets::Cell::from(text).style(Style::new().bold())
+                // Calculate total content length (key + text)
+                let key_len = key_num.map(|k| k.len()).unwrap_or(0);
+                let total_len = key_len + text_with_indicator.len();
+                let pad_len = width.saturating_sub(total_len);
+
+                let key_style = theme
+                    .map(|t| Style::default().fg(t.key_hint))
+                    .unwrap_or_else(|| Style::default().yellow());
+
+                let bold_style = Style::default().add_modifier(Modifier::BOLD);
+
+                // Build spans: [key?] + [text] + [padding] for Left align
+                let mut spans = Vec::new();
+
+                if let Some(key) = key_num {
+                    spans.push(Span::styled(key, key_style));
+                }
+                spans.push(Span::styled(text_with_indicator, bold_style));
+
+                // Add padding at the end for Left align
+                if pad_len > 0 {
+                    spans.push(Span::raw(" ".repeat(pad_len)));
+                }
+
+                ratatui::widgets::Cell::from(Line::from(spans))
             })
             .collect();
         Row::new(cells).height(1)
@@ -227,7 +239,7 @@ pub struct CountriesTable;
 impl CountriesTable {
     pub fn table() -> PaneTable {
         PaneTable::new("Countries").with_columns(vec![
-            Column::left("Code", 6),
+            Column::left("Code", 0),
             Column::left("Country", 0),
             Column::left("Cities", 0),
         ])

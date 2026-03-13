@@ -67,12 +67,16 @@ fn render_countries_pane(
         .max()
         .unwrap_or(1);
 
-    let dynamic_widths = [6, max_country_len, max_cities_len];
+    let dynamic_widths = [7, max_country_len, max_cities_len];
 
     let sort_by = state.ui_state.sort;
     let sort_direction = state.ui_state.sort_direction;
-    let header_row =
-        countries_table.header_row_with_sort(&dynamic_widths, Some(sort_by), sort_direction);
+    let header_row = countries_table.header_row_with_sort(
+        &dynamic_widths,
+        Some(sort_by),
+        sort_direction,
+        Some(theme),
+    );
     let widths = countries_table.column_widths(&dynamic_widths);
 
     let rows: Vec<Row> = servers

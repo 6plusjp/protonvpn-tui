@@ -213,8 +213,14 @@ impl AppState {
         self.ui_state.pane_focus = new_view.default_pane();
     }
 
-    pub fn show_notification(&mut self, message: String, notification_type: NotificationType) {
-        self.notification_state.show(message, notification_type);
+    pub fn show_notification(
+        &mut self,
+        message: String,
+        notification_type: NotificationType,
+        operation_key: Option<String>,
+    ) {
+        self.notification_state
+            .show(message, notification_type, operation_key);
     }
 
     /// Process async events notified via Condvar (event-driven)
@@ -234,11 +240,13 @@ impl AppState {
                         self.show_notification(
                             "ProtonVPN CLI unavailable. VPN functionality disabled.".to_string(),
                             NotificationType::Error,
+                            Some("servers".to_string()),
                         );
                     } else {
                         self.show_notification(
                             format!("Refreshed {} servers", self.servers.len()),
                             NotificationType::Success,
+                            Some("servers".to_string()),
                         );
                     }
                     notification_shown = true;
@@ -250,6 +258,7 @@ impl AppState {
                     self.show_notification(
                         format!("Refresh failed: {}", e),
                         NotificationType::Error,
+                        Some("servers".to_string()),
                     );
                     notification_shown = true;
                     self.connection_manager.pending_refresh.remove(&());
@@ -258,6 +267,7 @@ impl AppState {
                     self.show_notification(
                         format!("Connected to {}", &result.server_id),
                         NotificationType::Success,
+                        Some("connect".to_string()),
                     );
                     tracing::info!("Successfully connected to server: {}", result.server_id);
                     self.connection_manager.connection = ConnectionState::Connected {
@@ -281,12 +291,17 @@ impl AppState {
                     self.show_notification(
                         format!("Connection failed: {}", e),
                         NotificationType::Error,
+                        Some("connect".to_string()),
                     );
                     self.connection_manager.pending_connect.remove(&());
                     notification_shown = true;
                 }
                 AsyncEvent::Disconnected => {
-                    self.show_notification("Disconnected".to_string(), NotificationType::Info);
+                    self.show_notification(
+                        "Disconnected".to_string(),
+                        NotificationType::Info,
+                        Some("disconnect".to_string()),
+                    );
                     tracing::info!("Disconnected from VPN");
                     self.connection_manager.connection = ConnectionState::Disconnected;
                     self.connection_manager.previous_connection = None;
@@ -298,6 +313,7 @@ impl AppState {
                     self.show_notification(
                         format!("Disconnect failed: {}", e),
                         NotificationType::Error,
+                        Some("disconnect".to_string()),
                     );
                     if let Some(prev) = self.connection_manager.previous_connection.take() {
                         self.connection_manager.connection = prev;
@@ -312,6 +328,7 @@ impl AppState {
                     self.show_notification(
                         format!("Connected to {}", result.server_id),
                         NotificationType::Success,
+                        Some("connect:city".to_string()),
                     );
                     self.connection_manager.connection = ConnectionState::Connected {
                         server: result.server_id,
@@ -333,6 +350,7 @@ impl AppState {
                     self.show_notification(
                         format!("Connection failed: {}", e),
                         NotificationType::Error,
+                        Some("connect:city".to_string()),
                     );
                     self.connection_manager.pending_connect_city.remove(&());
                     notification_shown = true;
@@ -362,11 +380,13 @@ impl AppState {
                                 "ProtonVPN CLI unavailable. VPN functionality disabled."
                                     .to_string(),
                                 NotificationType::Error,
+                                Some("servers".to_string()),
                             );
                         } else {
                             self.show_notification(
                                 format!("Refreshed {} servers", self.servers.len()),
                                 NotificationType::Success,
+                                Some("servers".to_string()),
                             );
                         }
                         notification_shown = true;
@@ -377,6 +397,7 @@ impl AppState {
                         self.show_notification(
                             format!("Refresh failed: {}", e),
                             NotificationType::Error,
+                            Some("servers".to_string()),
                         );
                         notification_shown = true;
                     }
@@ -395,6 +416,7 @@ impl AppState {
                             self.show_notification(
                                 format!("Connected to {}", &conn_result.server_id),
                                 NotificationType::Success,
+                                Some("connect".to_string()),
                             );
                             tracing::info!(
                                 "Successfully connected to server: {}",
@@ -421,6 +443,7 @@ impl AppState {
                             self.show_notification(
                                 format!("Connection failed: {}", e),
                                 NotificationType::Error,
+                                Some("connect".to_string()),
                             );
                             self.connection_manager.pending_connect.remove(&());
                             return true;
@@ -445,7 +468,11 @@ impl AppState {
                             let msg = server_info
                                 .map(|s| format!("Disconnected from {}", s))
                                 .unwrap_or_else(|| "Disconnected".to_string());
-                            self.show_notification(msg, NotificationType::Info);
+                            self.show_notification(
+                                msg,
+                                NotificationType::Info,
+                                Some("disconnect".to_string()),
+                            );
                             notification_shown = true;
                             self.connection_manager.previous_connection = None;
                             self.connection_manager.pending_disconnect.remove(&());
@@ -460,6 +487,7 @@ impl AppState {
                             self.show_notification(
                                 format!("Disconnect failed: {}", e),
                                 NotificationType::Error,
+                                Some("disconnect".to_string()),
                             );
                             notification_shown = true;
                             self.connection_manager.pending_disconnect.remove(&());
@@ -488,6 +516,7 @@ impl AppState {
                     self.show_notification(
                         format!("Loaded {} cities for {}", city_count, country_code),
                         NotificationType::Success,
+                        Some(format!("cities:{}", country_code)),
                     );
                     notification_shown = true;
                 }
@@ -495,6 +524,7 @@ impl AppState {
                     self.show_notification(
                         format!("Failed to load cities: {}", e),
                         NotificationType::Error,
+                        Some(format!("cities:{}", country_code)),
                     );
                     notification_shown = true;
                 }
@@ -514,6 +544,7 @@ impl AppState {
                         self.show_notification(
                             format!("Connected to {}", &conn_result.server_id),
                             NotificationType::Success,
+                            Some("connect:city".to_string()),
                         );
                         notification_shown = true;
                         tracing::info!(
@@ -540,6 +571,7 @@ impl AppState {
                         self.show_notification(
                             format!("Connection failed: {}", e),
                             NotificationType::Error,
+                            Some("connect:city".to_string()),
                         );
                         notification_shown = true;
                         self.connection_manager.pending_connect_city.remove(&());
@@ -556,6 +588,7 @@ impl AppState {
                         self.show_notification(
                             format!("Setting updated: {}", msg),
                             NotificationType::Success,
+                            None,
                         );
                         self.clear_settings_cache();
                     }
@@ -564,6 +597,7 @@ impl AppState {
                         self.show_notification(
                             format!("Failed to update setting: {}", e),
                             NotificationType::Error,
+                            None,
                         );
                     }
                 }
@@ -604,7 +638,11 @@ impl AppState {
             self.set_servers(cached);
         }
 
-        self.show_notification("Refreshing servers...".to_string(), NotificationType::Info);
+        self.show_notification(
+            "Refreshing servers...".to_string(),
+            NotificationType::Info,
+            Some("servers".to_string()),
+        );
 
         let (tx, rx) = create_channel();
         self.connection_manager.pending_refresh.insert((), rx);
@@ -618,11 +656,16 @@ impl AppState {
             self.show_notification(
                 "Still connecting, please wait...".to_string(),
                 NotificationType::Info,
+                None,
             );
             return;
         }
         let Some(idx) = self.ui_state.selected_server else {
-            self.show_notification("No server selected".to_string(), NotificationType::Error);
+            self.show_notification(
+                "No server selected".to_string(),
+                NotificationType::Error,
+                None,
+            );
             return;
         };
 
@@ -630,7 +673,11 @@ impl AppState {
         let server = match filtered.get(idx) {
             Some(server) => server,
             None => {
-                self.show_notification("No server selected".to_string(), NotificationType::Error);
+                self.show_notification(
+                    "No server selected".to_string(),
+                    NotificationType::Error,
+                    None,
+                );
                 return;
             }
         };
@@ -644,6 +691,7 @@ impl AppState {
         self.show_notification(
             format!("Connecting to {}...", server_country),
             NotificationType::Info,
+            Some("connect".to_string()),
         );
 
         let (tx, rx): (
@@ -664,6 +712,7 @@ impl AppState {
         self.show_notification(
             "Connecting to random server...".to_string(),
             NotificationType::Info,
+            Some("connect".to_string()),
         );
 
         let (tx, rx): (
@@ -684,6 +733,7 @@ impl AppState {
         self.show_notification(
             "Connecting to fastest server...".to_string(),
             NotificationType::Info,
+            Some("connect".to_string()),
         );
 
         let (tx, rx): (
@@ -704,6 +754,7 @@ impl AppState {
         self.show_notification(
             "Connecting to P2P server...".to_string(),
             NotificationType::Info,
+            Some("connect".to_string()),
         );
 
         let (tx, rx): (
@@ -724,6 +775,7 @@ impl AppState {
         self.show_notification(
             "Connecting to Tor server...".to_string(),
             NotificationType::Info,
+            Some("connect".to_string()),
         );
 
         let (tx, rx): (
@@ -744,6 +796,7 @@ impl AppState {
         self.show_notification(
             "Connecting to SecureCore server...".to_string(),
             NotificationType::Info,
+            Some("connect".to_string()),
         );
 
         let (tx, rx): (
@@ -773,6 +826,7 @@ impl AppState {
         self.show_notification(
             format!("Disconnecting from {}...", server_info),
             NotificationType::Info,
+            Some("disconnect".to_string()),
         );
 
         let (tx, rx) = create_channel();
@@ -787,6 +841,7 @@ impl AppState {
             self.show_notification(
                 "Still connecting, please wait...".to_string(),
                 NotificationType::Info,
+                None,
             );
             return;
         }
@@ -795,7 +850,11 @@ impl AppState {
         self.connection_manager.previous_connection =
             Some(self.connection_manager.connection.clone());
         self.connection_manager.connection = ConnectionState::Connecting;
-        self.show_notification(format!("Connecting to {}...", city), NotificationType::Info);
+        self.show_notification(
+            format!("Connecting to {}...", city),
+            NotificationType::Info,
+            Some("connect:city".to_string()),
+        );
 
         let (tx, rx): (
             mpsc::Sender<AsyncResult<ConnectResult>>,
@@ -1013,6 +1072,7 @@ impl AppState {
         self.show_notification(
             format!("Loading cities for {}...", country_code),
             NotificationType::Info,
+            Some(format!("cities:{}", country_code)),
         );
 
         let (tx, rx) = create_channel();
@@ -1037,6 +1097,7 @@ impl AppState {
             self.show_notification(
                 format!("Loading cities for {}...", country_code),
                 NotificationType::Info,
+                Some(format!("cities:{}", country_code)),
             );
 
             let (tx, rx) = create_channel();
@@ -1242,6 +1303,7 @@ impl AppState {
                 self.show_notification(
                     "Invalid setting selection".to_string(),
                     NotificationType::Error,
+                    None,
                 );
                 return;
             }
@@ -1253,6 +1315,7 @@ impl AppState {
             self.show_notification(
                 "Enter DNS IPs (e.g., 1.1.1.1,9.9.9.9)".to_string(),
                 NotificationType::Info,
+                None,
             );
             return;
         }
@@ -1277,6 +1340,7 @@ impl AppState {
                     }
                 ),
                 NotificationType::Info,
+                None,
             );
             return;
         }
@@ -1326,6 +1390,7 @@ impl AppState {
                 self.show_notification(
                     format!("Setting updated: {}", msg),
                     NotificationType::Success,
+                    None,
                 );
                 self.config_state.proton_settings_cache = None;
             }
@@ -1334,6 +1399,7 @@ impl AppState {
                 self.show_notification(
                     format!("Failed to update setting: {}", e),
                     NotificationType::Error,
+                    None,
                 );
             }
         }
@@ -1354,6 +1420,7 @@ impl AppState {
                         self.show_notification(
                             format!("DNS disabled: {}", msg),
                             NotificationType::Success,
+                            None,
                         );
                         self.config_state.proton_settings_cache = None;
                     }
@@ -1361,11 +1428,16 @@ impl AppState {
                         self.show_notification(
                             format!("Failed to disable DNS: {}", e),
                             NotificationType::Error,
+                            None,
                         );
                     }
                 }
             } else {
-                self.show_notification("DNS is already off".to_string(), NotificationType::Info);
+                self.show_notification(
+                    "DNS is already off".to_string(),
+                    NotificationType::Info,
+                    None,
+                );
             }
             return;
         }
@@ -1380,7 +1452,11 @@ impl AppState {
             .filter(|s| !s.is_empty())
             .collect();
         if ips.is_empty() {
-            self.show_notification("No DNS IPs provided".to_string(), NotificationType::Error);
+            self.show_notification(
+                "No DNS IPs provided".to_string(),
+                NotificationType::Error,
+                None,
+            );
             return;
         }
 
@@ -1389,6 +1465,7 @@ impl AppState {
                 self.show_notification(
                     format!("Invalid IP address: {}", ip),
                     NotificationType::Error,
+                    None,
                 );
                 return;
             }
@@ -1399,13 +1476,18 @@ impl AppState {
 
         match result {
             Ok(msg) => {
-                self.show_notification(format!("DNS updated: {}", msg), NotificationType::Success);
+                self.show_notification(
+                    format!("DNS updated: {}", msg),
+                    NotificationType::Success,
+                    None,
+                );
                 self.config_state.proton_settings_cache = None;
             }
             Err(e) => {
                 self.show_notification(
                     format!("Failed to update DNS: {}", e),
                     NotificationType::Error,
+                    None,
                 );
             }
         }
@@ -1643,8 +1725,8 @@ mod notification_tests {
     fn test_show_notification_adds_to_vector() {
         setup();
         let mut state = AppState::new();
-        state.show_notification("Test 1".to_string(), NotificationType::Info);
-        state.show_notification("Test 2".to_string(), NotificationType::Success);
+        state.show_notification("Test 1".to_string(), NotificationType::Info, None);
+        state.show_notification("Test 2".to_string(), NotificationType::Success, None);
 
         assert_eq!(state.notification_state.notifications.len(), 2);
     }
@@ -1653,7 +1735,7 @@ mod notification_tests {
     fn test_tick_notifications_removes_expired() {
         setup();
         let mut state = AppState::new();
-        state.show_notification("Test".to_string(), NotificationType::Info);
+        state.show_notification("Test".to_string(), NotificationType::Info, None);
 
         for _ in 0..NOTIFICATION_TIMER_DEFAULT {
             state.notification_state.tick();
@@ -1666,8 +1748,8 @@ mod notification_tests {
     fn test_tick_notifications_preserves_non_expired() {
         setup();
         let mut state = AppState::new();
-        state.show_notification("Test 1".to_string(), NotificationType::Info);
-        state.show_notification("Test 2".to_string(), NotificationType::Info);
+        state.show_notification("Test 1".to_string(), NotificationType::Info, None);
+        state.show_notification("Test 2".to_string(), NotificationType::Info, None);
 
         state.notification_state.tick();
 
@@ -1684,7 +1766,7 @@ mod notification_tests {
         setup();
         let mut state = AppState::new();
         for i in 0..5 {
-            state.show_notification(format!("Msg {}", i), NotificationType::Info);
+            state.show_notification(format!("Msg {}", i), NotificationType::Info, None);
         }
 
         assert_eq!(state.notification_state.notifications.len(), 3);
@@ -1709,8 +1791,8 @@ mod notification_tests {
     fn test_notification_log_preserves_all() {
         setup();
         let mut state = AppState::new();
-        state.show_notification("Msg 1".to_string(), NotificationType::Info);
-        state.show_notification("Msg 2".to_string(), NotificationType::Error);
+        state.show_notification("Msg 1".to_string(), NotificationType::Info, None);
+        state.show_notification("Msg 2".to_string(), NotificationType::Error, None);
 
         assert_eq!(state.notification_state.notification_log.len(), 2);
     }
@@ -1719,8 +1801,8 @@ mod notification_tests {
     fn test_clear_notifications() {
         setup();
         let mut state = AppState::new();
-        state.show_notification("Test".to_string(), NotificationType::Info);
-        state.show_notification("Test 2".to_string(), NotificationType::Error);
+        state.show_notification("Test".to_string(), NotificationType::Info, None);
+        state.show_notification("Test 2".to_string(), NotificationType::Error, None);
 
         state.notification_state.notifications.clear();
 

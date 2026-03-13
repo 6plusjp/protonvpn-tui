@@ -209,12 +209,14 @@ impl TuiApp {
                     self.state.show_notification(
                         "Connection in progress...".to_string(),
                         crate::state::NotificationType::Warning,
+                        Some("connect".to_string()),
                     );
                 }
                 crate::state::ConnectionState::Disconnecting => {
                     self.state.show_notification(
                         "Disconnecting...".to_string(),
                         crate::state::NotificationType::Warning,
+                        Some("disconnect".to_string()),
                     );
                 }
                 _ => {
@@ -256,12 +258,14 @@ impl TuiApp {
                         self.state.show_notification(
                             "Not connected".to_string(),
                             crate::state::NotificationType::Info,
+                            None,
                         );
                     }
                     crate::state::ConnectionState::Disconnecting => {
                         self.state.show_notification(
                             "Already disconnecting...".to_string(),
                             crate::state::NotificationType::Warning,
+                            None,
                         );
                     }
                     _ => {
@@ -280,6 +284,7 @@ impl TuiApp {
                             self.state.show_notification(
                                 "Refresh in progress...".to_string(),
                                 crate::state::NotificationType::Warning,
+                                Some("servers".to_string()),
                             );
                         } else {
                             self.handle_refresh();
@@ -290,6 +295,7 @@ impl TuiApp {
                             self.state.show_notification(
                                 "Refresh in progress...".to_string(),
                                 crate::state::NotificationType::Warning,
+                                Some("servers".to_string()),
                             );
                         } else {
                             self.handle_refresh();
@@ -320,12 +326,14 @@ impl TuiApp {
                         self.state.show_notification(
                             "Connection in progress...".to_string(),
                             crate::state::NotificationType::Warning,
+                            Some("connect".to_string()),
                         );
                     }
                     crate::state::ConnectionState::Disconnecting => {
                         self.state.show_notification(
                             "Disconnecting...".to_string(),
                             crate::state::NotificationType::Warning,
+                            Some("disconnect".to_string()),
                         );
                     }
                     _ => {
@@ -340,12 +348,14 @@ impl TuiApp {
                         self.state.show_notification(
                             "Connection in progress...".to_string(),
                             crate::state::NotificationType::Warning,
+                            Some("connect".to_string()),
                         );
                     }
                     crate::state::ConnectionState::Disconnecting => {
                         self.state.show_notification(
                             "Disconnecting...".to_string(),
                             crate::state::NotificationType::Warning,
+                            Some("disconnect".to_string()),
                         );
                     }
                     _ => {
@@ -360,12 +370,14 @@ impl TuiApp {
                         self.state.show_notification(
                             "Connection in progress...".to_string(),
                             crate::state::NotificationType::Warning,
+                            Some("connect".to_string()),
                         );
                     }
                     crate::state::ConnectionState::Disconnecting => {
                         self.state.show_notification(
                             "Disconnecting...".to_string(),
                             crate::state::NotificationType::Warning,
+                            Some("disconnect".to_string()),
                         );
                     }
                     _ => {
@@ -380,12 +392,14 @@ impl TuiApp {
                         self.state.show_notification(
                             "Connection in progress...".to_string(),
                             crate::state::NotificationType::Warning,
+                            Some("connect".to_string()),
                         );
                     }
                     crate::state::ConnectionState::Disconnecting => {
                         self.state.show_notification(
                             "Disconnecting...".to_string(),
                             crate::state::NotificationType::Warning,
+                            Some("disconnect".to_string()),
                         );
                     }
                     _ => {
@@ -400,12 +414,14 @@ impl TuiApp {
                         self.state.show_notification(
                             "Connection in progress...".to_string(),
                             crate::state::NotificationType::Warning,
+                            Some("connect".to_string()),
                         );
                     }
                     crate::state::ConnectionState::Disconnecting => {
                         self.state.show_notification(
                             "Disconnecting...".to_string(),
                             crate::state::NotificationType::Warning,
+                            Some("disconnect".to_string()),
                         );
                     }
                     _ => {
@@ -502,6 +518,7 @@ impl TuiApp {
                         self.state.show_notification(
                             "Enter DNS IPs (e.g., 1.1.1.1,9.9.9.9)".to_string(),
                             crate::state::NotificationType::Info,
+                            None,
                         );
                         return None;
                     }
@@ -519,6 +536,7 @@ impl TuiApp {
                                 }
                             ),
                             crate::state::NotificationType::Info,
+                            None,
                         );
                         return None;
                     }
@@ -530,6 +548,7 @@ impl TuiApp {
                         self.state.show_notification(
                             "Applying setting...".to_string(),
                             crate::state::NotificationType::Info,
+                            None,
                         );
                     }
                 }

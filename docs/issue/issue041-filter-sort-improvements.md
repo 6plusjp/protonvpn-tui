@@ -1,4 +1,4 @@
-# issue038 - Filter Performance Optimization & Sort State Display
+# issue041 - Filter Performance Optimization & Sort State Display
 
 ## Summary
 

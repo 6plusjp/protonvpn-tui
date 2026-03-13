@@ -37,7 +37,52 @@ Add keyboard shortcuts for quick connection types (fastest, P2P, Tor, SecureCore
 - App stores cache at `~/.cache/protonvpn-tui/server_cache.toml` (custom path)
 - Uses `~/.config/Proton/VPN/settings.json` for Proton settings (read-only)
 - NO interaction with `~/.cache/Proton/VPN/connection_persistence.json`
-- NO auto-reconnect on startup
+- **On startup, if VPN is connected externally, shows "Unknown" as server** (`src/state/app_state.rs:580`)
+
+**ProtonVPN CLI Persistence** (`~/.cache/Proton/VPN/connection/connection_persistence.json`):
+```json
+{
+  "server": {
+    "server_name": "JP#422",
+    "server_ip": "212.102.51.122",
+    "protocol": "wireguard"
+  }
+}
+```
+
+**Proposed Changes**:
+1. Add function to read `connection_persistence.json`
+2. Parse `server.server_name` field
+3. Use parsed server name instead of "Unknown" on startup
+
+**Implementation Location** (`src/state/app_state.rs:577-586`):
+```rust
+// Current:
+if self.connection_manager.connection == ConnectionState::Disconnected
+    && self.vpn_state.is_connected()
+{
+    self.connection_manager.connection = ConnectionState::Connected {
+        server: "Unknown".to_string(),  // <-- CHANGE THIS
+        ip: String::new(),
+        city: None,
+        country: None,
+    };
+}
+
+// New:
+if self.connection_manager.connection == ConnectionState::Disconnected
+    && self.vpn_state.is_connected()
+{
+    let server_name = self.vpn_state.get_connected_server_name()
+        .unwrap_or_else(|| "Unknown".to_string());
+    self.connection_manager.connection = ConnectionState::Connected {
+        server: server_name,
+        ip: String::new(),
+        city: None,
+        country: None,
+    };
+}
+```
 
 ---
 
@@ -95,11 +140,15 @@ connect_tor: KeyBinding::new('t', KeyModifier::None),     // ADD
 - [ ] Add async task variants in `async_tasks.rs`
 - [ ] Wire up key handlers
 
-### Phase 3: Connection Persistence (Future)
+### Phase 3: Connection Persistence (Previous Server)
+- [ ] Add function to read `~/.cache/Proton/VPN/connection/connection_persistence.json`
+- [ ] Parse `server.server_name` field
+- [ ] Add `get_connected_server_name()` method to `VpnClient`
+- [ ] Update startup logic in `check_pending_async_events()` to use parsed server name
+
+### Phase 4: Auto-reconnect (Future - Optional)
 - [ ] Read `connection_persistence.json` on startup
-- [ ] Parse previous connection info
-- [ ] Optionally implement auto-reconnect
-- [ ] Update persistence on connect/disconnect
+- [ ] Implement auto-reconnect option
 
 ---
 
@@ -109,9 +158,10 @@ connect_tor: KeyBinding::new('t', KeyModifier::None),     // ADD
 - `src/ui/app.rs` - Key event handling
 - `src/ui/components/pane_table.rs` - Table header rendering
 - `src/ui/views/help_view.rs` - Help display
-- `src/vpn/client.rs` - VPN CLI wrapper
+- `src/vpn/client.rs` - VPN CLI wrapper, read persistence file
 - `src/vpn/async_tasks.rs` - Async job definitions
-- `src/state/app_state.rs` - App state management
+- `src/vpn/types.rs` - Add persistence data types
+- `src/state/app_state.rs` - App state management, startup connection check
 - `src/state/server_sort.rs` - Sort state definitions
 - `src/state/ui_state.rs` - UI state
 

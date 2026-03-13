@@ -23,6 +23,9 @@ pub enum AppError {
 
     #[error("Config error: {0}")]
     ConfigError(String),
+
+    #[error("Operation timed out: {0}")]
+    Timeout(String),
 }
 
 impl From<toml::de::Error> for AppError {

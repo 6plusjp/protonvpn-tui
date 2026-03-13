@@ -10,8 +10,9 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Output, Stdio};
 use std::sync::Mutex;
+use std::time::Duration;
 
 use chrono::Utc;
 
@@ -111,9 +112,8 @@ impl VpnClient {
 
     /// Connect to a server by country code
     pub fn connect_country(&self, target: &str) -> AppResult<ConnectResult> {
-        let output = Command::new(&self.cli_path)
-            .args(["connect", "--country", target])
-            .output()
+        let output = self
+            .run_command_with_timeout(&["connect", "--country", target], Duration::from_secs(30))
             .map_err(|e| {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
@@ -142,9 +142,8 @@ impl VpnClient {
 
     /// Connect to a random server
     pub fn connect_random(&self) -> AppResult<ConnectResult> {
-        let output = Command::new(&self.cli_path)
-            .args(["connect", "--random"])
-            .output()
+        let output = self
+            .run_command_with_timeout(&["connect", "--random"], Duration::from_secs(30))
             .map_err(|e| {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
@@ -173,9 +172,8 @@ impl VpnClient {
 
     /// Connect to a server by city name
     pub fn connect_city(&self, city_arg: &str) -> AppResult<ConnectResult> {
-        let output = Command::new(&self.cli_path)
-            .args(["connect", "--city", city_arg])
-            .output()
+        let output = self
+            .run_command_with_timeout(&["connect", "--city", city_arg], Duration::from_secs(30))
             .map_err(|e| {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
@@ -224,9 +222,8 @@ impl VpnClient {
 
     /// Disconnect from VPN
     pub fn disconnect(&self) -> AppResult<()> {
-        let output = Command::new(&self.cli_path)
-            .args(["disconnect"])
-            .output()
+        let output = self
+            .run_command_with_timeout(&["disconnect"], Duration::from_secs(15))
             .map_err(|e| {
                 tracing::warn!("Failed to execute disconnect command: {}", e);
                 AppError::ConnectionFailed(format!("Failed to execute disconnect: {}", e))
@@ -286,9 +283,8 @@ impl VpnClient {
     }
 
     pub fn refresh_countries(&self) -> AppResult<HashMap<String, String>> {
-        let output = Command::new(&self.cli_path)
-            .args(["countries"])
-            .output()
+        let output = self
+            .run_command_with_timeout(&["countries"], Duration::from_secs(60))
             .map_err(|e| {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
@@ -339,9 +335,11 @@ impl VpnClient {
             }
         }
 
-        let output = Command::new(&self.cli_path)
-            .args(["cities", "--country", country_code])
-            .output()
+        let output = self
+            .run_command_with_timeout(
+                &["cities", "--country", country_code],
+                Duration::from_secs(20),
+            )
             .map_err(|e| {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
@@ -400,9 +398,8 @@ impl VpnClient {
 
     /// Set a configuration option via `protonvpn config set <setting> <value>`
     pub fn set_config(&self, setting: &str, value: &str) -> AppResult<String> {
-        let output = Command::new(&self.cli_path)
-            .args(["config", "set", setting, value])
-            .output()
+        let output = self
+            .run_command_with_timeout(&["config", "set", setting, value], Duration::from_secs(10))
             .map_err(|e| {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
@@ -461,9 +458,11 @@ impl VpnClient {
 
     /// Set custom DNS servers
     pub fn set_custom_dns(&self, dns_list: &str) -> AppResult<String> {
-        let output = Command::new(&self.cli_path)
-            .args(["config", "set", "custom-dns", "on", "--dns", dns_list])
-            .output()
+        let output = self
+            .run_command_with_timeout(
+                &["config", "set", "custom-dns", "on", "--dns", dns_list],
+                Duration::from_secs(10),
+            )
             .map_err(|e| {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
@@ -478,9 +477,11 @@ impl VpnClient {
 
     /// Disable custom DNS
     pub fn disable_custom_dns(&self) -> AppResult<String> {
-        let output = Command::new(&self.cli_path)
-            .args(["config", "set", "custom-dns", "off"])
-            .output()
+        let output = self
+            .run_command_with_timeout(
+                &["config", "set", "custom-dns", "off"],
+                Duration::from_secs(10),
+            )
             .map_err(|e| {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
@@ -491,6 +492,36 @@ impl VpnClient {
         self.check_cli_error(&output, &stdout, &stderr)?;
 
         Ok("Custom DNS disabled".to_string())
+    }
+
+    fn run_command_with_timeout(&self, args: &[&str], timeout: Duration) -> AppResult<Output> {
+        use std::sync::mpsc;
+        use std::thread;
+
+        let cli_path = self.cli_path.clone();
+        let args_owned: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+        let args_display = args.join(" ");
+        let (tx, rx) = mpsc::channel();
+
+        thread::spawn(move || {
+            let result = Command::new(&cli_path)
+                .args(&args_owned)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .and_then(|child| child.wait_with_output());
+
+            let _ = tx.send(result);
+        });
+
+        match rx.recv_timeout(timeout) {
+            Ok(Ok(output)) => Ok(output),
+            Ok(Err(e)) => Err(AppError::CommandFailed(e)),
+            Err(_) => Err(AppError::Timeout(format!(
+                "Command '{}' timed out after {:?}",
+                args_display, timeout
+            ))),
+        }
     }
 
     #[cfg(test)]

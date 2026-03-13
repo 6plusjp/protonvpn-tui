@@ -73,8 +73,8 @@ impl TuiApp {
                 .state
                 .wait_for_async_events(std::time::Duration::from_millis(10));
 
-            // Sync remaining connection state (polling fallback)
-            let notification_shown = self.state.sync_connection_state();
+            // Check remaining pending async events
+            let notification_shown = self.state.check_pending_async_events();
 
             self.state.notification_state.tick();
 
@@ -267,7 +267,7 @@ impl TuiApp {
                         self.state.reload_cities();
                     }
                     Pane::Countries => {
-                        if self.state.connection_manager.pending_refresh.is_some() {
+                        if !self.state.connection_manager.pending_refresh.is_empty() {
                             self.state.show_notification(
                                 "Refresh in progress...".to_string(),
                                 crate::state::NotificationType::Warning,
@@ -277,7 +277,7 @@ impl TuiApp {
                         }
                     }
                     Pane::Settings | Pane::Logs => {
-                        if self.state.connection_manager.pending_refresh.is_some() {
+                        if !self.state.connection_manager.pending_refresh.is_empty() {
                             self.state.show_notification(
                                 "Refresh in progress...".to_string(),
                                 crate::state::NotificationType::Warning,

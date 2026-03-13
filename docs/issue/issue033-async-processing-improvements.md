@@ -251,7 +251,7 @@ pub fn spawn_connect_with_timeout(
 
 ---
 
-## Status: Partially Implemented (2026-03-11)
+## Status: Updated (2026-03-13)
 
 ### Implemented
 
@@ -265,9 +265,9 @@ pub fn spawn_connect_with_timeout(
 
 - [ ] Full event-driven notification (mpsc::Receiver not Clone)
 - [ ] Extract duplicate error handling
-- [ ] Consolidate pending state fields
-- [ ] Rename sync_connection_state
-- [ ] Add timeout support
+- [x] Consolidate pending state fields
+- [x] Rename sync_connection_state
+- [x] Add timeout support
 
 ---
 
@@ -277,9 +277,9 @@ pub fn spawn_connect_with_timeout(
 |----------|------|--------|--------|
 | **High** | Reduce polling delay (mpsc + Condvar) | Medium | ✅ Done (10ms polling) |
 | Low | Extract duplicate error handling | Low | Pending |
-| Medium | Consolidate pending state fields | Medium | Pending |
-| Low | Rename sync_connection_state | Low | Pending |
-| Low | Add timeout support | Medium | Pending |
+| **Medium** | Consolidate pending state fields | Medium | ✅ Done |
+| **Low** | Rename sync_connection_state | Low | ✅ Done |
+| **Low** | Add timeout support | Low | ✅ Done |
 
 ---
 

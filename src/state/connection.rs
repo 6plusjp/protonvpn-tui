@@ -76,12 +76,12 @@ pub struct ConnectionManager {
     pub previous_connection: Option<ConnectionState>,
     pub async_manager: AsyncTaskManager,
     pub async_notifier: Arc<AsyncNotifier>,
-    pub pending_refresh: Option<ServerReceiver>,
-    pub pending_connect: Option<ConnectReceiver>,
-    pub pending_disconnect: Option<DisconnectReceiver>,
+    pub pending_refresh: HashMap<(), ServerReceiver>,
+    pub pending_connect: HashMap<(), ConnectReceiver>,
+    pub pending_disconnect: HashMap<(), DisconnectReceiver>,
     pub pending_cities: HashMap<String, CitiesReceiver>,
-    pub pending_connect_city: Option<ConnectReceiver>,
-    pub pending_config_set: Option<ConfigReceiver>,
+    pub pending_connect_city: HashMap<(), ConnectReceiver>,
+    pub pending_config_set: HashMap<(), ConfigReceiver>,
 }
 
 impl Default for ConnectionManager {
@@ -97,12 +97,12 @@ impl ConnectionManager {
             previous_connection: None,
             async_manager: AsyncTaskManager::new(),
             async_notifier: Arc::new(AsyncNotifier::new()),
-            pending_refresh: None,
-            pending_connect: None,
-            pending_disconnect: None,
+            pending_refresh: HashMap::new(),
+            pending_connect: HashMap::new(),
+            pending_disconnect: HashMap::new(),
             pending_cities: HashMap::new(),
-            pending_connect_city: None,
-            pending_config_set: None,
+            pending_connect_city: HashMap::new(),
+            pending_config_set: HashMap::new(),
         }
     }
 
@@ -111,11 +111,11 @@ impl ConnectionManager {
     }
 
     pub fn is_idle(&self) -> bool {
-        self.pending_refresh.is_none()
-            && self.pending_connect.is_none()
-            && self.pending_disconnect.is_none()
+        self.pending_refresh.is_empty()
+            && self.pending_connect.is_empty()
+            && self.pending_disconnect.is_empty()
             && self.pending_cities.is_empty()
-            && self.pending_connect_city.is_none()
-            && self.pending_config_set.is_none()
+            && self.pending_connect_city.is_empty()
+            && self.pending_config_set.is_empty()
     }
 }

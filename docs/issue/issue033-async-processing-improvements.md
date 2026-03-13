@@ -251,7 +251,7 @@ pub fn spawn_connect_with_timeout(
 
 ---
 
-## Status: Updated (2026-03-13)
+## Status: Resolved (2026-03-13)
 
 ### Implemented
 
@@ -261,10 +261,10 @@ pub fn spawn_connect_with_timeout(
 - [x] Add wait_for_async_events() method with Condvar
 - [x] Update event loop to use event-driven waiting
 
-### Not Implemented
+### Not Implemented (Deferred)
 
-- [ ] Full event-driven notification (mpsc::Receiver not Clone)
-- [ ] Extract duplicate error handling
+- [~] Full event-driven notification (mpsc::Receiver not Clone) - **Deferred** (10ms polling sufficient)
+- [x] Extract duplicate error handling
 - [x] Consolidate pending state fields
 - [x] Rename sync_connection_state
 - [x] Add timeout support
@@ -276,7 +276,7 @@ pub fn spawn_connect_with_timeout(
 | Priority | Item | Effort | Status |
 |----------|------|--------|--------|
 | **High** | Reduce polling delay (mpsc + Condvar) | Medium | ✅ Done (10ms polling) |
-| Low | Extract duplicate error handling | Low | Pending |
+| Low | Extract duplicate error handling | Low | ✅ Done |
 | **Medium** | Consolidate pending state fields | Medium | ✅ Done |
 | **Low** | Rename sync_connection_state | Low | ✅ Done |
 | **Low** | Add timeout support | Low | ✅ Done |
@@ -303,8 +303,7 @@ pub fn spawn_connect_with_timeout(
                         [update state]
 ```
 
-**Note**: Full event-driven notification not implemented due to mpsc::Receiver not being Clone.
-To implement full event-driven, use crossbeam channel or Arc-based solution.
+**Note**: Full event-driven notification deferred. Current 10ms polling with Condvar provides sufficient responsiveness. To implement full event-driven, use crossbeam channel or Arc-based solution.
 
 ### Implementation Steps
 

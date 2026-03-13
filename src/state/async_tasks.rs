@@ -115,52 +115,38 @@ impl ThreadPool {
     fn execute_job(job: Job) {
         match job {
             Job::RefreshServers { vpn_state, sender } => {
-                let result = vpn_state.refresh_servers();
-                if sender.send(result).is_err() {
-                    tracing::warn!("Failed to send refresh result - receiver dropped");
-                }
+                Self::send_result(vpn_state.refresh_servers(), &sender, "refresh");
             }
             Job::Connect {
                 vpn_state,
                 server_id,
                 sender,
             } => {
-                let result = vpn_state.connect_country(&server_id);
-                if sender.send(result).is_err() {
-                    tracing::warn!("Failed to send connect result - receiver dropped");
-                }
+                Self::send_result(vpn_state.connect_country(&server_id), &sender, "connect");
             }
             Job::Disconnect { vpn_state, sender } => {
-                let result = vpn_state.disconnect();
-                if sender.send(result).is_err() {
-                    tracing::warn!("Failed to send disconnect result - receiver dropped");
-                }
+                Self::send_result(vpn_state.disconnect(), &sender, "disconnect");
             }
             Job::ConnectRandom { vpn_state, sender } => {
-                let result = vpn_state.connect_random();
-                if sender.send(result).is_err() {
-                    tracing::warn!("Failed to send connect_random result - receiver dropped");
-                }
+                Self::send_result(vpn_state.connect_random(), &sender, "connect_random");
             }
             Job::Cities {
                 vpn_state,
                 country_code,
                 sender,
             } => {
-                let result = vpn_state.list_cities_with_features(&country_code);
-                if sender.send(result).is_err() {
-                    tracing::warn!("Failed to send cities result - receiver dropped");
-                }
+                Self::send_result(
+                    vpn_state.list_cities_with_features(&country_code),
+                    &sender,
+                    "cities",
+                );
             }
             Job::ConnectCity {
                 vpn_state,
                 city,
                 sender,
             } => {
-                let result = vpn_state.connect_city(&city);
-                if sender.send(result).is_err() {
-                    tracing::warn!("Failed to send connect_city result - receiver dropped");
-                }
+                Self::send_result(vpn_state.connect_city(&city), &sender, "connect_city");
             }
             Job::ConfigSet {
                 vpn_state,
@@ -168,11 +154,14 @@ impl ThreadPool {
                 value,
                 sender,
             } => {
-                let result = vpn_state.set_config(&key, &value);
-                if sender.send(result).is_err() {
-                    tracing::warn!("Failed to send config_set result - receiver dropped");
-                }
+                Self::send_result(vpn_state.set_config(&key, &value), &sender, "config_set");
             }
+        }
+    }
+
+    fn send_result<T>(result: T, sender: &mpsc::Sender<T>, operation: &str) {
+        if sender.send(result).is_err() {
+            tracing::warn!("Failed to send {} result - receiver dropped", operation);
         }
     }
 

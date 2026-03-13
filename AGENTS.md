@@ -21,16 +21,17 @@ protonvpn-tui/
 │   ├── main.rs           # Entry point
 │   ├── lib.rs            # Library root
 │   ├── vpn/              # VPN backend (protonvpn wrapper)
+│   │   ├── async_tasks.rs
+│   │   ├── cache.rs
 │   │   ├── client.rs
-│   │   ├── types.rs
-│   │   └── state.rs
+│   │   └── types.rs
 │   ├── ui/               # TUI components
 │   │   ├── components/  # Reusable widgets
 │   │   ├── views/       # Full views (connect, stats, settings)
 │   │   └── styles.rs    # Theme and styling
 │   ├── state/            # Application state
 │   │   ├── app_state.rs
-│   │   └── async_tasks.rs
+│   │   └── ...
 │   └── config/           # Configuration
 │       └── settings.rs
 ├── docs/                 # Documentation (source of truth)

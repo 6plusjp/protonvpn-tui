@@ -64,9 +64,9 @@ Update remaining view handlers:
 - Logs view: navigation
 - Servers view: pane switching (`h`, `l`), sort (`s`, `f`)
 
-### Phase 4: Settings UI (Optional - Future)
+### Phase 4: Help View Display
 
-Add key bindings display/config in settings view:
+Add key bindings display in help view (not settings):
 
 ```
 Key Bindings:
@@ -76,6 +76,9 @@ Key Bindings:
   ...
 ```
 
+Note: Key bindings are configurable via config file, not UI.
+Users can edit `~/.config/protonvpn-tui/keybindings.json` to customize.
+
 ## Files to Change
 
 | Phase | File | Changes |
@@ -83,7 +86,7 @@ Key Bindings:
 | 1 | `src/ui/app.rs` | Update `handle_common_navigation()` |
 | 2 | `src/ui/app.rs` | Update action keys in `handle_servers_key()` |
 | 3 | `src/ui/app.rs` | Update remaining handlers |
-| 4 | `src/ui/views/settings_view.rs` | Add bindings display (optional) |
+| 4 | `src/ui/views/help_view.rs` | Add bindings display + config note |
 
 ## Priority
 
@@ -92,7 +95,7 @@ Key Bindings:
 | Low | Phase 1: Navigation keys | Low | ✅ Done |
 | Medium | Phase 2: Action keys | Medium | ✅ Done |
 | Low | Phase 3: View-specific keys | Medium | ✅ Done |
-| Low | Phase 4: Settings UI | Low | Pending |
+| Low | Phase 4: Settings UI | Low | ✅ Done |
 
 ## Dependencies
 

@@ -67,6 +67,11 @@ pub fn render_settings_view(
         }
     }
 
+    all_items.push(ListItem::from(Line::from("")).style(Style::default().fg(theme.foreground)));
+
+    let key_bindings = get_key_bindings_list(&state.key_bindings, &theme);
+    all_items.extend(key_bindings);
+
     let items_len = all_items.len();
 
     let list = List::new(all_items)
@@ -168,4 +173,40 @@ fn get_setting_label(key: &SettingKey) -> &'static str {
         SettingKey::PortForwarding => "Port Forwarding:  ",
         SettingKey::Theme => "Theme:            ",
     }
+}
+
+fn get_key_bindings_list<'a>(
+    _bindings: &crate::config::KeyBindings,
+    theme: &'a crate::ui::styles::Theme,
+) -> Vec<ListItem<'a>> {
+    let mut items = Vec::new();
+
+    items.push(
+        ListItem::from(Line::from("  Key Bindings"))
+            .style(Style::default().fg(theme.foreground).bold()),
+    );
+
+    let binding_rows = [
+        ("  j/k", "Navigate"),
+        ("  ↑/↓", "Navigate"),
+        ("  g/G", "First/Last"),
+        ("  PgUp", "Page Up"),
+        ("  PgDn", "Page Down"),
+        ("  c", "Connect"),
+        ("  d", "Disconnect"),
+        ("  r", "Refresh"),
+        ("  x", "Random Connect"),
+        ("  l/h", "Next/Prev Pane"),
+        ("  s", "Cycle Sort"),
+        ("  f", "Sort Field"),
+    ];
+
+    for (key, action) in binding_rows {
+        let line = format!("{}   {}", key, action);
+        items.push(
+            ListItem::from(Line::from(line)).style(Style::default().fg(theme.foreground).dim()),
+        );
+    }
+
+    items
 }

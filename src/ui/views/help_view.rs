@@ -76,6 +76,16 @@ pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
         ]),
         Line::from(vec![
             Span::raw("  "),
+            key_span("l", &theme),
+            Span::raw("  - Move to cities pane"),
+        ]),
+        Line::from(vec![
+            Span::raw("  "),
+            key_span("h", &theme),
+            Span::raw("  - Move to countries pane"),
+        ]),
+        Line::from(vec![
+            Span::raw("  "),
             key_span("Tab", &theme),
             Span::raw("  - Switch view"),
         ]),
@@ -89,6 +99,14 @@ pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
             key_span("q", &theme),
             Span::raw("  - Quit"),
         ]),
+        Line::from(""),
+        Line::from(vec![Span::styled(
+            "Key bindings can be customized in:",
+            primary_style(&theme),
+        )]),
+        Line::from(vec![Span::raw(
+            "  ~/.config/protonvpn-tui/keybindings.json",
+        )]),
     ];
 
     f.render_widget(block, area);

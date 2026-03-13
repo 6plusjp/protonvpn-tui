@@ -7,8 +7,8 @@ use std::sync::Arc;
 use std::sync::Condvar;
 use std::sync::Mutex;
 
-use crate::state::async_tasks::AsyncTaskManager;
 use crate::state::ConnectionState;
+use crate::vpn::async_tasks::AsyncTaskManager;
 
 /// Async event types for event-driven notification
 #[derive(Debug, Clone)]

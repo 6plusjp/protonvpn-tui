@@ -2,7 +2,6 @@
 
 use crate::config::{ProtonSettings, SettingKey};
 use crate::constants::state::PAGE_SIZE;
-use crate::state::async_tasks::create_channel;
 use crate::state::AsyncEvent;
 use crate::state::AsyncResult;
 use crate::state::ConfigState;
@@ -19,6 +18,7 @@ use crate::state::ServerSort;
 use crate::state::SortDirection;
 use crate::state::UiState;
 use crate::ui::styles::Theme;
+use crate::vpn::async_tasks::create_channel;
 use crate::vpn::ConnectResult;
 use crate::vpn::Server;
 use crate::vpn::VpnClient;

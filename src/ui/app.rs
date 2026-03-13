@@ -203,18 +203,7 @@ impl TuiApp {
                 }
                 None
             }
-            KeyCode::Char('j') | KeyCode::Down => {
-                self.handle_navigation_down();
-                None
-            }
-            KeyCode::Char('k') | KeyCode::Up => {
-                self.handle_navigation_up();
-                None
-            }
-            KeyCode::Char('d') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.handle_page_down();
-                None
-            }
+            _ if self.handle_common_navigation(key_event) => None,
             KeyCode::Char('d') => {
                 match self.state.connection_manager.connection {
                     crate::state::ConnectionState::Disconnected => {
@@ -261,18 +250,6 @@ impl TuiApp {
                 self.handle_cycle_sort_field();
                 None
             }
-            KeyCode::Char('g') => {
-                self.handle_go_to_first();
-                None
-            }
-            KeyCode::Char('G') => {
-                self.handle_go_to_last();
-                None
-            }
-            KeyCode::Char('u') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.handle_page_up();
-                None
-            }
             KeyCode::Char('x') => {
                 match self.state.connection_manager.connection {
                     crate::state::ConnectionState::Connecting => {
@@ -316,30 +293,7 @@ impl TuiApp {
                 self.handle_connect();
                 None
             }
-            (false, KeyCode::Char('j') | KeyCode::Down) => {
-                self.handle_navigation_down();
-                None
-            }
-            (false, KeyCode::Char('k') | KeyCode::Up) => {
-                self.handle_navigation_up();
-                None
-            }
-            (false, KeyCode::Char('d')) if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.handle_page_down();
-                None
-            }
-            (false, KeyCode::Char('g')) => {
-                self.handle_go_to_first();
-                None
-            }
-            (false, KeyCode::Char('G')) => {
-                self.handle_go_to_last();
-                None
-            }
-            (false, KeyCode::Char('u')) if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.handle_page_up();
-                None
-            }
+            (false, _) if self.handle_common_navigation(key_event) => None,
 
             (true, KeyCode::Enter) => {
                 if let Some(idx) = self.state.ui_state.settings_selected {
@@ -421,31 +375,10 @@ impl TuiApp {
     }
 
     fn handle_logs_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
+        if self.handle_common_navigation(key_event) {
+            return None;
+        }
         match key_event.code {
-            KeyCode::Char('j') | KeyCode::Down => {
-                self.handle_navigation_down();
-                None
-            }
-            KeyCode::Char('k') | KeyCode::Up => {
-                self.handle_navigation_up();
-                None
-            }
-            KeyCode::Char('d') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.handle_page_down();
-                None
-            }
-            KeyCode::Char('g') => {
-                self.handle_go_to_first();
-                None
-            }
-            KeyCode::Char('G') => {
-                self.handle_go_to_last();
-                None
-            }
-            KeyCode::Char('u') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.handle_page_up();
-                None
-            }
             _ => None,
         }
     }
@@ -539,6 +472,44 @@ impl TuiApp {
             (AppView::Settings, _) => self.state.settings_select_last(),
             (AppView::Logs, _) => self.state.logs_select_last(),
             _ => {}
+        }
+    }
+
+    fn handle_common_navigation(&mut self, key_event: crossterm::event::KeyEvent) -> bool {
+        match key_event.code {
+            KeyCode::Char('j') | KeyCode::Down => {
+                self.handle_navigation_down();
+                true
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                self.handle_navigation_up();
+                true
+            }
+            KeyCode::Char('d')
+                if key_event
+                    .modifiers
+                    .contains(crossterm::event::KeyModifiers::CONTROL) =>
+            {
+                self.handle_page_down();
+                true
+            }
+            KeyCode::Char('g') => {
+                self.handle_go_to_first();
+                true
+            }
+            KeyCode::Char('G') => {
+                self.handle_go_to_last();
+                true
+            }
+            KeyCode::Char('u')
+                if key_event
+                    .modifiers
+                    .contains(crossterm::event::KeyModifiers::CONTROL) =>
+            {
+                self.handle_page_up();
+                true
+            }
+            _ => false,
         }
     }
 

@@ -125,6 +125,7 @@ pub struct AppState {
     // === Config  ===
     pub config_state: ConfigState,
     pub proton_settings_cache: Option<ProtonSettings>,
+    pub key_bindings: crate::config::KeyBindings,
 }
 
 impl Default for AppState {
@@ -151,6 +152,7 @@ impl AppState {
             proton_settings_cache: ProtonSettings::load(),
             server_cache: ServerCache::new(),
             is_initialized: false,
+            key_bindings: crate::config::KeyBindings::default(),
         }
     }
 

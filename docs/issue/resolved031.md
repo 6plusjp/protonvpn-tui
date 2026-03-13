@@ -189,17 +189,34 @@ impl Default for KeyBindings {
 
 ### Files Changed
 
-- `src/state/app_state.rs`: Added `NotificationType::Warning`, `is_refreshing()`
-- `src/ui/app.rs`: Added state checks in key handlers
+- `src/state/app_state.rs`: Added `NotificationType::Warning`, `is_refreshing()`, `key_bindings`
+- `src/ui/app.rs`: Added state checks in key handlers, `handle_common_navigation()` helper
 - `src/ui/views/logs_view.rs`: Added Warning display support
+- `src/config/settings.rs`: Added `KeyBindings`, `KeyBinding`, `KeyModifier` structs
 
 ## Priority
 
 | Priority | Item | Effort | Status |
 |----------|------|--------|--------|
 | High | State-aware key handling | Low | ✅ Done |
-| Low | Extract common navigation handler | Low | Pending |
-| Low | Configurable key bindings | Medium | Pending |
+| Low | Extract common navigation handler | Low | ✅ Done |
+| Low | Configurable key bindings | Medium | ⚠️ Infrastructure done (runtime binding pending) |
+
+## Notes
+
+### Implemented (2026-03-13)
+
+1. **Common Navigation Handler**:
+   - Added `handle_common_navigation()` method in `src/ui/app.rs`
+   - Unified navigation key handling across servers/settings/logs views
+   - Reduced ~40 lines of duplicate code
+
+2. **Key Bindings Infrastructure**:
+   - Added `KeyBindings` struct with all default bindings
+   - Added `KeyBinding` struct with `matches()` method
+   - Added `KeyModifier` enum (None, Control, Alt, Shift)
+   - Added `key_bindings` field to `AppState`
+   - Ready for runtime binding (requires ~20 key matching locations update)
 
 ## References
 

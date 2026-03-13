@@ -1,6 +1,40 @@
 //! Proton VPN settings
 
+use crossterm::event::{KeyCode, KeyModifiers};
 use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum KeyModifier {
+    None,
+    Control,
+    Alt,
+    Shift,
+}
+
+impl From<KeyModifiers> for KeyModifier {
+    fn from(modifiers: KeyModifiers) -> Self {
+        if modifiers.contains(KeyModifiers::CONTROL) {
+            KeyModifier::Control
+        } else if modifiers.contains(KeyModifiers::ALT) {
+            KeyModifier::Alt
+        } else if modifiers.contains(KeyModifiers::SHIFT) {
+            KeyModifier::Shift
+        } else {
+            KeyModifier::None
+        }
+    }
+}
+
+impl From<KeyModifier> for KeyModifiers {
+    fn from(m: KeyModifier) -> Self {
+        match m {
+            KeyModifier::Control => KeyModifiers::CONTROL,
+            KeyModifier::Alt => KeyModifiers::ALT,
+            KeyModifier::Shift => KeyModifiers::SHIFT,
+            KeyModifier::None => KeyModifiers::NONE,
+        }
+    }
+}
 
 /// Settings key for UI rendering and toggle operations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -182,5 +216,57 @@ impl ProtonSettings {
             c += 1;
         }
         c
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeyBindings {
+    pub navigation_down: KeyBinding,
+    pub navigation_up: KeyBinding,
+    pub page_down: KeyBinding,
+    pub page_up: KeyBinding,
+    pub go_first: KeyBinding,
+    pub go_last: KeyBinding,
+    pub connect: KeyBinding,
+    pub disconnect: KeyBinding,
+    pub refresh: KeyBinding,
+    pub random_connect: KeyBinding,
+}
+
+impl Default for KeyBindings {
+    fn default() -> Self {
+        Self {
+            navigation_down: KeyBinding::new('j', KeyModifier::None),
+            navigation_up: KeyBinding::new('k', KeyModifier::None),
+            page_down: KeyBinding::new('d', KeyModifier::Control),
+            page_up: KeyBinding::new('u', KeyModifier::Control),
+            go_first: KeyBinding::new('g', KeyModifier::None),
+            go_last: KeyBinding::new('G', KeyModifier::None),
+            connect: KeyBinding::new('c', KeyModifier::None),
+            disconnect: KeyBinding::new('d', KeyModifier::None),
+            refresh: KeyBinding::new('r', KeyModifier::None),
+            random_connect: KeyBinding::new('x', KeyModifier::None),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct KeyBinding {
+    pub code: char,
+    pub modifiers: KeyModifier,
+}
+
+impl KeyBinding {
+    pub fn new(code: char, modifiers: KeyModifier) -> Self {
+        Self { code, modifiers }
+    }
+
+    pub fn matches(&self, key_code: KeyCode, key_modifiers: KeyModifiers) -> bool {
+        match key_code {
+            KeyCode::Char(c) => {
+                c == self.code && KeyModifier::from(key_modifiers) == self.modifiers
+            }
+            _ => false,
+        }
     }
 }

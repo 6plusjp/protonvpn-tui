@@ -2,7 +2,7 @@
 //!
 //! Tests AsyncTaskManager, ThreadPool, and channel creation.
 
-use protonvpn_tui::state::{create_channel, AsyncTaskManager, ThreadPool};
+use protonvpn_tui::vpn::{create_channel, AsyncTaskManager, ThreadPool};
 
 #[test]
 fn test_async_task_manager_default_workers() {

@@ -157,33 +157,60 @@ impl TuiApp {
     }
 
     fn handle_servers_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
-        match key_event.code {
-            KeyCode::Char('c') => {
-                match self.state.connection_manager.connection {
-                    crate::state::ConnectionState::Connecting => {
-                        self.state.show_notification(
-                            "Connection in progress...".to_string(),
-                            crate::state::NotificationType::Warning,
-                        );
-                    }
-                    crate::state::ConnectionState::Disconnecting => {
-                        self.state.show_notification(
-                            "Disconnecting...".to_string(),
-                            crate::state::NotificationType::Warning,
-                        );
-                    }
-                    _ => {
-                        self.handle_connect();
-                    }
-                }
-                None
-            }
-            KeyCode::Char('l') => {
-                self.state.move_to_cities();
+        let bindings = &self.state.key_bindings;
 
+        let is_connect = bindings
+            .connect
+            .matches(key_event.code, key_event.modifiers);
+        let is_disconnect = bindings
+            .disconnect
+            .matches(key_event.code, key_event.modifiers);
+        let is_refresh = bindings
+            .refresh
+            .matches(key_event.code, key_event.modifiers);
+        let is_random_connect = bindings
+            .random_connect
+            .matches(key_event.code, key_event.modifiers);
+        let is_pane_next = bindings
+            .pane_next
+            .matches(key_event.code, key_event.modifiers);
+        let is_pane_prev = bindings
+            .pane_prev
+            .matches(key_event.code, key_event.modifiers);
+        let is_cycle_sort = bindings
+            .cycle_sort
+            .matches(key_event.code, key_event.modifiers);
+        let is_cycle_sort_field = bindings
+            .cycle_sort_field
+            .matches(key_event.code, key_event.modifiers);
+
+        if is_connect {
+            match self.state.connection_manager.connection {
+                crate::state::ConnectionState::Connecting => {
+                    self.state.show_notification(
+                        "Connection in progress...".to_string(),
+                        crate::state::NotificationType::Warning,
+                    );
+                }
+                crate::state::ConnectionState::Disconnecting => {
+                    self.state.show_notification(
+                        "Disconnecting...".to_string(),
+                        crate::state::NotificationType::Warning,
+                    );
+                }
+                _ => {
+                    self.handle_connect();
+                }
+            }
+            return None;
+        }
+
+        match key_event.code {
+            _ if is_pane_next => {
+                self.state.move_to_cities();
                 None
             }
-            KeyCode::Char('h') => {
+            _ if is_pane_prev => {
                 if self.state.ui_state.pane_focus == Pane::Cities {
                     self.state.move_to_countries();
                 }
@@ -204,7 +231,7 @@ impl TuiApp {
                 None
             }
             _ if self.handle_common_navigation(key_event) => None,
-            KeyCode::Char('d') => {
+            _ if is_disconnect => {
                 match self.state.connection_manager.connection {
                     crate::state::ConnectionState::Disconnected => {
                         self.state.show_notification(
@@ -224,7 +251,7 @@ impl TuiApp {
                 }
                 None
             }
-            KeyCode::Char('r') => {
+            _ if is_refresh => {
                 match self.state.ui_state.pane_focus {
                     Pane::Cities => {
                         self.state.reload_cities();
@@ -242,15 +269,15 @@ impl TuiApp {
                 }
                 None
             }
-            KeyCode::Char('s') => {
+            _ if is_cycle_sort => {
                 self.handle_cycle_sort();
                 None
             }
-            KeyCode::Char('f') => {
+            _ if is_cycle_sort_field => {
                 self.handle_cycle_sort_field();
                 None
             }
-            KeyCode::Char('x') => {
+            _ if is_random_connect => {
                 match self.state.connection_manager.connection {
                     crate::state::ConnectionState::Connecting => {
                         self.state.show_notification(
@@ -476,41 +503,51 @@ impl TuiApp {
     }
 
     fn handle_common_navigation(&mut self, key_event: crossterm::event::KeyEvent) -> bool {
-        match key_event.code {
-            KeyCode::Char('j') | KeyCode::Down => {
-                self.handle_navigation_down();
-                true
-            }
-            KeyCode::Char('k') | KeyCode::Up => {
-                self.handle_navigation_up();
-                true
-            }
-            KeyCode::Char('d')
-                if key_event
-                    .modifiers
-                    .contains(crossterm::event::KeyModifiers::CONTROL) =>
-            {
-                self.handle_page_down();
-                true
-            }
-            KeyCode::Char('g') => {
-                self.handle_go_to_first();
-                true
-            }
-            KeyCode::Char('G') => {
-                self.handle_go_to_last();
-                true
-            }
-            KeyCode::Char('u')
-                if key_event
-                    .modifiers
-                    .contains(crossterm::event::KeyModifiers::CONTROL) =>
-            {
-                self.handle_page_up();
-                true
-            }
-            _ => false,
+        let bindings = &self.state.key_bindings;
+
+        if bindings
+            .navigation_down
+            .matches(key_event.code, key_event.modifiers)
+        {
+            self.handle_navigation_down();
+            return true;
         }
+        if bindings
+            .navigation_up
+            .matches(key_event.code, key_event.modifiers)
+        {
+            self.handle_navigation_up();
+            return true;
+        }
+        if bindings
+            .page_down
+            .matches(key_event.code, key_event.modifiers)
+        {
+            self.handle_page_down();
+            return true;
+        }
+        if bindings
+            .page_up
+            .matches(key_event.code, key_event.modifiers)
+        {
+            self.handle_page_up();
+            return true;
+        }
+        if bindings
+            .go_first
+            .matches(key_event.code, key_event.modifiers)
+        {
+            self.handle_go_to_first();
+            return true;
+        }
+        if bindings
+            .go_last
+            .matches(key_event.code, key_event.modifiers)
+        {
+            self.handle_go_to_last();
+            return true;
+        }
+        false
     }
 
     fn handle_connect(&mut self) {

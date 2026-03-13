@@ -231,6 +231,10 @@ pub struct KeyBindings {
     pub disconnect: KeyBinding,
     pub refresh: KeyBinding,
     pub random_connect: KeyBinding,
+    pub pane_next: KeyBinding,
+    pub pane_prev: KeyBinding,
+    pub cycle_sort: KeyBinding,
+    pub cycle_sort_field: KeyBinding,
 }
 
 impl Default for KeyBindings {
@@ -246,6 +250,10 @@ impl Default for KeyBindings {
             disconnect: KeyBinding::new('d', KeyModifier::None),
             refresh: KeyBinding::new('r', KeyModifier::None),
             random_connect: KeyBinding::new('x', KeyModifier::None),
+            pane_next: KeyBinding::new('l', KeyModifier::None),
+            pane_prev: KeyBinding::new('h', KeyModifier::None),
+            cycle_sort: KeyBinding::new('s', KeyModifier::None),
+            cycle_sort_field: KeyBinding::new('f', KeyModifier::None),
         }
     }
 }

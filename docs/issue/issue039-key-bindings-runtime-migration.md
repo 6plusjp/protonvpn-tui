@@ -1,4 +1,4 @@
-# issue038 - Key Bindings Runtime Migration
+# issue039 - Key Bindings Runtime Migration
 
 ## Summary
 
@@ -42,10 +42,6 @@ fn handle_common_navigation(&mut self, key_event: crossterm::event::KeyEvent) ->
         self.handle_navigation_down();
         return true;
     }
-    if bindings.navigation_up.matches(key_event.code, key_event.modifiers) {
-        self.handle_navigation_up();
-        return true;
-    }
     // ... other bindings
     false
 }
@@ -77,7 +73,6 @@ Key Bindings:
   j/k       - Navigate
   c         - Connect
   d         - Disconnect
-  r         - Refresh
   ...
 ```
 
@@ -94,14 +89,32 @@ Key Bindings:
 
 | Priority | Item | Effort | Status |
 |----------|------|--------|--------|
-| Low | Phase 1: Navigation keys | Low | Pending |
-| Medium | Phase 2: Action keys | Medium | Pending |
-| Low | Phase 3: View-specific keys | Medium | Pending |
+| Low | Phase 1: Navigation keys | Low | ✅ Done |
+| Medium | Phase 2: Action keys | Medium | ✅ Done |
+| Low | Phase 3: View-specific keys | Medium | ✅ Done |
 | Low | Phase 4: Settings UI | Low | Pending |
 
 ## Dependencies
 
 - issue031: Key bindings infrastructure (completed)
+
+## Implementation Notes
+
+### Completed (2026-03-13)
+
+1. **Phase 1: Navigation keys** - Updated `handle_common_navigation()` to use `key_bindings`
+2. **Phase 2: Action keys** - Updated connect, disconnect, refresh, random_connect in `handle_servers_key()`
+3. **Phase 3: View-specific keys** - Added pane_next (l), pane_prev (h), cycle_sort (s), cycle_sort_field (f) bindings
+
+### Key Bindings Added
+
+- `navigation_down` (j), `navigation_up` (k)
+- `page_down` (Ctrl+d), `page_up` (Ctrl+u)
+- `go_first` (g), `go_last` (G)
+- `connect` (c), `disconnect` (d)
+- `refresh` (r), `random_connect` (x)
+- `pane_next` (l), `pane_prev` (h)
+- `cycle_sort` (s), `cycle_sort_field` (f)
 
 ## Notes
 

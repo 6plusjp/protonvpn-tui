@@ -216,6 +216,7 @@ pub fn terminal() -> Self {
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub enum ThemeMode {
     #[default]
+    System,
     Terminal,
     CatppuccinMocha,
     CatppuccinLatte,
@@ -238,9 +239,10 @@ Replace `is_dark_theme: bool` with:
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub enum ThemeMode {
     #[default]
-    Dark,
-    Light,
+    System,
+    Terminal,
     CatppuccinMocha,
+    CatppuccinLatte,
     Dracula,
     Nord,
     Gruvbox,

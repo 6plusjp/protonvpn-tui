@@ -11,6 +11,7 @@ pub struct ConnectResult {
     pub ip: Option<String>,
     pub country: Option<String>,
     pub city: Option<String>,
+    pub via: Option<String>,
 }
 
 /// Server features
@@ -190,6 +191,7 @@ pub fn parse_connect_output(output: &str) -> ConnectResult {
     let mut ip = None;
     let mut city = None;
     let mut country = None;
+    let mut via = None;
 
     // Find "Connected to" line first - all info is in this single line
     let connected_line = output
@@ -205,11 +207,25 @@ pub fn parse_connect_output(output: &str) -> ConnectResult {
                 server_id = rest[..end_idx].to_string();
                 let after_server = &rest[end_idx + 4..];
 
-                if let Some(period_idx) = after_server.find('.') {
+                // Check for Secure Core format: "in Tokyo, via Switzerland."
+                if let Some(via_idx) = after_server.find(", via ") {
+                    // Secure Core: city, via entry_country
+                    if let Some(period_idx) = after_server.find('.') {
+                        city = Some(after_server[..via_idx].to_string());
+                        via = Some(after_server[via_idx + 6..period_idx].to_string());
+                    } else {
+                        city = Some(after_server[..via_idx].to_string());
+                        via = Some(after_server[via_idx + 6..].to_string());
+                    }
+                    country = None;
+                } else if let Some(period_idx) = after_server.find('.') {
                     let location_part = &after_server[..period_idx];
                     if let Some(last_comma_idx) = location_part.rfind(", ") {
                         city = Some(location_part[..last_comma_idx].to_string());
                         country = Some(location_part[last_comma_idx + 2..].to_string());
+                    } else {
+                        city = None;
+                        country = Some(location_part.to_string());
                     }
                 } else if let Some(last_comma_idx) = after_server.rfind(", ") {
                     city = Some(after_server[..last_comma_idx].to_string());
@@ -244,6 +260,7 @@ pub fn parse_connect_output(output: &str) -> ConnectResult {
         ip,
         city,
         country,
+        via,
     }
 }
 
@@ -455,5 +472,42 @@ Connected to JP#374 in Tokyo, Japan. Your new IP address is 159.26.119.144."#;
         assert_eq!(result.ip, Some("159.26.119.144".to_string()));
         assert_eq!(result.city, Some("Tokyo".to_string()));
         assert_eq!(result.country, Some("Japan".to_string()));
+    }
+
+    #[test]
+    fn test_parse_connect_output_secure_core() {
+        let output =
+            "Connected to CH-JP#2 in Tokyo, via Switzerland. Your new IP address is 37.19.205.233.";
+        let result = parse_connect_output(output);
+
+        assert_eq!(result.server_id, "CH-JP#2");
+        assert_eq!(result.ip, Some("37.19.205.233".to_string()));
+        assert_eq!(result.city, Some("Tokyo".to_string()));
+        assert_eq!(result.country, None);
+        assert_eq!(result.via, Some("Switzerland".to_string()));
+    }
+
+    #[test]
+    fn test_parse_connect_output_secure_core_no_ip() {
+        let output = "Connected to CH-JP#2 in Tokyo, via Switzerland.";
+        let result = parse_connect_output(output);
+
+        assert_eq!(result.server_id, "CH-JP#2");
+        assert_eq!(result.ip, None);
+        assert_eq!(result.city, Some("Tokyo".to_string()));
+        assert_eq!(result.country, None);
+        assert_eq!(result.via, Some("Switzerland".to_string()));
+    }
+
+    #[test]
+    fn test_parse_connect_output_country_only() {
+        let output = "Connected to JP#374 in Japan. Your new IP address is 159.26.119.144.";
+        let result = parse_connect_output(output);
+
+        assert_eq!(result.server_id, "JP#374");
+        assert_eq!(result.ip, Some("159.26.119.144".to_string()));
+        assert_eq!(result.city, None);
+        assert_eq!(result.country, Some("Japan".to_string()));
+        assert_eq!(result.via, None);
     }
 }

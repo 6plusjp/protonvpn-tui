@@ -1012,16 +1012,21 @@ impl TuiApp {
                     ip,
                     city,
                     country,
+                    via,
                 } => {
                     let mut info = server.clone();
                     if !ip.is_empty() {
                         info.push_str(&format!(" ip:{}", ip));
                     }
-                    let loc = match (&city, &country) {
-                        (Some(c), Some(ct)) => format!("{},{}", c, ct),
-                        (Some(c), None) => c.clone(),
-                        (None, Some(ct)) => ct.clone(),
-                        (None, None) => String::new(),
+                    let loc = match (&city, &country, &via) {
+                        (Some(c), Some(ct), Some(v)) => format!("{},{} via {}", c, ct, v),
+                        (Some(c), Some(ct), None) => format!("{},{}", c, ct),
+                        (Some(c), None, Some(v)) => format!("{} via {}", c, v),
+                        (Some(c), None, None) => c.clone(),
+                        (None, Some(ct), Some(v)) => format!("{} via {}", ct, v),
+                        (None, Some(ct), None) => ct.clone(),
+                        (None, None, Some(v)) => format!("via {}", v),
+                        (None, None, None) => String::new(),
                     };
                     if !loc.is_empty() {
                         info.push_str(&format!(" loc:{}", loc));

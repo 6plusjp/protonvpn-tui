@@ -13,6 +13,7 @@ pub enum ConnectionState {
         ip: String,
         city: Option<String>,
         country: Option<String>,
+        via: Option<String>,
     },
     Disconnecting,
     Error(String),

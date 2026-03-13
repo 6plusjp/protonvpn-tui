@@ -133,7 +133,9 @@ impl VpnClient {
         } else {
             target.to_string()
         };
-        self.with_cache(|c| c.set_connected(final_server.clone(), result.ip.clone()))?;
+        self.with_cache(|c| {
+            c.set_connected(final_server.clone(), result.ip.clone(), result.via.clone())
+        })?;
         self.save_cache()?;
 
         Ok(ConnectResult {
@@ -141,6 +143,7 @@ impl VpnClient {
             ip: result.ip,
             city: result.city,
             country: result.country,
+            via: result.via,
         })
     }
 
@@ -167,7 +170,9 @@ impl VpnClient {
         } else {
             result.city.clone().unwrap_or_else(|| city_arg.to_string())
         };
-        self.with_cache(|c| c.set_connected(final_server.clone(), result.ip.clone()))?;
+        self.with_cache(|c| {
+            c.set_connected(final_server.clone(), result.ip.clone(), result.via.clone())
+        })?;
         self.save_cache()?;
 
         Ok(ConnectResult {
@@ -175,6 +180,7 @@ impl VpnClient {
             ip: result.ip,
             city: result.city,
             country: result.country,
+            via: result.via,
         })
     }
 
@@ -217,7 +223,9 @@ impl VpnClient {
         } else {
             fallback_name.to_string()
         };
-        self.with_cache(|c| c.set_connected(final_server.clone(), result.ip.clone()))?;
+        self.with_cache(|c| {
+            c.set_connected(final_server.clone(), result.ip.clone(), result.via.clone())
+        })?;
         self.save_cache()?;
 
         Ok(ConnectResult {
@@ -225,6 +233,7 @@ impl VpnClient {
             ip: result.ip,
             city: result.city,
             country: result.country,
+            via: result.via,
         })
     }
 

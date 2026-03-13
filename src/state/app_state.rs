@@ -254,7 +254,7 @@ impl AppState {
                     notification_shown = true;
                     self.connection_manager.pending_refresh.remove(&());
                 }
-                AsyncEvent::Connected(server, ip, city, country) => {
+                AsyncEvent::Connected(server, ip, city, country, via) => {
                     self.show_notification(
                         format!("Connected to {}", &server),
                         NotificationType::Success,
@@ -265,6 +265,7 @@ impl AppState {
                         ip: ip.unwrap_or_default(),
                         city,
                         country,
+                        via,
                     };
                     self.connection_manager.previous_connection = None;
                     self.connection_manager.pending_connect.remove(&());
@@ -307,7 +308,7 @@ impl AppState {
                 AsyncEvent::CitiesLoaded(_, _) => {
                     // Handled by pending_cities try_recv in check_pending_async_events
                 }
-                AsyncEvent::ConnectCityResult(server, ip, city, country) => {
+                AsyncEvent::ConnectCityResult(server, ip, city, country, via) => {
                     self.show_notification(
                         format!("Connected to {}", server),
                         NotificationType::Success,
@@ -317,6 +318,7 @@ impl AppState {
                         ip: ip.unwrap_or_default(),
                         city,
                         country,
+                        via,
                     };
                     self.connection_manager.previous_connection = None;
                     self.connection_manager.pending_connect_city.remove(&());
@@ -403,6 +405,7 @@ impl AppState {
                                 ip: conn_result.ip.unwrap_or_default(),
                                 city: conn_result.city,
                                 country: conn_result.country,
+                                via: conn_result.via,
                             };
                             self.connection_manager.previous_connection = None;
                             self.connection_manager.pending_connect.remove(&());
@@ -522,6 +525,7 @@ impl AppState {
                             ip: conn_result.ip.unwrap_or_default(),
                             city: conn_result.city,
                             country: conn_result.country,
+                            via: conn_result.via,
                         };
                         self.connection_manager.previous_connection = None;
                         self.connection_manager.pending_connect_city.remove(&());
@@ -586,6 +590,7 @@ impl AppState {
                 ip,
                 city: None,
                 country: None,
+                via: None,
             };
         }
 

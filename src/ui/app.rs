@@ -405,9 +405,7 @@ impl TuiApp {
         if self.handle_common_navigation(key_event) {
             return None;
         }
-        match key_event.code {
-            _ => None,
-        }
+        None
     }
 
     fn handle_help_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {

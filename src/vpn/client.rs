@@ -204,6 +204,51 @@ impl VpnClient {
         })
     }
 
+    pub fn connect_fastest(&self) -> AppResult<ConnectResult> {
+        self.connect_with_flag("--fastest", "Fastest Server")
+    }
+
+    pub fn connect_p2p(&self) -> AppResult<ConnectResult> {
+        self.connect_with_flag("--p2p", "P2P Server")
+    }
+
+    pub fn connect_tor(&self) -> AppResult<ConnectResult> {
+        self.connect_with_flag("--tor", "Tor Server")
+    }
+
+    pub fn connect_securecore(&self) -> AppResult<ConnectResult> {
+        self.connect_with_flag("--securecore", "SecureCore Server")
+    }
+
+    fn connect_with_flag(&self, flag: &str, fallback_name: &str) -> AppResult<ConnectResult> {
+        let output = self
+            .run_command_with_timeout(&["connect", flag], Duration::from_secs(30))
+            .map_err(|e| {
+                AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
+            })?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+
+        self.check_cli_error(&output, &stdout, &stderr)?;
+
+        let result = parse_connect_output(&stdout);
+
+        let final_server = if !result.server_id.is_empty() {
+            result.server_id.clone()
+        } else {
+            fallback_name.to_string()
+        };
+        self.with_cache(|c| c.set_connected(final_server.clone(), result.ip.clone()))?;
+        self.save_cache()?;
+
+        Ok(ConnectResult {
+            server_id: final_server,
+            ip: result.ip,
+            city: result.city,
+            country: result.country,
+        })
+    }
+
     fn check_cli_error(
         &self,
         output: &std::process::Output,
@@ -284,6 +329,30 @@ impl VpnClient {
                 false
             }
         }
+    }
+
+    /// Get connected server name from connection_persistence.json
+    pub fn get_connected_server_name(&self) -> Option<String> {
+        let persistence_path = dirs::cache_dir()?
+            .join("Proton")
+            .join("VPN")
+            .join("connection")
+            .join("connection_persistence.json");
+
+        let content = std::fs::read_to_string(persistence_path).ok()?;
+
+        #[derive(serde::Deserialize)]
+        struct Persistence {
+            server: ServerInfo,
+        }
+
+        #[derive(serde::Deserialize)]
+        struct ServerInfo {
+            server_name: String,
+        }
+
+        let persistence: Persistence = serde_json::from_str(&content).ok()?;
+        Some(persistence.server.server_name)
     }
 
     pub fn refresh_countries(&self) -> AppResult<HashMap<String, String>> {

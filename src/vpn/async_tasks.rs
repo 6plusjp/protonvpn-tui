@@ -57,6 +57,22 @@ enum Job {
         value: String,
         sender: mpsc::Sender<AsyncResult<String>>,
     },
+    ConnectFastest {
+        vpn_state: Arc<VpnClient>,
+        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+    },
+    ConnectP2P {
+        vpn_state: Arc<VpnClient>,
+        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+    },
+    ConnectTor {
+        vpn_state: Arc<VpnClient>,
+        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+    },
+    ConnectSecureCore {
+        vpn_state: Arc<VpnClient>,
+        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+    },
 }
 
 /// Custom thread pool for executing VPN operations.
@@ -155,6 +171,22 @@ impl ThreadPool {
                 sender,
             } => {
                 Self::send_result(vpn_state.set_config(&key, &value), &sender, "config_set");
+            }
+            Job::ConnectFastest { vpn_state, sender } => {
+                Self::send_result(vpn_state.connect_fastest(), &sender, "connect_fastest");
+            }
+            Job::ConnectP2P { vpn_state, sender } => {
+                Self::send_result(vpn_state.connect_p2p(), &sender, "connect_p2p");
+            }
+            Job::ConnectTor { vpn_state, sender } => {
+                Self::send_result(vpn_state.connect_tor(), &sender, "connect_tor");
+            }
+            Job::ConnectSecureCore { vpn_state, sender } => {
+                Self::send_result(
+                    vpn_state.connect_securecore(),
+                    &sender,
+                    "connect_securecore",
+                );
             }
         }
     }
@@ -283,6 +315,39 @@ impl AsyncTaskManager {
             value,
             sender,
         });
+    }
+
+    pub fn spawn_connect_fastest(
+        &self,
+        vpn_state: Arc<VpnClient>,
+        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+    ) {
+        self.pool.submit(Job::ConnectFastest { vpn_state, sender });
+    }
+
+    pub fn spawn_connect_p2p(
+        &self,
+        vpn_state: Arc<VpnClient>,
+        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+    ) {
+        self.pool.submit(Job::ConnectP2P { vpn_state, sender });
+    }
+
+    pub fn spawn_connect_tor(
+        &self,
+        vpn_state: Arc<VpnClient>,
+        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+    ) {
+        self.pool.submit(Job::ConnectTor { vpn_state, sender });
+    }
+
+    pub fn spawn_connect_securecore(
+        &self,
+        vpn_state: Arc<VpnClient>,
+        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+    ) {
+        self.pool
+            .submit(Job::ConnectSecureCore { vpn_state, sender });
     }
 }
 

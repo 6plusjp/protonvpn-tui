@@ -577,8 +577,12 @@ impl AppState {
         if self.connection_manager.connection == ConnectionState::Disconnected
             && self.vpn_state.is_connected()
         {
+            let server = self
+                .vpn_state
+                .get_connected_server_name()
+                .unwrap_or_else(|| "Unknown".to_string());
             self.connection_manager.connection = ConnectionState::Connected {
-                server: "Unknown".to_string(),
+                server,
                 ip: String::new(),
                 city: None,
                 country: None,
@@ -665,6 +669,86 @@ impl AppState {
         self.connection_manager
             .async_manager
             .spawn_connect_random(self.vpn_state.clone(), tx);
+    }
+
+    pub fn connect_fastest(&mut self) {
+        tracing::info!("Connecting to fastest server");
+        self.connection_manager.previous_connection =
+            Some(self.connection_manager.connection.clone());
+        self.connection_manager.connection = ConnectionState::Connecting;
+        self.show_notification(
+            "Connecting to fastest server...".to_string(),
+            NotificationType::Info,
+        );
+
+        let (tx, rx): (
+            mpsc::Sender<AsyncResult<ConnectResult>>,
+            mpsc::Receiver<AsyncResult<ConnectResult>>,
+        ) = create_channel();
+        self.connection_manager.pending_connect.insert((), rx);
+        self.connection_manager
+            .async_manager
+            .spawn_connect_fastest(self.vpn_state.clone(), tx);
+    }
+
+    pub fn connect_p2p(&mut self) {
+        tracing::info!("Connecting to P2P server");
+        self.connection_manager.previous_connection =
+            Some(self.connection_manager.connection.clone());
+        self.connection_manager.connection = ConnectionState::Connecting;
+        self.show_notification(
+            "Connecting to P2P server...".to_string(),
+            NotificationType::Info,
+        );
+
+        let (tx, rx): (
+            mpsc::Sender<AsyncResult<ConnectResult>>,
+            mpsc::Receiver<AsyncResult<ConnectResult>>,
+        ) = create_channel();
+        self.connection_manager.pending_connect.insert((), rx);
+        self.connection_manager
+            .async_manager
+            .spawn_connect_p2p(self.vpn_state.clone(), tx);
+    }
+
+    pub fn connect_tor(&mut self) {
+        tracing::info!("Connecting to Tor server");
+        self.connection_manager.previous_connection =
+            Some(self.connection_manager.connection.clone());
+        self.connection_manager.connection = ConnectionState::Connecting;
+        self.show_notification(
+            "Connecting to Tor server...".to_string(),
+            NotificationType::Info,
+        );
+
+        let (tx, rx): (
+            mpsc::Sender<AsyncResult<ConnectResult>>,
+            mpsc::Receiver<AsyncResult<ConnectResult>>,
+        ) = create_channel();
+        self.connection_manager.pending_connect.insert((), rx);
+        self.connection_manager
+            .async_manager
+            .spawn_connect_tor(self.vpn_state.clone(), tx);
+    }
+
+    pub fn connect_securecore(&mut self) {
+        tracing::info!("Connecting to SecureCore server");
+        self.connection_manager.previous_connection =
+            Some(self.connection_manager.connection.clone());
+        self.connection_manager.connection = ConnectionState::Connecting;
+        self.show_notification(
+            "Connecting to SecureCore server...".to_string(),
+            NotificationType::Info,
+        );
+
+        let (tx, rx): (
+            mpsc::Sender<AsyncResult<ConnectResult>>,
+            mpsc::Receiver<AsyncResult<ConnectResult>>,
+        ) = create_channel();
+        self.connection_manager.pending_connect.insert((), rx);
+        self.connection_manager
+            .async_manager
+            .spawn_connect_securecore(self.vpn_state.clone(), tx);
     }
 
     pub fn disconnect(&mut self) {
@@ -852,6 +936,21 @@ impl AppState {
 
     pub fn cycle_sort_field(&mut self) {
         self.ui_state.sort = self.ui_state.sort.next();
+        self.invalidate_filtered_cache();
+    }
+
+    pub fn set_sort_by_code(&mut self) {
+        self.ui_state.sort = ServerSort::Code;
+        self.invalidate_filtered_cache();
+    }
+
+    pub fn set_sort_by_country(&mut self) {
+        self.ui_state.sort = ServerSort::Country;
+        self.invalidate_filtered_cache();
+    }
+
+    pub fn toggle_sort_direction(&mut self) {
+        self.ui_state.sort_direction = self.ui_state.sort_direction.toggle();
         self.invalidate_filtered_cache();
     }
 

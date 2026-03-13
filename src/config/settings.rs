@@ -233,8 +233,14 @@ pub struct KeyBindings {
     pub random_connect: KeyBinding,
     pub pane_next: KeyBinding,
     pub pane_prev: KeyBinding,
-    pub cycle_sort: KeyBinding,
-    pub cycle_sort_field: KeyBinding,
+    // Sorting keys (number keys)
+    pub sort_by_code: KeyBinding,
+    pub sort_by_country: KeyBinding,
+    // Connection type shortcuts
+    pub connect_fastest: KeyBinding,
+    pub connect_p2p: KeyBinding,
+    pub connect_tor: KeyBinding,
+    pub securecore: KeyBinding,
 }
 
 impl Default for KeyBindings {
@@ -252,8 +258,12 @@ impl Default for KeyBindings {
             random_connect: KeyBinding::new('x', KeyModifier::None),
             pane_next: KeyBinding::new('l', KeyModifier::None),
             pane_prev: KeyBinding::new('h', KeyModifier::None),
-            cycle_sort: KeyBinding::new('s', KeyModifier::None),
-            cycle_sort_field: KeyBinding::new('f', KeyModifier::None),
+            sort_by_code: KeyBinding::new('1', KeyModifier::None),
+            sort_by_country: KeyBinding::new('2', KeyModifier::None),
+            connect_fastest: KeyBinding::new('f', KeyModifier::None),
+            connect_p2p: KeyBinding::new('p', KeyModifier::None),
+            connect_tor: KeyBinding::new('t', KeyModifier::None),
+            securecore: KeyBinding::new('s', KeyModifier::None),
         }
     }
 }

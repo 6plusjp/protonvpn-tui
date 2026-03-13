@@ -15,24 +15,12 @@ use crate::vpn::async_tasks::AsyncTaskManager;
 pub enum AsyncEvent {
     ServersRefreshed(Vec<Server>),
     ServersRefreshFailed(String),
-    Connected(
-        String,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-    ),
+    Connected(ConnectResult),
     ConnectFailed(String),
     Disconnected,
     DisconnectFailed(String),
     CitiesLoaded(String, Vec<crate::vpn::City>),
-    ConnectCityResult(
-        String,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-    ),
+    ConnectCityResult(ConnectResult),
     ConnectCityFailed(String),
 }
 

@@ -254,18 +254,18 @@ impl AppState {
                     notification_shown = true;
                     self.connection_manager.pending_refresh.remove(&());
                 }
-                AsyncEvent::Connected(server, ip, city, country, via) => {
+                AsyncEvent::Connected(result) => {
                     self.show_notification(
-                        format!("Connected to {}", &server),
+                        format!("Connected to {}", &result.server_id),
                         NotificationType::Success,
                     );
-                    tracing::info!("Successfully connected to server: {}", server);
+                    tracing::info!("Successfully connected to server: {}", result.server_id);
                     self.connection_manager.connection = ConnectionState::Connected {
-                        server,
-                        ip: ip.unwrap_or_default(),
-                        city,
-                        country,
-                        via,
+                        server: result.server_id,
+                        ip: result.ip.unwrap_or_default(),
+                        city: result.city,
+                        country: result.country,
+                        via: result.via,
                     };
                     self.connection_manager.previous_connection = None;
                     self.connection_manager.pending_connect.remove(&());
@@ -308,17 +308,17 @@ impl AppState {
                 AsyncEvent::CitiesLoaded(_, _) => {
                     // Handled by pending_cities try_recv in check_pending_async_events
                 }
-                AsyncEvent::ConnectCityResult(server, ip, city, country, via) => {
+                AsyncEvent::ConnectCityResult(result) => {
                     self.show_notification(
-                        format!("Connected to {}", server),
+                        format!("Connected to {}", result.server_id),
                         NotificationType::Success,
                     );
                     self.connection_manager.connection = ConnectionState::Connected {
-                        server,
-                        ip: ip.unwrap_or_default(),
-                        city,
-                        country,
-                        via,
+                        server: result.server_id,
+                        ip: result.ip.unwrap_or_default(),
+                        city: result.city,
+                        country: result.country,
+                        via: result.via,
                     };
                     self.connection_manager.previous_connection = None;
                     self.connection_manager.pending_connect_city.remove(&());

@@ -210,7 +210,7 @@ impl PaneTable {
 
                 let key_style = theme
                     .map(|t| Style::default().fg(t.key_hint))
-                    .unwrap_or_else(|| Style::default().yellow());
+                    .unwrap_or_else(|| Style::default().fg(ratatui::style::Color::Yellow));
 
                 let bold_style = Style::default().add_modifier(Modifier::BOLD);
 

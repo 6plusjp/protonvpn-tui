@@ -158,8 +158,8 @@ impl PaneTable {
     }
 
     /// Returns a Row for ratatui Table header
-    pub fn header_row(&self, dynamic_widths: &[usize]) -> Row<'static> {
-        self.header_row_with_sort(dynamic_widths, None, SortDirection::Asc, None)
+    pub fn header_row(&self, dynamic_widths: &[usize], theme: Option<&Theme>) -> Row<'static> {
+        self.header_row_with_sort(dynamic_widths, None, SortDirection::Asc, theme)
     }
 
     /// Returns a Row for ratatui Table header with sort indicator
@@ -212,7 +212,13 @@ impl PaneTable {
                     .map(|t| Style::default().fg(t.key_hint))
                     .unwrap_or_else(|| Style::default().fg(Theme::default().key_hint));
 
-                let bold_style = Style::default().add_modifier(Modifier::BOLD);
+                let header_style = theme
+                    .map(|t| {
+                        Style::default()
+                            .fg(t.secondary)
+                            .add_modifier(Modifier::BOLD)
+                    })
+                    .unwrap_or_else(|| Style::default().add_modifier(Modifier::BOLD));
 
                 // Build spans: [key?] + [text] + [padding] for Left align
                 let mut spans = Vec::new();
@@ -220,7 +226,7 @@ impl PaneTable {
                 if let Some(key) = key_num {
                     spans.push(Span::styled(key, key_style));
                 }
-                spans.push(Span::styled(text_with_indicator, bold_style));
+                spans.push(Span::styled(text_with_indicator, header_style));
 
                 // Add padding at the end for Left align
                 if pad_len > 0 {

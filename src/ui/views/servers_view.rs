@@ -204,7 +204,7 @@ fn render_cities_pane(
         .unwrap_or(8);
     let dynamic_widths = [max_features_len];
 
-    let header_row = cities_table.header_row(&dynamic_widths);
+    let header_row = cities_table.header_row(&dynamic_widths, Some(theme));
     let widths = cities_table.column_widths(&dynamic_widths);
 
     let cities: Vec<(String, String)> = state
@@ -224,7 +224,7 @@ fn render_cities_pane(
         let block = centered_block(&title, theme, is_focused);
         let paragraph = ratatui::widgets::Paragraph::new("No cities available")
             .block(block)
-            .style(Style::default().fg(theme.inactive));
+            .style(Style::default().fg(theme.warning));
         f.render_widget(paragraph, area);
         return;
     }

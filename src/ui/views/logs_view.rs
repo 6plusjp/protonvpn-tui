@@ -49,10 +49,11 @@ pub fn render_logs_view(
         .unwrap_or(6);
 
     let header_cells = vec![
-        Cell::from(format!("{:<width$}", "Type", width = max_type_len)).style(Style::new().bold()),
-        Cell::from("Message").style(Style::new().bold()),
+        Cell::from(format!("{:<width$}", "Type", width = max_type_len))
+            .style(Style::new().bold().fg(theme.secondary)),
+        Cell::from("Message").style(Style::new().bold().fg(theme.secondary)),
         Cell::from(format!("{:<width$}", "Time", width = max_time_len + 1))
-            .style(Style::new().bold()),
+            .style(Style::new().bold().fg(theme.secondary)),
     ];
     let header_row = Row::new(header_cells).height(1);
 

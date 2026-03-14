@@ -192,6 +192,11 @@ impl PaneTable {
                     _ => None,
                 };
 
+                let has_indicator = matches!(
+                    (i, sort_by),
+                    (0, Some(ServerSort::Code)) | (1, Some(ServerSort::Country))
+                );
+
                 // Add sort indicator for the sorted column
                 let text_with_indicator = match (i, sort_by) {
                     (0, Some(ServerSort::Code)) => {
@@ -212,13 +217,12 @@ impl PaneTable {
                     .map(|t| Style::default().fg(t.key_hint))
                     .unwrap_or_else(|| Style::default().fg(Theme::default().key_hint));
 
-                let header_style = theme
-                    .map(|t| {
-                        Style::default()
-                            .fg(t.secondary)
-                            .add_modifier(Modifier::BOLD)
-                    })
-                    .unwrap_or_else(|| Style::default().add_modifier(Modifier::BOLD));
+                let header_fg = if has_indicator {
+                    theme.map(|t| t.accent).unwrap_or(Theme::default().accent)
+                } else {
+                    theme.map(|t| t.primary).unwrap_or(Theme::default().primary)
+                };
+                let header_style = Style::default().fg(header_fg).add_modifier(Modifier::BOLD);
 
                 // Build spans: [key?] + [text] + [padding] for Left align
                 let mut spans = Vec::new();

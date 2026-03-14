@@ -3,7 +3,7 @@ use crate::ui::styles::ThemeMode;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},
-    text::Line,
+    text::{Line, Span},
     widgets::{List, ListItem, ListState},
     Frame,
 };
@@ -33,11 +33,11 @@ pub fn render_settings_view(
         let is_selected = selected == idx;
         let is_expanded = expanded && is_selected;
 
-        let main_line = if is_expanded {
-            format!("> {} {}", label.trim(), value)
-        } else {
-            format!("  {} {}", label.trim(), value)
-        };
+        let main_line = Line::from(vec![
+            Span::raw(label),
+            Span::raw(" "),
+            Span::raw(value).style(Style::default().fg(theme.accent)),
+        ]);
 
         all_items.push(ListItem::new(main_line));
 
@@ -77,7 +77,7 @@ pub fn render_settings_view(
                 .bg(theme.selection)
                 .add_modifier(Modifier::BOLD)
         } else {
-            Style::default().fg(theme.foreground)
+            Style::default()
         })
         .highlight_symbol("> ");
 
@@ -92,6 +92,19 @@ fn get_setting_value(
     proton_settings: Option<&crate::config::ProtonSettings>,
     theme_mode: ThemeMode,
 ) -> String {
+    if matches!(key, SettingKey::Theme) {
+        return match theme_mode {
+            ThemeMode::System => "System".to_string(),
+            ThemeMode::Terminal => "Terminal".to_string(),
+            ThemeMode::CatppuccinMocha => "Catppuccin Mocha".to_string(),
+            ThemeMode::CatppuccinLatte => "Catppuccin Latte".to_string(),
+            ThemeMode::Dracula => "Dracula".to_string(),
+            ThemeMode::Nord => "Nord".to_string(),
+            ThemeMode::Gruvbox => "Gruvbox".to_string(),
+            ThemeMode::TokyoNight => "Tokyo Night".to_string(),
+        };
+    }
+
     let ps = match proton_settings {
         Some(p) => p,
         None => return "unknown".to_string(),
@@ -162,28 +175,19 @@ fn get_setting_value(
                 }
             })
             .unwrap_or_else(|| "unknown".to_string()),
-        SettingKey::Theme => match theme_mode {
-            ThemeMode::System => "System".to_string(),
-            ThemeMode::Terminal => "Terminal".to_string(),
-            ThemeMode::CatppuccinMocha => "Catppuccin Mocha".to_string(),
-            ThemeMode::CatppuccinLatte => "Catppuccin Latte".to_string(),
-            ThemeMode::Dracula => "Dracula".to_string(),
-            ThemeMode::Nord => "Nord".to_string(),
-            ThemeMode::Gruvbox => "Gruvbox".to_string(),
-            ThemeMode::TokyoNight => "Tokyo Night".to_string(),
-        },
+        SettingKey::Theme => unreachable!(),
     }
 }
 
 fn get_setting_label(key: &SettingKey) -> &'static str {
     match key {
-        SettingKey::Killswitch => "Kill Switch:      ",
-        SettingKey::Ipv6 => "IPv6:             ",
-        SettingKey::Dns => "DNS:              ",
-        SettingKey::NetShield => "NetShield:        ",
-        SettingKey::ModerateNat => "Moderate NAT:     ",
-        SettingKey::VpnAccelerator => "VPN Accelerator:  ",
-        SettingKey::PortForwarding => "Port Forwarding:  ",
-        SettingKey::Theme => "Theme:            ",
+        SettingKey::Killswitch => "Kill Switch:       ",
+        SettingKey::Ipv6 => "IPv6:              ",
+        SettingKey::Dns => "DNS:               ",
+        SettingKey::NetShield => "NetShield:         ",
+        SettingKey::ModerateNat => "Moderate NAT:      ",
+        SettingKey::VpnAccelerator => "VPN Accelerator:   ",
+        SettingKey::PortForwarding => "Port Forwarding:   ",
+        SettingKey::Theme => "Theme:             ",
     }
 }

@@ -6,18 +6,58 @@ Limit concurrent city fetches to prevent queue buildup when user rapidly navigat
 
 ## Status
 
-**[Proposed]** - Pending implementation
+**[Implemented]** - Complete
 
-### Preliminary Decision
+## Implementation
 
-| Parameter | Current | Proposed |
-|-----------|---------|----------|
-| Thread pool workers | 4 | 10 |
-| Max pending city fetches | ∞ (unlimited) | 5 |
+### Changes Made
 
-**Rationale:**
-- 10 workers: Improves overall VPN operations (connect, disconnect, refresh)
-- 5 pending: Reasonable limit - users unlikely to scroll through 5+ countries faster than fetch completes
+| File | Change |
+|------|--------|
+| `src/vpn/async_tasks.rs:232` | Thread pool workers: 4 → 10 |
+| `src/state/app_state.rs:1067` | Added `force` parameter to `fetch_cities()` |
+| `src/state/app_state.rs:1067` | Added `MAX_PENDING_CITY_FETCHES = 5` constant |
+| `src/state/app_state.rs:1074-1092` | Added pending limit check logic |
+
+### Call Sites
+
+| Function | Caller | force |
+|----------|--------|-------|
+| `fetch_cities(&code, true)` | `set_servers()` | true (initial load) |
+| `fetch_cities(&code, false)` | `switch_cities_to_selected()` | false (j/k navigation) |
+| `fetch_cities(&code, true)` | `move_to_cities()` | true (l key) |
+| `fetch_cities(&code, true)` | `reload_cities()` | true (r key) |
+
+### Logic
+
+```rust
+fn fetch_cities(&mut self, country_code: &str, force: bool) {
+    // 1. Check cache
+    if let Some(cities) = self.vpn_state.cached_cities(&country_code) {
+        self.current_cities = cities;
+        return;
+    }
+
+    // 2. Check if already pending
+    let already_pending = self.connection_manager.pending_cities.contains_key(&country_code);
+
+    if already_pending {
+        if force {
+            // Remove existing to allow re-fetch
+            self.connection_manager.pending_cities.remove(&country_code);
+        } else {
+            return; // Skip - already in progress
+        }
+    }
+
+    // 3. Check pending limit (only for non-force, non-pending)
+    if !force && !already_pending && self.connection_manager.pending_cities.len() >= MAX_PENDING_CITY_FETCHES {
+        return; // Skip - too many pending
+    }
+
+    // 4. Submit fetch...
+}
+```
 
 ## Context
 
@@ -219,7 +259,9 @@ self.debounce_timer = Some(Instant::now());
 ## References
 
 - `spawn_cities()` in `async_tasks.rs:279`
-- `fetch_cities()` in `app_state.rs:1011`
-- `switch_cities_to_selected()` in `app_state.rs:997`
+- `fetch_cities()` in `app_state.rs:1066`
+- `switch_cities_to_selected()` in `app_state.rs:1050`
+- `move_to_cities()` in `app_state.rs:1174`
+- `reload_cities()` in `app_state.rs:1104`
 - `pending_cities` in `connection.rs:82`
 - Result polling in `app_state.rs:480-511`

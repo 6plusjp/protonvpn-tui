@@ -47,11 +47,12 @@ pub enum SettingKey {
     VpnAccelerator,
     PortForwarding,
     Theme,
+    Footer,
 }
 
 impl SettingKey {
     /// All settings in display order (indices match UI)
-    pub const ALL: [SettingKey; 8] = [
+    pub const ALL: [SettingKey; 9] = [
         SettingKey::Killswitch,
         SettingKey::Ipv6,
         SettingKey::Dns,
@@ -60,6 +61,7 @@ impl SettingKey {
         SettingKey::VpnAccelerator,
         SettingKey::PortForwarding,
         SettingKey::Theme,
+        SettingKey::Footer,
     ];
 
     pub fn from_index(index: usize) -> Option<SettingKey> {
@@ -91,6 +93,7 @@ impl SettingKey {
                 "Gruvbox",
                 "Tokyo Night",
             ],
+            SettingKey::Footer => vec!["on", "off"],
         }
     }
 
@@ -120,6 +123,7 @@ impl SettingKey {
             SettingKey::VpnAccelerator => "vpn-accelerator",
             SettingKey::PortForwarding => "port-forwarding",
             SettingKey::Theme => "theme",
+            SettingKey::Footer => "footer",
         }
     }
 }

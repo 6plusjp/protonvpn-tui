@@ -117,7 +117,7 @@ impl TuiApp {
 
         match self.state.ui_state.current_view {
             AppView::Servers => self.handle_servers_key(key_event),
-            AppView::Tools => self.handle_settings_and_logs_key(key_event),
+            AppView::Tools => self.handle_tools_key(key_event),
             AppView::Help => self.handle_help_key(key_event),
         }
     }
@@ -430,10 +430,7 @@ impl TuiApp {
         }
     }
 
-    fn handle_settings_and_logs_key(
-        &mut self,
-        key_event: crossterm::event::KeyEvent,
-    ) -> Option<AppAction> {
+    fn handle_tools_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
         let pane = self.state.ui_state.pane_focus;
 
         match key_event.code {
@@ -468,12 +465,7 @@ impl TuiApp {
             (false, KeyCode::Enter) => {
                 self.state.ui_state.settings_expanded = true;
                 self.state.ui_state.settings_option_selected = 0;
-                None
-            }
-            (false, KeyCode::Char(' ') | KeyCode::Char('t')) => {
-                if let Some(idx) = self.state.ui_state.settings_selected {
-                    self.state.toggle_settings(idx);
-                }
+                self.state.ui_state.settings_last_key_g = false;
                 None
             }
             (false, KeyCode::Char('c')) => {
@@ -481,20 +473,36 @@ impl TuiApp {
                 None
             }
             (false, KeyCode::Char('j') | KeyCode::Down) => {
+                self.state.ui_state.settings_last_key_g = false;
                 self.state.settings_select_next();
                 None
             }
             (false, KeyCode::Char('k') | KeyCode::Up) => {
+                self.state.ui_state.settings_last_key_g = false;
                 self.state.settings_select_prev();
                 None
             }
             (false, KeyCode::Char('g')) => {
-                self.state.settings_select_first();
+                if self.state.ui_state.settings_last_key_g {
+                    self.state.ui_state.settings_last_key_g = false;
+                    self.state.settings_select_first();
+                } else {
+                    self.state.ui_state.settings_last_key_g = true;
+                }
                 None
             }
             (false, KeyCode::Char('G')) => {
+                self.state.ui_state.settings_last_key_g = false;
                 self.state.settings_select_last();
                 None
+            }
+            (false, _) => {
+                if self.handle_common_navigation(key_event) {
+                    self.state.ui_state.settings_last_key_g = false;
+                    None
+                } else {
+                    None
+                }
             }
 
             (true, KeyCode::Enter) => {
@@ -546,6 +554,20 @@ impl TuiApp {
                         };
                         self.state.show_notification(
                             format!("Theme changed to {}", theme_name),
+                            crate::state::NotificationType::Info,
+                            None,
+                        );
+                        return None;
+                    }
+
+                    if key == SettingKey::Footer {
+                        self.state.ui_state.settings_expanded = false;
+                        let option_idx = self.state.ui_state.settings_option_selected;
+                        let new_show_footer = option_idx == 0; // 0 = on, 1 = off
+                        self.state.ui_state.show_footer = new_show_footer;
+                        let status = if new_show_footer { "on" } else { "off" };
+                        self.state.show_notification(
+                            format!("Footer set to {}", status),
                             crate::state::NotificationType::Info,
                             None,
                         );
@@ -848,37 +870,64 @@ impl TuiApp {
 
         // Always show filter box between header and main view
         let has_filter_active = !self.state.ui_state.search_query.query.is_empty();
+        let show_footer = self.state.ui_state.show_footer;
 
         if self.state.ui_state.input_mode == InputMode::DnsInput {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(3),
-                    Constraint::Length(3),
-                    Constraint::Min(0),
-                    Constraint::Length(1),
-                ])
-                .split(f.area());
+            let chunks = if show_footer {
+                Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([
+                        Constraint::Length(3),
+                        Constraint::Length(3),
+                        Constraint::Min(0),
+                        Constraint::Length(1),
+                    ])
+                    .split(f.area())
+            } else {
+                Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([
+                        Constraint::Length(3),
+                        Constraint::Length(3),
+                        Constraint::Min(0),
+                    ])
+                    .split(f.area())
+            };
 
             self.render_header(f, chunks[0]);
             self.render_dns_input(f, chunks[1]);
             self.render_main(f, chunks[2]);
-            self.render_footer(f, chunks[3]);
+            if show_footer {
+                self.render_footer(f, chunks[3]);
+            }
         } else {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(3),
-                    Constraint::Length(3),
-                    Constraint::Min(0),
-                    Constraint::Length(1),
-                ])
-                .split(f.area());
+            let chunks = if show_footer {
+                Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([
+                        Constraint::Length(3),
+                        Constraint::Length(3),
+                        Constraint::Min(0),
+                        Constraint::Length(1),
+                    ])
+                    .split(f.area())
+            } else {
+                Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([
+                        Constraint::Length(3),
+                        Constraint::Length(3),
+                        Constraint::Min(0),
+                    ])
+                    .split(f.area())
+            };
 
             self.render_header(f, chunks[0]);
             self.render_filter_input(f, chunks[1], has_filter_active);
             self.render_main(f, chunks[2]);
-            self.render_footer(f, chunks[3]);
+            if show_footer {
+                self.render_footer(f, chunks[3]);
+            }
         }
 
         // Render notification as popup last (on top)
@@ -1162,7 +1211,7 @@ impl TuiApp {
         let is_help_view = self.state.ui_state.current_view == AppView::Help;
 
         if is_help_view {
-            text.spans.push(Span::raw(" "));
+            text.spans.push(Span::raw("  "));
             text.spans.extend(vec![
                 Span::styled("[", Style::default().fg(theme.inactive)),
                 Span::styled("Tab", Style::default().fg(theme.key_hint)),
@@ -1175,7 +1224,7 @@ impl TuiApp {
                 Span::styled("quit", Style::default().fg(theme.foreground)),
             ]);
         } else {
-            text.spans.push(Span::raw(" "));
+            text.spans.push(Span::raw("  "));
             text.spans.extend(vec![
                 Span::styled("[", Style::default().fg(theme.inactive)),
                 Span::styled("Tab", Style::default().fg(theme.key_hint)),
@@ -1315,9 +1364,45 @@ impl TuiApp {
                 ]);
                 hints
             }
-            (AppView::Tools, Pane::Settings) | (AppView::Tools, Pane::Logs) => {
-                vec![]
+            (AppView::Tools, Pane::Settings) => {
+                let mut hints = vec![
+                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("j/k", Style::default().fg(theme.key_hint)),
+                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("navigate", Style::default().fg(theme.foreground)),
+                    Span::styled("  ", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("l", Style::default().fg(theme.key_hint)),
+                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("logs", Style::default().fg(theme.foreground)),
+                    Span::styled("  ", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("Enter", Style::default().fg(theme.key_hint)),
+                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("toggle expand", Style::default().fg(theme.foreground)),
+                ];
+                if is_disconnected {
+                    hints.extend([
+                        Span::styled("  ", Style::default().fg(theme.inactive)),
+                        Span::styled("[", Style::default().fg(theme.inactive)),
+                        Span::styled("c", Style::default().fg(theme.key_hint)),
+                        Span::styled("]", Style::default().fg(theme.inactive)),
+                        Span::styled("connect", Style::default().fg(theme.foreground)),
+                    ]);
+                }
+                hints
             }
+            (AppView::Tools, Pane::Logs) => vec![
+                Span::styled("[", Style::default().fg(theme.inactive)),
+                Span::styled("j/k", Style::default().fg(theme.key_hint)),
+                Span::styled("]", Style::default().fg(theme.inactive)),
+                Span::styled("navigate", Style::default().fg(theme.foreground)),
+                Span::styled("  ", Style::default().fg(theme.inactive)),
+                Span::styled("[", Style::default().fg(theme.inactive)),
+                Span::styled("h", Style::default().fg(theme.key_hint)),
+                Span::styled("]", Style::default().fg(theme.inactive)),
+                Span::styled("settings", Style::default().fg(theme.foreground)),
+            ],
             (AppView::Help, _) => vec![
                 Span::styled("[", Style::default().fg(theme.inactive)),
                 Span::styled("Esc", Style::default().fg(theme.key_hint)),

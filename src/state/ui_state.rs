@@ -26,12 +26,14 @@ pub struct UiState {
     pub settings_selected: Option<usize>,
     pub settings_expanded: bool,
     pub settings_option_selected: usize,
+    pub settings_last_key_g: bool,
     pub logs_selected: Option<usize>,
     pub search_query: SearchQuery,
     pub filter: ServerFilter,
     pub sort: ServerSort,
     pub sort_direction: SortDirection,
     pub theme_mode: ThemeMode,
+    pub show_footer: bool,
     pub input_mode: InputMode,
     pub dns_input: String,
 }
@@ -53,12 +55,14 @@ impl UiState {
             settings_selected: Some(0),
             settings_expanded: false,
             settings_option_selected: 0,
+            settings_last_key_g: false,
             logs_selected: Some(0),
             search_query: SearchQuery::new(),
             filter: ServerFilter::default(),
             sort: ServerSort::default(),
             sort_direction: SortDirection::default(),
             theme_mode: ThemeMode::default(),
+            show_footer: true,
             input_mode: InputMode::Normal,
             dns_input: String::new(),
         }
@@ -75,6 +79,10 @@ impl UiState {
             ThemeMode::Gruvbox => ThemeMode::TokyoNight,
             ThemeMode::TokyoNight => ThemeMode::System,
         };
+    }
+
+    pub fn toggle_footer(&mut self) {
+        self.show_footer = !self.show_footer;
     }
 
     pub fn reset_settings_selection(&mut self) {

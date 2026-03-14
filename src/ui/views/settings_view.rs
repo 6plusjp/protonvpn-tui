@@ -23,11 +23,12 @@ pub fn render_settings_view(
     let selected = state.ui_state.settings_selected.unwrap_or(0);
     let expanded = state.ui_state.settings_expanded;
     let option_selected = state.ui_state.settings_option_selected;
+    let show_footer = state.ui_state.show_footer;
 
     let mut all_items: Vec<ListItem> = Vec::new();
 
     for (idx, key) in SettingKey::ALL.iter().enumerate() {
-        let value = get_setting_value(key, proton_settings, state.ui_state.theme_mode);
+        let value = get_setting_value(key, proton_settings, state.ui_state.theme_mode, show_footer);
         let label = get_setting_label(key);
 
         let is_selected = selected == idx;
@@ -91,6 +92,7 @@ fn get_setting_value(
     key: &SettingKey,
     proton_settings: Option<&crate::config::ProtonSettings>,
     theme_mode: ThemeMode,
+    show_footer: bool,
 ) -> String {
     if matches!(key, SettingKey::Theme) {
         return match theme_mode {
@@ -102,6 +104,14 @@ fn get_setting_value(
             ThemeMode::Nord => "Nord".to_string(),
             ThemeMode::Gruvbox => "Gruvbox".to_string(),
             ThemeMode::TokyoNight => "Tokyo Night".to_string(),
+        };
+    }
+
+    if matches!(key, SettingKey::Footer) {
+        return if show_footer {
+            "on".to_string()
+        } else {
+            "off".to_string()
         };
     }
 
@@ -176,6 +186,7 @@ fn get_setting_value(
             })
             .unwrap_or_else(|| "unknown".to_string()),
         SettingKey::Theme => unreachable!(),
+        SettingKey::Footer => unreachable!(),
     }
 }
 
@@ -189,5 +200,6 @@ fn get_setting_label(key: &SettingKey) -> &'static str {
         SettingKey::VpnAccelerator => "VPN Accelerator:   ",
         SettingKey::PortForwarding => "Port Forwarding:   ",
         SettingKey::Theme => "Theme:             ",
+        SettingKey::Footer => "Footer:            ",
     }
 }

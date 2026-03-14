@@ -1384,6 +1384,7 @@ impl AppState {
                 self.vpn_state.toggle_port_forwarding(current)
             }
             SettingKey::Theme => unreachable!(),
+            SettingKey::Footer => unreachable!(),
         };
 
         match result {

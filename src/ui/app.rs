@@ -4,13 +4,14 @@ use crate::state::{AppState, AppView, InputMode, Pane};
 use crate::ui::render::{Renderable, ServersViewState, ToolsViewState, View};
 use crate::ui::styles::{Theme, ThemeMode};
 use crossterm::{
+    cursor::SetCursorStyle,
     event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Margin, Rect},
     style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph},
@@ -30,7 +31,11 @@ pub struct TuiApp {
 impl TuiApp {
     pub fn new(config: UserConfig) -> io::Result<Self> {
         panic::set_hook(Box::new(|_| {
-            let _ = execute!(io::stdout(), LeaveAlternateScreen);
+            let _ = execute!(
+                io::stdout(),
+                LeaveAlternateScreen,
+                SetCursorStyle::SteadyBar
+            );
             let _ = disable_raw_mode();
         }));
 
@@ -53,7 +58,11 @@ impl TuiApp {
     }
 
     pub fn run(&mut self) -> io::Result<()> {
-        execute!(io::stdout(), EnterAlternateScreen)?;
+        execute!(
+            io::stdout(),
+            EnterAlternateScreen,
+            SetCursorStyle::SteadyBar
+        )?;
         enable_raw_mode()?;
 
         let backend = CrosstermBackend::new(io::stdout());
@@ -103,7 +112,11 @@ impl TuiApp {
             }
         }
 
-        execute!(io::stdout(), LeaveAlternateScreen)?;
+        execute!(
+            io::stdout(),
+            LeaveAlternateScreen,
+            SetCursorStyle::SteadyBar
+        )?;
         disable_raw_mode()?;
         Ok(())
     }
@@ -870,44 +883,30 @@ impl TuiApp {
             area,
         );
 
-        // Always show filter box between header and main view
         let has_filter_active = !self.state.ui_state.search_query.query.is_empty();
-        let show_footer = self.state.ui_state.show_footer;
+        let show_filter = self.filter_mode || has_filter_active;
+        let is_dns_input = self.state.ui_state.input_mode == InputMode::DnsInput;
+        let show_footer = self.state.ui_state.show_footer && !show_filter && !is_dns_input;
 
-        if self.state.ui_state.input_mode == InputMode::DnsInput {
-            let chunks = if show_footer {
-                Layout::default()
-                    .direction(Direction::Vertical)
-                    .constraints([
-                        Constraint::Length(3),
-                        Constraint::Length(3),
-                        Constraint::Min(0),
-                        Constraint::Length(1),
-                    ])
-                    .split(f.area())
-            } else {
-                Layout::default()
-                    .direction(Direction::Vertical)
-                    .constraints([
-                        Constraint::Length(3),
-                        Constraint::Length(3),
-                        Constraint::Min(0),
-                    ])
-                    .split(f.area())
-            };
+        if is_dns_input {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(3),
+                    Constraint::Min(0),
+                    Constraint::Length(1),
+                ])
+                .split(f.area());
 
             self.render_header(f, chunks[0]);
-            self.render_dns_input(f, chunks[1]);
-            self.render_main(f, chunks[2]);
-            if show_footer {
-                self.render_footer(f, chunks[3]);
-            }
+            self.render_main(f, chunks[1]);
+            self.render_dns_input(f, chunks[2]);
         } else {
-            let chunks = if show_footer {
+            let use_bottom_row = show_filter || show_footer;
+            let chunks = if use_bottom_row {
                 Layout::default()
                     .direction(Direction::Vertical)
                     .constraints([
-                        Constraint::Length(3),
                         Constraint::Length(3),
                         Constraint::Min(0),
                         Constraint::Length(1),
@@ -916,19 +915,20 @@ impl TuiApp {
             } else {
                 Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints([
-                        Constraint::Length(3),
-                        Constraint::Length(3),
-                        Constraint::Min(0),
-                    ])
+                    .constraints([Constraint::Length(3), Constraint::Min(0)])
                     .split(f.area())
             };
 
             self.render_header(f, chunks[0]);
-            self.render_filter_input(f, chunks[1], has_filter_active);
-            self.render_main(f, chunks[2]);
-            if show_footer {
-                self.render_footer(f, chunks[3]);
+
+            if show_filter {
+                self.render_main(f, chunks[1]);
+                self.render_filter_input(f, chunks[2], has_filter_active);
+            } else if show_footer {
+                self.render_main(f, chunks[1]);
+                self.render_footer(f, chunks[2]);
+            } else {
+                self.render_main(f, chunks[1]);
             }
         }
 
@@ -940,75 +940,73 @@ impl TuiApp {
 
     fn render_filter_input(&self, f: &mut Frame<'_>, area: Rect, has_filter_active: bool) {
         let theme = self.get_theme();
+        let prompt = "search: ";
+        let placeholder = "Esc to cancel...";
 
-        let (prompt, input_text, border_style, text_style) = if self.filter_mode {
-            let prompt = "filter: ";
-            let text = self.filter_input.as_str();
-            (prompt, text, theme.primary, theme.foreground)
+        let input_text = if self.filter_mode {
+            self.filter_input.as_str()
         } else if has_filter_active {
-            let prompt = "filter: ";
-            let text = self.state.ui_state.search_query.as_str();
-            (prompt, text, theme.success, theme.success)
+            self.state.ui_state.search_query.as_str()
         } else {
-            ("filter: ", "", theme.key_hint, theme.secondary)
+            ""
         };
 
-        let input_display = if input_text.is_empty() {
-            if self.filter_mode || has_filter_active {
-                format!("{} ", prompt)
+        let inner_area = area.inner(Margin::new(1, 0));
+        let cursor = prompt.len() + input_text.len();
+
+        let line = if input_text.is_empty() {
+            Line::from(vec![
+                Span::styled(prompt, Style::default().fg(theme.primary)),
+                Span::styled(placeholder, Style::default().fg(theme.muted)),
+            ])
+        } else {
+            let text_style = if self.filter_mode {
+                theme.foreground
             } else {
-                format!("{} [press / to search]", prompt)
-            }
-        } else {
-            format!("{}{}", prompt, input_text)
+                theme.success
+            };
+            Line::from(vec![
+                Span::styled(prompt, Style::default().fg(theme.primary)),
+                Span::styled(input_text, Style::default().fg(text_style)),
+            ])
         };
 
-        let cursor = if input_display.is_empty() {
-            prompt.len()
-        } else {
-            prompt.len() + input_text.len()
-        };
+        let paragraph = Paragraph::new(line);
 
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default().fg(border_style));
+        f.render_widget(paragraph, inner_area);
 
-        let text = Line::from(input_display.as_str());
-        let paragraph = Paragraph::new(text)
-            .block(block)
-            .style(Style::default().fg(text_style));
-
-        f.render_widget(paragraph, area);
-
-        if self.filter_mode && area.width > cursor as u16 + 2 {
-            f.set_cursor_position((area.x + cursor as u16 + 1, area.y + 1));
+        if self.filter_mode && inner_area.width > cursor as u16 {
+            f.set_cursor_position((inner_area.x + cursor as u16, area.y));
         }
     }
 
     fn render_dns_input(&self, f: &mut Frame<'_>, area: Rect) {
         let theme = self.get_theme();
-        let prompt = "DNS IPs (comma-separated): ";
+        let prompt = "DNS IPs: ";
+        let placeholder = "comma-separated IPs(eg. 1.1.1.1,9.9.9.9)...";
         let dns_input = &self.state.ui_state.dns_input;
-        let input_display = format!("{}{}", prompt, dns_input);
-        let cursor = if dns_input.is_empty() {
-            prompt.len()
+
+        let inner_area = area.inner(Margin::new(2, 0));
+        let cursor = prompt.len() + dns_input.len();
+
+        let line = if dns_input.is_empty() {
+            Line::from(vec![
+                Span::styled(prompt, Style::default().fg(theme.primary)),
+                Span::styled(placeholder, Style::default().fg(theme.muted)),
+            ])
         } else {
-            prompt.len() + dns_input.len()
+            Line::from(vec![
+                Span::styled(prompt, Style::default().fg(theme.primary)),
+                Span::styled(dns_input.as_str(), Style::default().fg(theme.foreground)),
+            ])
         };
 
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default().fg(theme.key_hint));
+        let paragraph = Paragraph::new(line);
 
-        let text = Line::from(input_display.as_str());
-        let paragraph = Paragraph::new(text)
-            .block(block)
-            .style(Style::default().fg(theme.foreground));
+        f.render_widget(paragraph, inner_area);
 
-        f.render_widget(paragraph, area);
-
-        if area.width > cursor as u16 + 2 {
-            f.set_cursor_position((area.x + cursor as u16 + 1, area.y + 1));
+        if inner_area.width > cursor as u16 {
+            f.set_cursor_position((inner_area.x + cursor as u16, area.y));
         }
     }
 

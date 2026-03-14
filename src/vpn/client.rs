@@ -116,98 +116,47 @@ impl VpnClient {
 
     /// Connect to a server by country code
     pub fn connect_country(&self, target: &str) -> AppResult<ConnectResult> {
-        let output = self
-            .run_command_with_timeout(&["connect", "--country", target], Duration::from_secs(30))
-            .map_err(|e| {
-                AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
-            })?;
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-
-        self.check_cli_error(&output, &stdout, &stderr)?;
-
-        let result = parse_connect_output(&stdout);
-
-        let final_server = if !result.server_id.is_empty() {
-            result.server_id.clone()
-        } else {
-            target.to_string()
-        };
-        self.with_cache(|c| {
-            c.set_connected(final_server.clone(), result.ip.clone(), result.via.clone())
-        })?;
-        self.save_cache()?;
-
-        Ok(ConnectResult {
-            server_id: final_server,
-            ip: result.ip,
-            city: result.city,
-            country: result.country,
-            via: result.via,
-        })
+        self.connect_with_args("--country", target, &[target])
     }
 
     pub fn connect_random(&self) -> AppResult<ConnectResult> {
-        self.connect_with_args("--random", "Random Server")
+        self.connect_with_args("--random", "Random Server", &[])
     }
 
     /// Connect to a server by city name
     pub fn connect_city(&self, city_arg: &str) -> AppResult<ConnectResult> {
-        let output = self
-            .run_command_with_timeout(&["connect", "--city", city_arg], Duration::from_secs(30))
-            .map_err(|e| {
-                AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
-            })?;
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-
-        self.check_cli_error(&output, &stdout, &stderr)?;
-
-        let result = parse_connect_output(&stdout);
-
-        let final_server = if !result.server_id.is_empty() {
-            result.server_id.clone()
-        } else {
-            result.city.clone().unwrap_or_else(|| city_arg.to_string())
-        };
-        self.with_cache(|c| {
-            c.set_connected(final_server.clone(), result.ip.clone(), result.via.clone())
-        })?;
-        self.save_cache()?;
-
-        Ok(ConnectResult {
-            server_id: final_server,
-            ip: result.ip,
-            city: result.city,
-            country: result.country,
-            via: result.via,
-        })
+        self.connect_with_args("--city", city_arg, &[city_arg])
     }
 
     pub fn connect_fastest(&self) -> AppResult<ConnectResult> {
-        self.connect_with_args("", "Fastest Server")
+        self.connect_with_args("", "Fastest Server", &[])
     }
 
     pub fn connect_p2p(&self) -> AppResult<ConnectResult> {
-        self.connect_with_args("--p2p", "P2P Server")
+        self.connect_with_args("--p2p", "P2P Server", &[])
     }
 
     pub fn connect_tor(&self) -> AppResult<ConnectResult> {
-        self.connect_with_args("--tor", "Tor Server")
+        self.connect_with_args("--tor", "Tor Server", &[])
     }
 
     pub fn connect_securecore(&self) -> AppResult<ConnectResult> {
-        self.connect_with_args("--securecore", "SecureCore Server")
+        self.connect_with_args("--securecore", "SecureCore Server", &[])
     }
 
-    fn connect_with_args(&self, flag: &str, fallback_name: &str) -> AppResult<ConnectResult> {
-        let args: Vec<&str> = if flag.is_empty() {
-            vec!["connect"]
-        } else {
-            vec!["connect", flag]
-        };
+    fn connect_with_args(
+        &self,
+        flag: &str,
+        fallback_name: &str,
+        args: &[&str],
+    ) -> AppResult<ConnectResult> {
+        let mut cmd_args = vec!["connect"];
+        if !flag.is_empty() {
+            cmd_args.push(flag);
+        }
+        cmd_args.extend(args.iter().copied());
         let output = self
-            .run_command_with_timeout(&args, Duration::from_secs(30))
+            .run_command_with_timeout(&cmd_args, Duration::from_secs(30))
             .map_err(|e| {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;

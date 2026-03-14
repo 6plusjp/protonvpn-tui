@@ -1,5 +1,7 @@
 use crate::state::format_relative_time;
 use crate::state::{AppState, NotificationType};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, Borders, Wrap};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -108,15 +110,17 @@ pub fn render_logs_view(
     if is_focused && logs.len() > 1 {
         let selected_log = logs.iter().rev().nth(selected_idx);
         if let Some(log) = selected_log {
-            let detail_block = ratatui::widgets::Block::default()
-                .title(" Details ")
-                .borders(ratatui::widgets::Borders::NONE)
-                .border_style(Style::default().fg(theme.secondary));
+            let detail_block = Block::default()
+                .title(Line::from(vec![Span::styled(
+                    " Details ",
+                    Style::default().fg(theme.secondary),
+                )]))
+                .borders(Borders::NONE);
 
             let detail_text = Paragraph::new(log.message.as_str())
                 .block(detail_block)
-                .style(Style::default().fg(theme.foreground))
-                .wrap(ratatui::widgets::Wrap { trim: true });
+                .style(Style::default().fg(theme.inactive))
+                .wrap(Wrap { trim: true });
 
             f.render_widget(detail_text, detail_area);
         }

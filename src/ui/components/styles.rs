@@ -48,6 +48,10 @@ pub fn footer_style(theme: &Theme) -> Style {
     Style::default().fg(theme.key_hint)
 }
 
+pub fn muted_style(theme: &Theme) -> Style {
+    Style::default().fg(theme.muted)
+}
+
 pub fn key_span<'a>(key: &'a str, theme: &'a Theme) -> Span<'a> {
     Span::styled(key, key_hint_style(theme))
 }

@@ -158,8 +158,9 @@ pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
         "Key bindings can be customized in:",
         normal_style,
     )]));
-    help_text.push(Line::from(vec![Span::raw(
+    help_text.push(Line::from(vec![Span::styled(
         "  ~/.config/protonvpn-tui/keybindings.json",
+        normal_style,
     )]));
 
     let inner_area = Rect {

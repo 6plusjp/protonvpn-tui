@@ -1090,7 +1090,7 @@ impl AppState {
         self.show_notification(
             format!("Loading cities for {}...", country_code),
             NotificationType::Info,
-            None,
+            Some(format!("cities:{}", country_code)),
         );
 
         let (tx, rx) = create_channel();

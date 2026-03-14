@@ -407,6 +407,19 @@ impl VpnClient {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
 
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            tracing::warn!(
+                "protonvpn cities --country {} failed: {}",
+                country_code,
+                stderr
+            );
+            return Err(AppError::ConfigError(format!(
+                "protonvpn cities command failed: {}",
+                stderr.trim()
+            )));
+        }
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         let cities = parse_cities_with_features(&stdout);
 

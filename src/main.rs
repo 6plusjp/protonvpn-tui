@@ -1,3 +1,4 @@
+use protonvpn_tui::config::UserConfig;
 use protonvpn_tui::ui::app::TuiApp;
 use std::io;
 
@@ -42,8 +43,8 @@ fn main() -> io::Result<()> {
 
     tracing::info!("Starting ProtonVPN TUI");
 
-    // Initialize and run TUI
-    let mut app = TuiApp::new()?;
+    let user_config = UserConfig::load();
+    let mut app = TuiApp::new(user_config)?;
     app.run()?;
 
     tracing::info!("Shutting down ProtonVPN TUI");

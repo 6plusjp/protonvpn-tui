@@ -1,6 +1,6 @@
 //! Application state management
 
-use crate::config::{ProtonSettings, SettingKey};
+use crate::config::{KeyBindings, ProtonSettings, SettingKey, UiConfig, UserConfig};
 use crate::constants::state::PAGE_SIZE;
 use crate::state::AsyncEvent;
 use crate::state::AsyncResult;
@@ -126,6 +126,7 @@ pub struct AppState {
     pub config_state: ConfigState,
     pub proton_settings_cache: Option<ProtonSettings>,
     pub key_bindings: crate::config::KeyBindings,
+    pub user_config: UserConfig,
 }
 
 impl Default for AppState {
@@ -136,13 +137,19 @@ impl Default for AppState {
 
 impl AppState {
     pub fn new() -> Self {
+        Self::from_config(&KeyBindings::default(), &UiConfig::default())
+    }
+
+    pub fn from_config(key_bindings: &KeyBindings, ui_config: &UiConfig) -> Self {
         let vpn_state = Arc::new(VpnClient::new());
         let servers = vpn_state.servers();
+        let ui_state = UiState::from_config(&ui_config.theme, ui_config.footer);
+        let user_config = UserConfig::load();
 
         Self {
             vpn_state,
             connection_manager: ConnectionManager::new(),
-            ui_state: UiState::new(),
+            ui_state,
             server_data: ServerDataState::new(),
             servers,
             current_cities: Vec::new(),
@@ -152,13 +159,36 @@ impl AppState {
             proton_settings_cache: ProtonSettings::load(),
             server_cache: ServerCache::new(),
             is_initialized: false,
-            key_bindings: crate::config::KeyBindings::default(),
+            key_bindings: key_bindings.clone(),
+            user_config,
         }
     }
 
     /// Get current theme based on theme mode
     pub fn get_theme(&self) -> Theme {
         Theme::from_mode(self.ui_state.theme_mode)
+    }
+
+    pub fn save_theme(&mut self, theme_mode: ThemeMode) {
+        self.ui_state.theme_mode = theme_mode;
+        let theme_str = match theme_mode {
+            ThemeMode::System => "System",
+            ThemeMode::Terminal => "Terminal",
+            ThemeMode::CatppuccinMocha => "CatppuccinMocha",
+            ThemeMode::CatppuccinLatte => "CatppuccinLatte",
+            ThemeMode::Dracula => "Dracula",
+            ThemeMode::Nord => "Nord",
+            ThemeMode::Gruvbox => "Gruvbox",
+            ThemeMode::TokyoNight => "TokyoNight",
+        };
+        self.user_config.ui.theme = theme_str.to_string();
+        self.user_config.save();
+    }
+
+    pub fn save_footer(&mut self, show_footer: bool) {
+        self.ui_state.show_footer = show_footer;
+        self.user_config.ui.footer = show_footer;
+        self.user_config.save();
     }
 
     // === Getters for tight coupling reduction ===

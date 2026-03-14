@@ -1,4 +1,4 @@
-use crate::config::SettingKey;
+use crate::config::{SettingKey, UserConfig};
 use crate::constants::ui::{NOTIFICATION_MSG_MAX_LEN, POPUP_WIDTH_MAX, POPUP_WIDTH_MIN};
 use crate::state::{AppState, AppView, InputMode, Pane};
 use crate::ui::render::{Renderable, ServersViewState, ToolsViewState, View};
@@ -28,13 +28,15 @@ pub struct TuiApp {
 }
 
 impl TuiApp {
-    pub fn new() -> io::Result<Self> {
+    pub fn new(config: UserConfig) -> io::Result<Self> {
         panic::set_hook(Box::new(|_| {
             let _ = execute!(io::stdout(), LeaveAlternateScreen);
             let _ = disable_raw_mode();
         }));
 
-        let mut state = AppState::new();
+        let key_bindings = config.keybindings.into();
+        let ui_config = config.ui;
+        let mut state = AppState::from_config(&key_bindings, &ui_config);
         state.refresh_servers();
 
         Ok(Self {
@@ -541,7 +543,7 @@ impl TuiApp {
                             7 => ThemeMode::TokyoNight,
                             _ => ThemeMode::System,
                         };
-                        self.state.ui_state.theme_mode = new_mode;
+                        self.state.save_theme(new_mode);
                         let theme_name = match new_mode {
                             ThemeMode::System => "System",
                             ThemeMode::Terminal => "Terminal",
@@ -564,7 +566,7 @@ impl TuiApp {
                         self.state.ui_state.settings_expanded = false;
                         let option_idx = self.state.ui_state.settings_option_selected;
                         let new_show_footer = option_idx == 0; // 0 = on, 1 = off
-                        self.state.ui_state.show_footer = new_show_footer;
+                        self.state.save_footer(new_show_footer);
                         let status = if new_show_footer { "on" } else { "off" };
                         self.state.show_notification(
                             format!("Footer set to {}", status),
@@ -1159,7 +1161,7 @@ impl TuiApp {
         ];
 
         if let Some(proto) = protocol {
-            status_spans.push(Span::raw("  |  "));
+            status_spans.push(Span::styled("  |  ", Style::default().fg(theme.inactive)));
             status_spans.push(Span::styled(proto, Style::default().fg(theme.secondary)));
         }
 
@@ -1305,7 +1307,7 @@ impl TuiApp {
                     Span::styled("[", Style::default().fg(theme.inactive)),
                     Span::styled("s", Style::default().fg(theme.key_hint)),
                     Span::styled("]", Style::default().fg(theme.inactive)),
-                    Span::styled("secure core", Style::default().fg(theme.foreground)),
+                    Span::styled("securecore", Style::default().fg(theme.foreground)),
                 ]);
                 hints
             }

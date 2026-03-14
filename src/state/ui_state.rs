@@ -40,12 +40,6 @@ pub struct UiState {
 
 impl Default for UiState {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl UiState {
-    pub fn new() -> Self {
         Self {
             current_view: AppView::Servers,
             previous_view: AppView::Servers,
@@ -63,6 +57,41 @@ impl UiState {
             sort_direction: SortDirection::default(),
             theme_mode: ThemeMode::default(),
             show_footer: true,
+            input_mode: InputMode::Normal,
+            dns_input: String::new(),
+        }
+    }
+}
+
+impl UiState {
+    pub fn from_config(theme: &str, show_footer: bool) -> Self {
+        let theme_mode = match theme {
+            "Terminal" => ThemeMode::Terminal,
+            "CatppuccinMocha" => ThemeMode::CatppuccinMocha,
+            "CatppuccinLatte" => ThemeMode::CatppuccinLatte,
+            "Dracula" => ThemeMode::Dracula,
+            "Nord" => ThemeMode::Nord,
+            "Gruvbox" => ThemeMode::Gruvbox,
+            "TokyoNight" => ThemeMode::TokyoNight,
+            _ => ThemeMode::System,
+        };
+        Self {
+            current_view: AppView::Servers,
+            previous_view: AppView::Servers,
+            selected_server: Some(0),
+            selected_city: Some(0),
+            pane_focus: Pane::Countries,
+            settings_selected: Some(0),
+            settings_expanded: false,
+            settings_option_selected: 0,
+            settings_last_key_g: false,
+            logs_selected: Some(0),
+            search_query: SearchQuery::new(),
+            filter: ServerFilter::default(),
+            sort: ServerSort::default(),
+            sort_direction: SortDirection::default(),
+            theme_mode,
+            show_footer,
             input_mode: InputMode::Normal,
             dns_input: String::new(),
         }

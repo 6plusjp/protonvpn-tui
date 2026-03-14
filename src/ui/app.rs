@@ -1080,13 +1080,29 @@ impl TuiApp {
     fn render_header(&mut self, f: &mut Frame<'_>, area: Rect) {
         let theme = self.get_theme();
 
-        let (status_text, status_color): (String, _) =
+        let status_indicator = match self.state.connection_manager.connection {
+            crate::state::ConnectionState::Connected { .. } => "●",
+            crate::state::ConnectionState::Connecting
+            | crate::state::ConnectionState::Disconnecting => "◐",
+            crate::state::ConnectionState::Disconnected => "○",
+            crate::state::ConnectionState::Error(_) => "✕",
+        };
+
+        let (status_indicator_color, mut status_spans): (_, Vec<Span<'_>>) =
             match &self.state.connection_manager.connection {
                 crate::state::ConnectionState::Disconnected => {
-                    ("Disconnected".to_string(), theme.foreground)
+                    let spans = vec![Span::styled(
+                        "Disconnected",
+                        Style::default().fg(theme.foreground),
+                    )];
+                    (theme.foreground, spans)
                 }
                 crate::state::ConnectionState::Connecting => {
-                    ("Connecting...".to_string(), theme.warning)
+                    let spans = vec![Span::styled(
+                        "Connecting...",
+                        Style::default().fg(theme.warning),
+                    )];
+                    (theme.warning, spans)
                 }
                 crate::state::ConnectionState::Connected {
                     server,
@@ -1095,10 +1111,21 @@ impl TuiApp {
                     country,
                     via,
                 } => {
-                    let mut info = server.clone();
+                    let mut spans = vec![];
+
+                    spans.push(Span::styled(
+                        server.clone(),
+                        Style::default()
+                            .fg(theme.success)
+                            .add_modifier(Modifier::BOLD),
+                    ));
+
                     if !ip.is_empty() {
-                        info.push_str(&format!(" ip:{}", ip));
+                        spans.push(Span::styled("  ", Style::default().fg(theme.muted)));
+                        spans.push(Span::styled("ip:", Style::default().fg(theme.muted)));
+                        spans.push(Span::styled(ip, Style::default().fg(theme.secondary)));
                     }
+
                     let loc = match (&city, &country, &via) {
                         (Some(c), Some(ct), Some(v)) => format!("{},{} via {}", c, ct, v),
                         (Some(c), Some(ct), None) => format!("{},{}", c, ct),
@@ -1110,14 +1137,24 @@ impl TuiApp {
                         (None, None, None) => String::new(),
                     };
                     if !loc.is_empty() {
-                        info.push_str(&format!(" loc:{}", loc));
+                        spans.push(Span::styled("  ", Style::default().fg(theme.muted)));
+                        spans.push(Span::styled("loc:", Style::default().fg(theme.muted)));
+                        spans.push(Span::styled(loc, Style::default().fg(theme.secondary)));
                     }
-                    (info, theme.success)
+
+                    (theme.success, spans)
                 }
                 crate::state::ConnectionState::Disconnecting => {
-                    ("Disconnecting...".to_string(), theme.warning)
+                    let spans = vec![Span::styled(
+                        "Disconnecting...",
+                        Style::default().fg(theme.warning),
+                    )];
+                    (theme.warning, spans)
                 }
-                crate::state::ConnectionState::Error(e) => (e.clone(), theme.error),
+                crate::state::ConnectionState::Error(e) => {
+                    let spans = vec![Span::styled(e.clone(), Style::default().fg(theme.error))];
+                    (theme.error, spans)
+                }
             };
 
         let protocol = self
@@ -1129,13 +1166,11 @@ impl TuiApp {
 
         let title = " ProtonVPN TUI ";
 
-        let status_indicator = match self.state.connection_manager.connection {
-            crate::state::ConnectionState::Connected { .. } => "●",
-            crate::state::ConnectionState::Connecting
-            | crate::state::ConnectionState::Disconnecting => "◐",
-            crate::state::ConnectionState::Disconnected => "○",
-            crate::state::ConnectionState::Error(_) => "✕",
-        };
+        if let Some(ref proto) = protocol {
+            status_spans.push(Span::styled("  ", Style::default().fg(theme.inactive)));
+            status_spans.push(Span::styled("protocol:", Style::default().fg(theme.muted)));
+            status_spans.push(Span::styled(proto, Style::default().fg(theme.accent)));
+        }
 
         let chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -1149,23 +1184,18 @@ impl TuiApp {
                 .add_modifier(Modifier::BOLD),
         )]);
 
-        let mut status_spans = vec![
+        let mut status_line_spans = vec![
             Span::styled(
                 status_indicator,
                 Style::default()
-                    .fg(status_color)
+                    .fg(status_indicator_color)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(" "),
-            Span::styled(status_text, Style::default().fg(status_color)),
         ];
+        status_line_spans.extend(status_spans);
 
-        if let Some(proto) = protocol {
-            status_spans.push(Span::styled("  |  ", Style::default().fg(theme.inactive)));
-            status_spans.push(Span::styled(proto, Style::default().fg(theme.secondary)));
-        }
-
-        let status_line = Line::from(status_spans);
+        let status_line = Line::from(status_line_spans);
 
         let block = Block::default()
             .borders(Borders::ALL)

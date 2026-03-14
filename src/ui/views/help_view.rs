@@ -22,7 +22,7 @@ fn format_keybinding(key: &KeyBinding) -> String {
 
 pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
     let theme = state.get_theme();
-    let block = centered_block("Help", &theme);
+    let block = centered_block("Help", &theme, true);
     let bindings = &state.key_bindings;
 
     let categories: Vec<(&str, Vec<(String, String)>)> = vec![

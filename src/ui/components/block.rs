@@ -4,9 +4,14 @@ use ratatui::{
     widgets::{Block, Borders},
 };
 
-pub fn centered_block(title: &str, theme: &Theme) -> Block<'static> {
+pub fn centered_block(title: &str, theme: &Theme, focused: bool) -> Block<'static> {
+    let border_color = if focused {
+        theme.block_border
+    } else {
+        theme.inactive
+    };
     Block::default()
         .title(format!(" {} ", title))
         .borders(Borders::ALL)
-        .style(Style::default().fg(theme.block_border))
+        .style(Style::default().fg(border_color))
 }

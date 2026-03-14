@@ -42,18 +42,18 @@ pub fn render_tools_view(
         .title(settings_title)
         .borders(Borders::ALL)
         .border_style(if is_settings_focused {
-            Style::default().fg(theme.selection)
+            Style::default().fg(theme.block_border)
         } else {
-            Style::default().fg(theme.secondary)
+            Style::default().fg(theme.inactive)
         });
 
     let logs_block = Block::default()
         .title(logs_title)
         .borders(Borders::ALL)
         .border_style(if is_logs_focused {
-            Style::default().fg(theme.selection)
+            Style::default().fg(theme.block_border)
         } else {
-            Style::default().fg(theme.secondary)
+            Style::default().fg(theme.inactive)
         });
 
     let settings_inner = settings_block.inner(settings_area);

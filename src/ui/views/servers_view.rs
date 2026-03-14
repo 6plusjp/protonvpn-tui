@@ -134,7 +134,7 @@ fn render_countries_pane(
         .collect();
 
     let title = countries_table.title_with_indicator(is_focused);
-    let block = centered_block(&title, theme);
+    let block = centered_block(&title, theme, is_focused);
 
     let table = Table::new(rows, widths)
         .header(header_row)
@@ -221,10 +221,10 @@ fn render_cities_pane(
         .collect();
 
     if cities.is_empty() && !is_loading {
-        let block = centered_block(&title, theme);
+        let block = centered_block(&title, theme, is_focused);
         let paragraph = ratatui::widgets::Paragraph::new("No cities available")
             .block(block)
-            .style(Style::default().fg(theme.secondary));
+            .style(Style::default().fg(theme.inactive));
         f.render_widget(paragraph, area);
         return;
     }
@@ -259,7 +259,7 @@ fn render_cities_pane(
         })
         .collect();
 
-    let block = centered_block(&title, theme);
+    let block = centered_block(&title, theme, is_focused);
 
     let table = Table::new(rows, widths)
         .header(header_row)

@@ -21,7 +21,7 @@
 
 - [x] 3.1 protonvpn-cliラッパー作成
 - [x] 3.2 サーバー一覧取得・キャッシュ
-- [x] 3.3 接続状態取得 (proton0インターフェース)
+- [x] 3.3 接続状態取得 (connection_persistence.json)
 - [x] 3.4 エラー処理・ログ出力
 - [x] 3.5 通知ポップアップシステム
 - [x] 3.6 Fuzzy検索対応 ("japan" → "JP")

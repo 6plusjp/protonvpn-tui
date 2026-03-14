@@ -81,7 +81,16 @@ impl SettingKey {
             SettingKey::ModerateNat => vec!["off", "on"],
             SettingKey::VpnAccelerator => vec!["off", "on"],
             SettingKey::PortForwarding => vec!["off", "on"],
-            SettingKey::Theme => vec!["Dark", "Light"],
+            SettingKey::Theme => vec![
+                "System",
+                "Terminal",
+                "Catppuccin Mocha",
+                "Catppuccin Latte",
+                "Dracula",
+                "Nord",
+                "Gruvbox",
+                "Tokyo Night",
+            ],
         }
     }
 

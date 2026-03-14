@@ -1,4 +1,5 @@
 use crate::config::SettingKey;
+use crate::ui::styles::ThemeMode;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},
@@ -26,7 +27,7 @@ pub fn render_settings_view(
     let mut all_items: Vec<ListItem> = Vec::new();
 
     for (idx, key) in SettingKey::ALL.iter().enumerate() {
-        let value = get_setting_value(key, proton_settings);
+        let value = get_setting_value(key, proton_settings, state.ui_state.theme_mode);
         let label = get_setting_label(key);
 
         let is_selected = selected == idx;
@@ -89,6 +90,7 @@ pub fn render_settings_view(
 fn get_setting_value(
     key: &SettingKey,
     proton_settings: Option<&crate::config::ProtonSettings>,
+    theme_mode: ThemeMode,
 ) -> String {
     let ps = match proton_settings {
         Some(p) => p,
@@ -160,7 +162,16 @@ fn get_setting_value(
                 }
             })
             .unwrap_or_else(|| "unknown".to_string()),
-        SettingKey::Theme => "Dark".to_string(),
+        SettingKey::Theme => match theme_mode {
+            ThemeMode::System => "System".to_string(),
+            ThemeMode::Terminal => "Terminal".to_string(),
+            ThemeMode::CatppuccinMocha => "Catppuccin Mocha".to_string(),
+            ThemeMode::CatppuccinLatte => "Catppuccin Latte".to_string(),
+            ThemeMode::Dracula => "Dracula".to_string(),
+            ThemeMode::Nord => "Nord".to_string(),
+            ThemeMode::Gruvbox => "Gruvbox".to_string(),
+            ThemeMode::TokyoNight => "Tokyo Night".to_string(),
+        },
     }
 }
 

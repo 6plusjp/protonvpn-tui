@@ -521,8 +521,20 @@ impl TuiApp {
 
                     if key == SettingKey::Theme {
                         self.state.ui_state.settings_expanded = false;
-                        self.state.ui_state.toggle_theme();
-                        let theme_name = match self.state.ui_state.theme_mode {
+                        let option_idx = self.state.ui_state.settings_option_selected;
+                        let new_mode = match option_idx {
+                            0 => ThemeMode::System,
+                            1 => ThemeMode::Terminal,
+                            2 => ThemeMode::CatppuccinMocha,
+                            3 => ThemeMode::CatppuccinLatte,
+                            4 => ThemeMode::Dracula,
+                            5 => ThemeMode::Nord,
+                            6 => ThemeMode::Gruvbox,
+                            7 => ThemeMode::TokyoNight,
+                            _ => ThemeMode::System,
+                        };
+                        self.state.ui_state.theme_mode = new_mode;
+                        let theme_name = match new_mode {
                             ThemeMode::System => "System",
                             ThemeMode::Terminal => "Terminal",
                             ThemeMode::CatppuccinMocha => "Catppuccin Mocha",

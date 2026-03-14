@@ -2,7 +2,7 @@ use crate::state::format_relative_time;
 use crate::state::{AppState, NotificationType};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Modifier, Style, Stylize},
+    style::{Modifier, Style},
     widgets::{Cell, Paragraph, Row, Table, TableState},
     Frame,
 };
@@ -92,7 +92,7 @@ pub fn render_logs_view(
     let table = Table::new(rows, widths)
         .header(header_row)
         .column_spacing(2)
-        .highlight_style(if is_focused {
+        .row_highlight_style(if is_focused {
             Style::default()
                 .fg(theme.foreground)
                 .bg(theme.selection)

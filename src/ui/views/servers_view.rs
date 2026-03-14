@@ -140,7 +140,7 @@ fn render_countries_pane(
         .header(header_row)
         .block(block)
         .column_spacing(2)
-        .highlight_style(if is_focused {
+        .row_highlight_style(if is_focused {
             Style::default()
                 .fg(theme.foreground)
                 .bg(theme.selection)
@@ -265,7 +265,7 @@ fn render_cities_pane(
         .header(header_row)
         .block(block)
         .column_spacing(2)
-        .highlight_style(if is_focused {
+        .row_highlight_style(if is_focused {
             Style::default()
                 .fg(theme.foreground)
                 .bg(theme.selection)

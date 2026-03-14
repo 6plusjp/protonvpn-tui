@@ -1,7 +1,7 @@
 # Issue 043: Add Multiple Theme Options
 
 **Date**: 2026-03-13  
-**Status**: Open  
+**Status**: In Progress  
 **Priority**: Medium  
 **Category**: Feature / UI
 
@@ -34,18 +34,40 @@ pub struct Theme {
 }
 ```
 
-- **Location**: `src/ui/styles.rs` (Theme struct + `dark()` / `light()` constructors)
-- **State**: `src/state/ui_state.rs` stores `is_dark_theme: bool`
+- **Location**: `src/ui/styles.rs` (Theme struct + `from_mode()` constructor)
+- **State**: `src/state/ui_state.rs` stores `theme_mode: ThemeMode`
 - **Access**: `src/state/app_state.rs` has `get_theme()` method
 
-### Adding New Themes
+### ThemeMode Enum
 
-To add a new theme, the following changes are needed:
+```rust
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
+pub enum ThemeMode {
+    #[default]
+    System,
+    Terminal,
+    CatppuccinMocha,
+    CatppuccinLatte,
+    Dracula,
+    Nord,
+    Gruvbox,
+    TokyoNight,
+}
+```
 
-1. Add a new constructor method in `src/ui/styles.rs` (e.g., `pub fn nord() -> Self`)
-2. Extend `UiState` to use a `ThemeMode` enum instead of `is_dark_theme: bool`
-3. Update `AppState.get_theme()` to match on the enum
-4. Add toggle logic in `toggle_settings()` in `app_state.rs`
+### Implemented Changes
+
+1. ✅ Added `ThemeMode` enum in `src/ui/styles.rs`
+2. ✅ Added theme constructor methods: `system()`, `terminal()`, `catppuccin_mocha()`, `catppuccin_latte()`, `dracula()`, `nord()`, `gruvbox()`, `tokyo_night()`
+3. ✅ Replaced `is_dark_theme: bool` with `theme_mode: ThemeMode` in `src/state/ui_state.rs`
+4. ✅ Updated `AppState.get_theme()` to use `Theme::from_mode()`
+5. ✅ Updated theme toggle logic in `toggle_theme()` (cycles through all themes)
+6. ✅ Upgraded ratatui from 0.26 to 0.30
+7. ✅ Fixed deprecated API calls for ratatui 0.30
+
+### Known Limitations
+
+- **Terminal theme**: Uses same colors as System theme. Ratatui 0.30 does not support `Color::Index(n)` for terminal ANSI colors. Requires future ratatui update or alternative approach.
 
 ---
 

@@ -2,7 +2,7 @@ use crate::config::SettingKey;
 use crate::constants::ui::{NOTIFICATION_MSG_MAX_LEN, POPUP_WIDTH_MAX, POPUP_WIDTH_MIN};
 use crate::state::{AppState, AppView, InputMode, Pane};
 use crate::ui::render::{Renderable, ServersViewState, ToolsViewState, View};
-use crate::ui::styles::Theme;
+use crate::ui::styles::{Theme, ThemeMode};
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
     execute,
@@ -47,11 +47,7 @@ impl TuiApp {
     }
 
     pub fn get_theme(&self) -> Theme {
-        if self.state.ui_state.is_dark_theme {
-            Theme::dark()
-        } else {
-            Theme::light()
-        }
+        Theme::from_mode(self.state.ui_state.theme_mode)
     }
 
     pub fn run(&mut self) -> io::Result<()> {
@@ -526,15 +522,18 @@ impl TuiApp {
                     if key == SettingKey::Theme {
                         self.state.ui_state.settings_expanded = false;
                         self.state.ui_state.toggle_theme();
+                        let theme_name = match self.state.ui_state.theme_mode {
+                            ThemeMode::System => "System",
+                            ThemeMode::Terminal => "Terminal",
+                            ThemeMode::CatppuccinMocha => "Catppuccin Mocha",
+                            ThemeMode::CatppuccinLatte => "Catppuccin Latte",
+                            ThemeMode::Dracula => "Dracula",
+                            ThemeMode::Nord => "Nord",
+                            ThemeMode::Gruvbox => "Gruvbox",
+                            ThemeMode::TokyoNight => "Tokyo Night",
+                        };
                         self.state.show_notification(
-                            format!(
-                                "Theme changed to {}",
-                                if self.state.ui_state.is_dark_theme {
-                                    "Dark"
-                                } else {
-                                    "Light"
-                                }
-                            ),
+                            format!("Theme changed to {}", theme_name),
                             crate::state::NotificationType::Info,
                             None,
                         );
@@ -829,7 +828,7 @@ impl TuiApp {
     fn render(&mut self, f: &mut Frame<'_>) {
         // Apply theme background to entire terminal
         let theme = self.get_theme();
-        let area = f.size();
+        let area = f.area();
         f.render_widget(
             Paragraph::new("").style(Style::default().bg(theme.background)),
             area,
@@ -847,7 +846,7 @@ impl TuiApp {
                     Constraint::Min(0),
                     Constraint::Length(1),
                 ])
-                .split(f.size());
+                .split(f.area());
 
             self.render_header(f, chunks[0]);
             self.render_dns_input(f, chunks[1]);
@@ -862,7 +861,7 @@ impl TuiApp {
                     Constraint::Min(0),
                     Constraint::Length(1),
                 ])
-                .split(f.size());
+                .split(f.area());
 
             self.render_header(f, chunks[0]);
             self.render_filter_input(f, chunks[1], has_filter_active);
@@ -919,7 +918,7 @@ impl TuiApp {
         f.render_widget(paragraph, area);
 
         if self.filter_mode && area.width > cursor as u16 + 2 {
-            f.set_cursor(area.x + cursor as u16 + 1, area.y + 1);
+            f.set_cursor_position((area.x + cursor as u16 + 1, area.y + 1));
         }
     }
 
@@ -946,13 +945,13 @@ impl TuiApp {
         f.render_widget(paragraph, area);
 
         if area.width > cursor as u16 + 2 {
-            f.set_cursor(area.x + cursor as u16 + 1, area.y + 1);
+            f.set_cursor_position((area.x + cursor as u16 + 1, area.y + 1));
         }
     }
 
     fn render_notification_popup(&self, f: &mut Frame<'_>) {
         let theme = self.get_theme();
-        let terminal = f.size();
+        let terminal = f.area();
 
         let notifications: Vec<_> = self
             .state

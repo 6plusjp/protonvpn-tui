@@ -3,6 +3,7 @@ use crate::state::Pane;
 use crate::state::ServerFilter;
 use crate::state::ServerSort;
 use crate::state::SortDirection;
+use crate::ui::styles::ThemeMode;
 use crate::vpn::Server;
 use std::fmt;
 use std::sync::RwLock;
@@ -30,7 +31,7 @@ pub struct UiState {
     pub filter: ServerFilter,
     pub sort: ServerSort,
     pub sort_direction: SortDirection,
-    pub is_dark_theme: bool,
+    pub theme_mode: ThemeMode,
     pub input_mode: InputMode,
     pub dns_input: String,
 }
@@ -57,14 +58,23 @@ impl UiState {
             filter: ServerFilter::default(),
             sort: ServerSort::default(),
             sort_direction: SortDirection::default(),
-            is_dark_theme: true,
+            theme_mode: ThemeMode::default(),
             input_mode: InputMode::Normal,
             dns_input: String::new(),
         }
     }
 
     pub fn toggle_theme(&mut self) {
-        self.is_dark_theme = !self.is_dark_theme;
+        self.theme_mode = match self.theme_mode {
+            ThemeMode::System => ThemeMode::Terminal,
+            ThemeMode::Terminal => ThemeMode::CatppuccinMocha,
+            ThemeMode::CatppuccinMocha => ThemeMode::CatppuccinLatte,
+            ThemeMode::CatppuccinLatte => ThemeMode::Dracula,
+            ThemeMode::Dracula => ThemeMode::Nord,
+            ThemeMode::Nord => ThemeMode::Gruvbox,
+            ThemeMode::Gruvbox => ThemeMode::TokyoNight,
+            ThemeMode::TokyoNight => ThemeMode::System,
+        };
     }
 
     pub fn reset_settings_selection(&mut self) {

@@ -17,7 +17,7 @@ use crate::state::ServerFilter;
 use crate::state::ServerSort;
 use crate::state::SortDirection;
 use crate::state::UiState;
-use crate::ui::styles::Theme;
+use crate::ui::styles::{Theme, ThemeMode};
 use crate::vpn::async_tasks::create_channel;
 use crate::vpn::ConnectResult;
 use crate::vpn::Server;
@@ -156,13 +156,9 @@ impl AppState {
         }
     }
 
-    /// Get current theme based on dark/light mode
+    /// Get current theme based on theme mode
     pub fn get_theme(&self) -> Theme {
-        if self.ui_state.is_dark_theme {
-            Theme::dark()
-        } else {
-            Theme::light()
-        }
+        Theme::from_mode(self.ui_state.theme_mode)
     }
 
     // === Getters for tight coupling reduction ===
@@ -1329,24 +1325,22 @@ impl AppState {
         }
 
         if key == SettingKey::Theme {
-            self.ui_state.is_dark_theme = !self.ui_state.is_dark_theme;
-            tracing::info!(
-                "Theme changed to {}",
-                if self.ui_state.is_dark_theme {
-                    "Dark"
-                } else {
-                    "Light"
-                }
-            );
+            let old_mode = self.ui_state.theme_mode;
+            self.ui_state.toggle_theme();
+            let new_mode = self.ui_state.theme_mode;
+            let theme_name = match new_mode {
+                ThemeMode::System => "System",
+                ThemeMode::Terminal => "Terminal",
+                ThemeMode::CatppuccinMocha => "Catppuccin Mocha",
+                ThemeMode::CatppuccinLatte => "Catppuccin Latte",
+                ThemeMode::Dracula => "Dracula",
+                ThemeMode::Nord => "Nord",
+                ThemeMode::Gruvbox => "Gruvbox",
+                ThemeMode::TokyoNight => "Tokyo Night",
+            };
+            tracing::info!("Theme changed from {:?} to {:?}", old_mode, new_mode);
             self.show_notification(
-                format!(
-                    "Theme changed to {}",
-                    if self.ui_state.is_dark_theme {
-                        "Dark"
-                    } else {
-                        "Light"
-                    }
-                ),
+                format!("Theme changed to {}", theme_name),
                 NotificationType::Info,
                 None,
             );

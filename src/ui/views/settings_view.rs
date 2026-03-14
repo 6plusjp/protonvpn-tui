@@ -1,7 +1,7 @@
 use crate::config::SettingKey;
 use ratatui::{
     layout::Rect,
-    style::{Modifier, Style, Stylize},
+    style::{Modifier, Style},
     text::Line,
     widgets::{List, ListItem, ListState},
     Frame,

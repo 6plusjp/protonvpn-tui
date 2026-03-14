@@ -1,5 +1,5 @@
 use ratatui::layout::Constraint;
-use ratatui::prelude::{Line, Modifier, Span, Style, Stylize};
+use ratatui::prelude::{Line, Modifier, Span, Style};
 use ratatui::widgets::Row;
 
 use crate::state::{ServerSort, SortDirection};

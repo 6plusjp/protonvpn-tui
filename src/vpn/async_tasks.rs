@@ -227,9 +227,9 @@ pub struct AsyncTaskManager {
 }
 
 impl AsyncTaskManager {
-    /// Create a new AsyncTaskManager with default number of workers (4).
+    /// Create a new AsyncTaskManager with default number of workers (10).
     pub fn new() -> Self {
-        Self::new_with_workers(4)
+        Self::new_with_workers(10)
     }
 
     /// Create a new AsyncTaskManager with a custom number of workers.

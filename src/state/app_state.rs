@@ -201,7 +201,7 @@ impl AppState {
         if let Some(idx) = self.ui_state.selected_server {
             if let Some(server) = self.filtered_servers().get(idx) {
                 self.current_country_code = Some(server.code.clone());
-                self.fetch_cities(&server.code);
+                self.fetch_cities(&server.code, true);
             }
         }
     }
@@ -1055,13 +1055,15 @@ impl AppState {
                 if self.current_country_code.as_deref() != Some(country_code) {
                     self.current_cities.clear();
                     self.current_country_code = Some(country_code.to_string());
-                    self.fetch_cities(country_code);
+                    self.fetch_cities(country_code, false);
                 }
             }
         }
     }
 
-    fn fetch_cities(&mut self, country_code: &str) {
+    const MAX_PENDING_CITY_FETCHES: usize = 5;
+
+    fn fetch_cities(&mut self, country_code: &str, force: bool) {
         let country_code = country_code.to_string();
 
         if let Some(cities) = self.vpn_state.cached_cities(&country_code) {
@@ -1069,10 +1071,30 @@ impl AppState {
             return;
         }
 
+        let already_pending = self
+            .connection_manager
+            .pending_cities
+            .contains_key(&country_code);
+
+        if already_pending {
+            if force {
+                self.connection_manager.pending_cities.remove(&country_code);
+            } else {
+                return;
+            }
+        }
+
+        if !force
+            && !already_pending
+            && self.connection_manager.pending_cities.len() >= Self::MAX_PENDING_CITY_FETCHES
+        {
+            return;
+        }
+
         self.show_notification(
             format!("Loading cities for {}...", country_code),
             NotificationType::Info,
-            Some(format!("cities:{}", country_code)),
+            None,
         );
 
         let (tx, rx) = create_channel();
@@ -1094,21 +1116,7 @@ impl AppState {
                 tracing::warn!("Failed to clear cities cache: {}", e);
             }
 
-            self.show_notification(
-                format!("Loading cities for {}...", country_code),
-                NotificationType::Info,
-                Some(format!("cities:{}", country_code)),
-            );
-
-            let (tx, rx) = create_channel();
-            self.connection_manager
-                .pending_cities
-                .insert(country_code.clone(), rx);
-            self.connection_manager.async_manager.spawn_cities(
-                self.vpn_state.clone(),
-                country_code,
-                tx,
-            );
+            self.fetch_cities(&country_code, true);
         }
     }
 
@@ -1162,7 +1170,7 @@ impl AppState {
             if let Some(server) = servers.get(idx) {
                 self.current_cities.clear();
                 self.current_country_code = Some(server.code.clone());
-                self.fetch_cities(&server.code);
+                self.fetch_cities(&server.code, true);
             }
         }
         self.ui_state.pane_focus = Pane::Cities;

@@ -127,7 +127,7 @@ fn render_countries_pane(
             Row::new(vec![
                 Cell::from(server.code.clone()),
                 Cell::from(server.country.clone()),
-                Cell::from(cities_str),
+                Cell::from(cities_str).style(Style::default().fg(theme.muted)),
             ])
             .style(style)
         })
@@ -252,7 +252,7 @@ fn render_cities_pane(
             } else {
                 Row::new(vec![
                     Cell::from(city_name.clone()),
-                    Cell::from(features.clone()),
+                    Cell::from(features.clone()).style(Style::default().fg(theme.muted)),
                 ])
                 .style(style)
             }

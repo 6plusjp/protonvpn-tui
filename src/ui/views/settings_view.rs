@@ -60,7 +60,7 @@ pub fn render_settings_view(
                     let opt_line = format!("  {} {}", prefix, option);
                     all_items.push(
                         ListItem::from(Line::from(opt_line))
-                            .style(Style::default().fg(theme.foreground).dim()),
+                            .style(Style::default().fg(theme.inactive)),
                     );
                 }
             }

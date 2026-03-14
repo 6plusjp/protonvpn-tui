@@ -81,7 +81,7 @@ pub fn render_logs_view(
             Row::new(vec![
                 Cell::from(type_cell).style(Style::default().fg(color)),
                 Cell::from(n.message.clone()),
-                Cell::from(time_cell),
+                Cell::from(time_cell).style(Style::default().fg(theme.muted)),
             ])
         })
         .collect();

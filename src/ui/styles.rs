@@ -27,11 +27,14 @@ pub struct Theme {
     pub error: Color,
     pub success: Color,
     pub warning: Color,
-    // New fields for unified styling
     pub block_border: Color,
     pub selection: Color,
     pub connected: Color,
     pub key_hint: Color,
+    pub inactive: Color,
+    pub scrollbar: Color,
+    pub disabled: Color,
+    pub muted: Color,
 }
 
 impl Default for Theme {
@@ -76,6 +79,10 @@ impl Theme {
             selection: Color::Cyan,
             connected: Color::Green,
             key_hint: Color::Yellow,
+            inactive: Color::DarkGray,
+            scrollbar: Color::DarkGray,
+            disabled: Color::DarkGray,
+            muted: Color::Gray,
         }
     }
 
@@ -93,6 +100,10 @@ impl Theme {
             selection: Color::Cyan,
             connected: Color::Green,
             key_hint: Color::Yellow,
+            inactive: Color::DarkGray,
+            scrollbar: Color::DarkGray,
+            disabled: Color::DarkGray,
+            muted: Color::Gray,
         }
     }
 
@@ -110,6 +121,10 @@ impl Theme {
             selection: Color::Rgb(0x45, 0x52, 0x6b),
             connected: Color::Rgb(0xa6, 0xe3, 0xa1),
             key_hint: Color::Rgb(0xf9, 0xe2, 0xaf),
+            inactive: Color::Rgb(0x6c, 0x70, 0x86),
+            scrollbar: Color::Rgb(0x45, 0x52, 0x6b),
+            disabled: Color::Rgb(0x6c, 0x70, 0x86),
+            muted: Color::Rgb(0x6c, 0x70, 0x86),
         }
     }
 
@@ -127,6 +142,10 @@ impl Theme {
             selection: Color::Rgb(0xcc, 0xd0, 0xe0),
             connected: Color::Rgb(0x40, 0xa0, 0x2e),
             key_hint: Color::Rgb(0xdf, 0x8e, 0x1d),
+            inactive: Color::Rgb(0x9c, 0xa0, 0xb0),
+            scrollbar: Color::Rgb(0xcc, 0xd0, 0xe0),
+            disabled: Color::Rgb(0x9c, 0xa0, 0xb0),
+            muted: Color::Rgb(0x9c, 0xa0, 0xb0),
         }
     }
 
@@ -144,6 +163,10 @@ impl Theme {
             selection: Color::Rgb(0x44, 0x49, 0x5a),
             connected: Color::Rgb(0x50, 0xfa, 0x7b),
             key_hint: Color::Rgb(0xf1, 0xfa, 0x8c),
+            inactive: Color::Rgb(0x62, 0x72, 0x88),
+            scrollbar: Color::Rgb(0x44, 0x49, 0x5a),
+            disabled: Color::Rgb(0x62, 0x72, 0x88),
+            muted: Color::Rgb(0x62, 0x72, 0x88),
         }
     }
 
@@ -161,6 +184,10 @@ impl Theme {
             selection: Color::Rgb(0x43, 0x4c, 0x5e),
             connected: Color::Rgb(0xa3, 0xbe, 0x8c),
             key_hint: Color::Rgb(0xeb, 0xcb, 0x8b),
+            inactive: Color::Rgb(0x4c, 0x56, 0x6a),
+            scrollbar: Color::Rgb(0x43, 0x4c, 0x5e),
+            disabled: Color::Rgb(0x4c, 0x56, 0x6a),
+            muted: Color::Rgb(0x4c, 0x56, 0x6a),
         }
     }
 
@@ -178,6 +205,10 @@ impl Theme {
             selection: Color::Rgb(0x50, 0x49, 0x3e),
             connected: Color::Rgb(0xb8, 0xbb, 0x26),
             key_hint: Color::Rgb(0xfa, 0xbd, 0x2f),
+            inactive: Color::Rgb(0x66, 0x5d, 0x4e),
+            scrollbar: Color::Rgb(0x50, 0x49, 0x3e),
+            disabled: Color::Rgb(0x66, 0x5d, 0x4e),
+            muted: Color::Rgb(0x66, 0x5d, 0x4e),
         }
     }
 
@@ -195,6 +226,10 @@ impl Theme {
             selection: Color::Rgb(0x36, 0x3d, 0x52),
             connected: Color::Rgb(0x9e, 0xce, 0x6a),
             key_hint: Color::Rgb(0xe0, 0xaf, 0x68),
+            inactive: Color::Rgb(0x56, 0x5f, 0x75),
+            scrollbar: Color::Rgb(0x36, 0x3d, 0x52),
+            disabled: Color::Rgb(0x56, 0x5f, 0x75),
+            muted: Color::Rgb(0x56, 0x5f, 0x75),
         }
     }
 }

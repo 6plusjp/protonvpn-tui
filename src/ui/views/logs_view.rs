@@ -22,7 +22,7 @@ pub fn render_logs_view(
             vec![Row::new(vec![Cell::from("No logs yet")])],
             vec![Constraint::Fill(1)],
         )
-        .style(Style::default().fg(theme.secondary));
+        .style(Style::default().fg(theme.warning));
         f.render_widget(empty_table, area);
         return;
     }
@@ -99,7 +99,7 @@ pub fn render_logs_view(
                 .bg(theme.selection)
                 .add_modifier(Modifier::BOLD)
         } else {
-            Style::default().fg(theme.foreground)
+            Style::default()
         })
         .highlight_symbol("> ");
 

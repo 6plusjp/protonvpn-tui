@@ -146,7 +146,7 @@ fn render_countries_pane(
                 .bg(theme.selection)
                 .add_modifier(Modifier::BOLD)
         } else {
-            Style::default().fg(theme.foreground)
+            Style::default()
         })
         .highlight_symbol("> ");
 
@@ -271,7 +271,7 @@ fn render_cities_pane(
                 .bg(theme.selection)
                 .add_modifier(Modifier::BOLD)
         } else {
-            Style::default().fg(theme.foreground)
+            Style::default()
         })
         .highlight_symbol("> ");
 

@@ -301,22 +301,17 @@ impl VpnClient {
         )))
     }
 
-    /// Check if VPN is connected (by checking proton0 interface)
     pub fn is_connected(&self) -> bool {
-        // Check proton0 interface for active connection
-        match Command::new("ip")
-            .args(["addr", "show", "proton0"])
-            .output()
-        {
-            Ok(output) => {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                stdout.contains("inet ")
-            }
-            Err(e) => {
-                tracing::debug!("Failed to check proton0 interface: {}", e);
-                false
-            }
-        }
+        let persistence_path = dirs::cache_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("Proton")
+            .join("VPN")
+            .join("connection")
+            .join("connection_persistence.json");
+
+        let connected = persistence_path.exists();
+        tracing::debug!("Connected (persistence file): {}", connected);
+        connected
     }
 
     /// Get connected server name and IP from connection_persistence.json

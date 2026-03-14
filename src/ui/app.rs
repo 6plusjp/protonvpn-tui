@@ -1164,25 +1164,31 @@ impl TuiApp {
         if is_help_view {
             text.spans.push(Span::raw(" "));
             text.spans.extend(vec![
-                Span::raw("["),
+                Span::styled("[", Style::default().fg(theme.inactive)),
                 Span::styled("Tab", Style::default().fg(theme.key_hint)),
-                Span::raw("] switch view "),
-                Span::raw("["),
+                Span::styled("] ", Style::default().fg(theme.inactive)),
+                Span::styled("switch view", Style::default().fg(theme.inactive)),
+                Span::styled("  ", Style::default().fg(theme.inactive)),
+                Span::styled("[", Style::default().fg(theme.inactive)),
                 Span::styled("q", Style::default().fg(theme.key_hint)),
-                Span::raw("] quit"),
+                Span::styled("]", Style::default().fg(theme.inactive)),
             ]);
         } else {
             text.spans.push(Span::raw(" "));
             text.spans.extend(vec![
-                Span::raw("["),
+                Span::styled("[", Style::default().fg(theme.inactive)),
                 Span::styled("Tab", Style::default().fg(theme.key_hint)),
-                Span::raw("] switch view "),
-                Span::raw("["),
+                Span::styled("] ", Style::default().fg(theme.inactive)),
+                Span::styled("switch view", Style::default().fg(theme.inactive)),
+                Span::styled("  ", Style::default().fg(theme.inactive)),
+                Span::styled("[", Style::default().fg(theme.inactive)),
                 Span::styled("?", Style::default().fg(theme.key_hint)),
-                Span::raw("] help "),
-                Span::raw("["),
+                Span::styled("] ", Style::default().fg(theme.inactive)),
+                Span::styled("help", Style::default().fg(theme.inactive)),
+                Span::styled("  ", Style::default().fg(theme.inactive)),
+                Span::styled("[", Style::default().fg(theme.inactive)),
                 Span::styled("q", Style::default().fg(theme.key_hint)),
-                Span::raw("] quit"),
+                Span::styled("]", Style::default().fg(theme.inactive)),
             ]);
         }
 
@@ -1199,62 +1205,84 @@ impl TuiApp {
         ) {
             (AppView::Servers, Pane::Countries) => {
                 let mut hints = vec![
-                    Span::raw("["),
+                    Span::styled("[", Style::default().fg(theme.inactive)),
                     Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                    Span::raw("] navigate "),
-                    Span::raw("["),
+                    Span::styled("]  ", Style::default().fg(theme.inactive)),
+                    Span::styled("navigate", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.inactive)),
                     Span::styled("l/Enter", Style::default().fg(theme.key_hint)),
-                    Span::raw("] cities "),
-                    Span::raw("["),
+                    Span::styled("]  ", Style::default().fg(theme.inactive)),
+                    Span::styled("cities", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.inactive)),
                     Span::styled("c", Style::default().fg(theme.key_hint)),
-                    Span::raw("] connect "),
+                    Span::styled("]  ", Style::default().fg(theme.inactive)),
+                    Span::styled("connect", Style::default().fg(theme.inactive)),
                 ];
                 if !is_disconnected {
                     hints.extend([
-                        Span::raw("["),
+                        Span::styled("  ", Style::default().fg(theme.inactive)),
+                        Span::styled("[", Style::default().fg(theme.inactive)),
                         Span::styled("d", Style::default().fg(theme.key_hint)),
-                        Span::raw("] disconnect "),
+                        Span::styled("]  ", Style::default().fg(theme.inactive)),
+                        Span::styled("disconnect", Style::default().fg(theme.inactive)),
                     ]);
                 }
                 hints.extend([
-                    Span::raw("["),
+                    Span::styled("  ", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.inactive)),
                     Span::styled("r", Style::default().fg(theme.key_hint)),
-                    Span::raw("] refresh "),
-                    Span::raw("["),
+                    Span::styled("]  ", Style::default().fg(theme.inactive)),
+                    Span::styled("refresh", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.inactive)),
                     Span::styled("f", Style::default().fg(theme.key_hint)),
-                    Span::raw("] fastest "),
-                    Span::raw("["),
+                    Span::styled("]  ", Style::default().fg(theme.inactive)),
+                    Span::styled("fastest", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.inactive)),
                     Span::styled("p", Style::default().fg(theme.key_hint)),
-                    Span::raw("] p2p "),
-                    Span::raw("["),
+                    Span::styled("]  ", Style::default().fg(theme.inactive)),
+                    Span::styled("p2p", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.inactive)),
                     Span::styled("t", Style::default().fg(theme.key_hint)),
-                    Span::raw("] tor "),
-                    Span::raw("["),
+                    Span::styled("]  ", Style::default().fg(theme.inactive)),
+                    Span::styled("tor", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.inactive)),
                     Span::styled("s", Style::default().fg(theme.key_hint)),
-                    Span::raw("] sc"),
+                    Span::styled("]", Style::default().fg(theme.inactive)),
                 ]);
                 hints
             }
             (AppView::Servers, Pane::Cities) => {
                 let mut hints = vec![
-                    Span::raw("["),
+                    Span::styled("[", Style::default().fg(theme.inactive)),
                     Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                    Span::raw("] navigate "),
-                    Span::raw("["),
+                    Span::styled("]  ", Style::default().fg(theme.inactive)),
+                    Span::styled("navigate", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.inactive)),
                     Span::styled("c/Enter", Style::default().fg(theme.key_hint)),
-                    Span::raw("] connect "),
+                    Span::styled("]  ", Style::default().fg(theme.inactive)),
+                    Span::styled("connect", Style::default().fg(theme.inactive)),
                 ];
                 if !is_disconnected {
                     hints.extend([
-                        Span::raw("["),
+                        Span::styled("  ", Style::default().fg(theme.inactive)),
+                        Span::styled("[", Style::default().fg(theme.inactive)),
                         Span::styled("d", Style::default().fg(theme.key_hint)),
-                        Span::raw("] disconnect "),
+                        Span::styled("]  ", Style::default().fg(theme.inactive)),
+                        Span::styled("disconnect", Style::default().fg(theme.inactive)),
                     ]);
                 }
                 hints.extend([
-                    Span::raw("["),
+                    Span::styled("  ", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.inactive)),
                     Span::styled("h", Style::default().fg(theme.key_hint)),
-                    Span::raw("] countries"),
+                    Span::styled("]", Style::default().fg(theme.inactive)),
                 ]);
                 hints
             }
@@ -1262,12 +1290,14 @@ impl TuiApp {
                 vec![]
             }
             (AppView::Help, _) => vec![
-                Span::raw("["),
+                Span::styled("[", Style::default().fg(theme.inactive)),
                 Span::styled("Esc", Style::default().fg(theme.key_hint)),
-                Span::raw("] return "),
-                Span::raw("["),
+                Span::styled("]  ", Style::default().fg(theme.inactive)),
+                Span::styled("return", Style::default().fg(theme.inactive)),
+                Span::styled("  ", Style::default().fg(theme.inactive)),
+                Span::styled("[", Style::default().fg(theme.inactive)),
                 Span::styled("?", Style::default().fg(theme.key_hint)),
-                Span::raw("] return"),
+                Span::styled("]", Style::default().fg(theme.inactive)),
             ],
             _ => vec![],
         }

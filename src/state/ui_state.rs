@@ -66,7 +66,6 @@ impl Default for UiState {
 impl UiState {
     pub fn from_config(theme: &str, show_footer: bool) -> Self {
         let theme_mode = match theme {
-            "Terminal" => ThemeMode::Terminal,
             "CatppuccinMocha" => ThemeMode::CatppuccinMocha,
             "CatppuccinLatte" => ThemeMode::CatppuccinLatte,
             "Dracula" => ThemeMode::Dracula,
@@ -99,8 +98,7 @@ impl UiState {
 
     pub fn toggle_theme(&mut self) {
         self.theme_mode = match self.theme_mode {
-            ThemeMode::System => ThemeMode::Terminal,
-            ThemeMode::Terminal => ThemeMode::CatppuccinMocha,
+            ThemeMode::System => ThemeMode::CatppuccinMocha,
             ThemeMode::CatppuccinMocha => ThemeMode::CatppuccinLatte,
             ThemeMode::CatppuccinLatte => ThemeMode::Dracula,
             ThemeMode::Dracula => ThemeMode::Nord,

@@ -712,19 +712,17 @@ impl TuiApp {
                         let option_idx = self.state.ui_state.settings_option_selected;
                         let new_mode = match option_idx {
                             0 => ThemeMode::System,
-                            1 => ThemeMode::Terminal,
-                            2 => ThemeMode::CatppuccinMocha,
-                            3 => ThemeMode::CatppuccinLatte,
-                            4 => ThemeMode::Dracula,
-                            5 => ThemeMode::Nord,
-                            6 => ThemeMode::Gruvbox,
-                            7 => ThemeMode::TokyoNight,
+                            1 => ThemeMode::CatppuccinMocha,
+                            2 => ThemeMode::CatppuccinLatte,
+                            3 => ThemeMode::Dracula,
+                            4 => ThemeMode::Nord,
+                            5 => ThemeMode::Gruvbox,
+                            6 => ThemeMode::TokyoNight,
                             _ => ThemeMode::System,
                         };
                         self.state.save_theme(new_mode);
                         let theme_name = match new_mode {
                             ThemeMode::System => "System",
-                            ThemeMode::Terminal => "Terminal",
                             ThemeMode::CatppuccinMocha => "Catppuccin Mocha",
                             ThemeMode::CatppuccinLatte => "Catppuccin Latte",
                             ThemeMode::Dracula => "Dracula",

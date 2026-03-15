@@ -173,7 +173,6 @@ impl AppState {
         self.ui_state.theme_mode = theme_mode;
         let theme_str = match theme_mode {
             ThemeMode::System => "System",
-            ThemeMode::Terminal => "Terminal",
             ThemeMode::CatppuccinMocha => "CatppuccinMocha",
             ThemeMode::CatppuccinLatte => "CatppuccinLatte",
             ThemeMode::Dracula => "Dracula",
@@ -1360,7 +1359,6 @@ impl AppState {
             let new_mode = self.ui_state.theme_mode;
             let theme_name = match new_mode {
                 ThemeMode::System => "System",
-                ThemeMode::Terminal => "Terminal",
                 ThemeMode::CatppuccinMocha => "Catppuccin Mocha",
                 ThemeMode::CatppuccinLatte => "Catppuccin Latte",
                 ThemeMode::Dracula => "Dracula",

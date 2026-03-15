@@ -97,7 +97,6 @@ fn get_setting_value(
     if matches!(key, SettingKey::Theme) {
         return match theme_mode {
             ThemeMode::System => "System".to_string(),
-            ThemeMode::Terminal => "Terminal".to_string(),
             ThemeMode::CatppuccinMocha => "Catppuccin Mocha".to_string(),
             ThemeMode::CatppuccinLatte => "Catppuccin Latte".to_string(),
             ThemeMode::Dracula => "Dracula".to_string(),

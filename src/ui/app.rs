@@ -139,6 +139,171 @@ impl TuiApp {
 
     fn handle_common_keys(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
         let is_help_view = self.state.ui_state.current_view == AppView::Help;
+        let bindings = &self.state.key_bindings;
+
+        // Global connect/disconnect shortcuts that work from any view
+        let is_disconnect = bindings
+            .disconnect
+            .matches(key_event.code, key_event.modifiers);
+        let is_connect_fastest = bindings
+            .connect_fastest
+            .matches(key_event.code, key_event.modifiers);
+        let is_connect_p2p = bindings
+            .connect_p2p
+            .matches(key_event.code, key_event.modifiers);
+        let is_connect_tor = bindings
+            .connect_tor
+            .matches(key_event.code, key_event.modifiers);
+        let is_securecore = bindings
+            .securecore
+            .matches(key_event.code, key_event.modifiers);
+        let is_random_connect = bindings
+            .random_connect
+            .matches(key_event.code, key_event.modifiers);
+
+        // Handle disconnect - works from any view
+        if is_disconnect {
+            match self.state.connection_manager.connection {
+                crate::state::ConnectionState::Disconnected => {
+                    self.state.show_notification(
+                        "Not connected".to_string(),
+                        crate::state::NotificationType::Info,
+                        None,
+                    );
+                }
+                crate::state::ConnectionState::Disconnecting => {
+                    self.state.show_notification(
+                        "Already disconnecting...".to_string(),
+                        crate::state::NotificationType::Warning,
+                        None,
+                    );
+                }
+                _ => {
+                    self.handle_disconnect();
+                }
+            }
+            return None;
+        }
+
+        // Handle connect fastest - works from any view
+        if is_connect_fastest {
+            match self.state.connection_manager.connection {
+                crate::state::ConnectionState::Connecting => {
+                    self.state.show_notification(
+                        "Connection in progress...".to_string(),
+                        crate::state::NotificationType::Warning,
+                        Some("connect".to_string()),
+                    );
+                }
+                crate::state::ConnectionState::Disconnecting => {
+                    self.state.show_notification(
+                        "Disconnecting...".to_string(),
+                        crate::state::NotificationType::Warning,
+                        Some("disconnect".to_string()),
+                    );
+                }
+                _ => {
+                    self.handle_connect_fastest();
+                }
+            }
+            return None;
+        }
+
+        // Handle connect p2p - works from any view
+        if is_connect_p2p {
+            match self.state.connection_manager.connection {
+                crate::state::ConnectionState::Connecting => {
+                    self.state.show_notification(
+                        "Connection in progress...".to_string(),
+                        crate::state::NotificationType::Warning,
+                        Some("connect".to_string()),
+                    );
+                }
+                crate::state::ConnectionState::Disconnecting => {
+                    self.state.show_notification(
+                        "Disconnecting...".to_string(),
+                        crate::state::NotificationType::Warning,
+                        Some("disconnect".to_string()),
+                    );
+                }
+                _ => {
+                    self.handle_connect_p2p();
+                }
+            }
+            return None;
+        }
+
+        // Handle connect tor - works from any view
+        if is_connect_tor {
+            match self.state.connection_manager.connection {
+                crate::state::ConnectionState::Connecting => {
+                    self.state.show_notification(
+                        "Connection in progress...".to_string(),
+                        crate::state::NotificationType::Warning,
+                        Some("connect".to_string()),
+                    );
+                }
+                crate::state::ConnectionState::Disconnecting => {
+                    self.state.show_notification(
+                        "Disconnecting...".to_string(),
+                        crate::state::NotificationType::Warning,
+                        Some("disconnect".to_string()),
+                    );
+                }
+                _ => {
+                    self.handle_connect_tor();
+                }
+            }
+            return None;
+        }
+
+        // Handle securecore - works from any view
+        if is_securecore {
+            match self.state.connection_manager.connection {
+                crate::state::ConnectionState::Connecting => {
+                    self.state.show_notification(
+                        "Connection in progress...".to_string(),
+                        crate::state::NotificationType::Warning,
+                        Some("connect".to_string()),
+                    );
+                }
+                crate::state::ConnectionState::Disconnecting => {
+                    self.state.show_notification(
+                        "Disconnecting...".to_string(),
+                        crate::state::NotificationType::Warning,
+                        Some("disconnect".to_string()),
+                    );
+                }
+                _ => {
+                    self.handle_connect_securecore();
+                }
+            }
+            return None;
+        }
+
+        // Handle random connect - works from any view
+        if is_random_connect {
+            match self.state.connection_manager.connection {
+                crate::state::ConnectionState::Connecting => {
+                    self.state.show_notification(
+                        "Connection in progress...".to_string(),
+                        crate::state::NotificationType::Warning,
+                        Some("connect".to_string()),
+                    );
+                }
+                crate::state::ConnectionState::Disconnecting => {
+                    self.state.show_notification(
+                        "Disconnecting...".to_string(),
+                        crate::state::NotificationType::Warning,
+                        Some("disconnect".to_string()),
+                    );
+                }
+                _ => {
+                    self.handle_connect_random();
+                }
+            }
+            return None;
+        }
 
         match key_event.code {
             KeyCode::Char('q') => Some(AppAction::Quit),
@@ -1411,38 +1576,79 @@ impl TuiApp {
                     Span::styled("]", Style::default().fg(theme.inactive)),
                     Span::styled("toggle expand", Style::default().fg(theme.foreground)),
                 ];
-                if is_disconnected {
-                    hints.extend([
-                        Span::styled("  ", Style::default().fg(theme.inactive)),
-                        Span::styled("[", Style::default().fg(theme.inactive)),
-                        Span::styled("c", Style::default().fg(theme.key_hint)),
-                        Span::styled("]", Style::default().fg(theme.inactive)),
-                        Span::styled("connect", Style::default().fg(theme.foreground)),
-                    ]);
-                }
+                hints.extend(self.get_global_connect_hints(&theme, is_disconnected));
                 hints
             }
-            (AppView::Tools, Pane::Logs) => vec![
-                Span::styled("[", Style::default().fg(theme.inactive)),
-                Span::styled("j/k", Style::default().fg(theme.key_hint)),
-                Span::styled("]", Style::default().fg(theme.inactive)),
-                Span::styled("navigate", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.inactive)),
-                Span::styled("[", Style::default().fg(theme.inactive)),
-                Span::styled("h", Style::default().fg(theme.key_hint)),
-                Span::styled("]", Style::default().fg(theme.inactive)),
-                Span::styled("settings", Style::default().fg(theme.foreground)),
-            ],
-            (AppView::Help, _) => vec![
-                Span::styled("[", Style::default().fg(theme.inactive)),
-                Span::styled("Esc", Style::default().fg(theme.key_hint)),
-                Span::styled("/", Style::default().fg(theme.inactive)),
-                Span::styled("?", Style::default().fg(theme.key_hint)),
-                Span::styled("]", Style::default().fg(theme.inactive)),
-                Span::styled("return", Style::default().fg(theme.foreground)),
-            ],
+            (AppView::Tools, Pane::Logs) => {
+                let mut hints = vec![
+                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("j/k", Style::default().fg(theme.key_hint)),
+                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("navigate", Style::default().fg(theme.foreground)),
+                    Span::styled("  ", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("h", Style::default().fg(theme.key_hint)),
+                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("settings", Style::default().fg(theme.foreground)),
+                ];
+                hints.extend(self.get_global_connect_hints(&theme, is_disconnected));
+                hints
+            }
+            (AppView::Help, _) => {
+                let mut hints = vec![
+                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("Esc", Style::default().fg(theme.key_hint)),
+                    Span::styled("/", Style::default().fg(theme.inactive)),
+                    Span::styled("?", Style::default().fg(theme.key_hint)),
+                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("return", Style::default().fg(theme.foreground)),
+                ];
+                hints.extend(self.get_global_connect_hints(&theme, is_disconnected));
+                hints
+            }
             _ => vec![],
         }
+    }
+
+    fn get_global_connect_hints(&self, theme: &Theme, is_disconnected: bool) -> Vec<Span<'_>> {
+        let mut hints = vec![];
+        if !is_disconnected {
+            hints.extend([
+                Span::styled("  ", Style::default().fg(theme.inactive)),
+                Span::styled("[", Style::default().fg(theme.inactive)),
+                Span::styled("d", Style::default().fg(theme.key_hint)),
+                Span::styled("]", Style::default().fg(theme.inactive)),
+                Span::styled("disconnect", Style::default().fg(theme.foreground)),
+            ]);
+        }
+        hints.extend([
+            Span::styled("  ", Style::default().fg(theme.inactive)),
+            Span::styled("[", Style::default().fg(theme.inactive)),
+            Span::styled("f", Style::default().fg(theme.key_hint)),
+            Span::styled("]", Style::default().fg(theme.inactive)),
+            Span::styled("fastest", Style::default().fg(theme.foreground)),
+            Span::styled("  ", Style::default().fg(theme.inactive)),
+            Span::styled("[", Style::default().fg(theme.inactive)),
+            Span::styled("p", Style::default().fg(theme.key_hint)),
+            Span::styled("]", Style::default().fg(theme.inactive)),
+            Span::styled("p2p", Style::default().fg(theme.foreground)),
+            Span::styled("  ", Style::default().fg(theme.inactive)),
+            Span::styled("[", Style::default().fg(theme.inactive)),
+            Span::styled("t", Style::default().fg(theme.key_hint)),
+            Span::styled("]", Style::default().fg(theme.inactive)),
+            Span::styled("tor", Style::default().fg(theme.foreground)),
+            Span::styled("  ", Style::default().fg(theme.inactive)),
+            Span::styled("[", Style::default().fg(theme.inactive)),
+            Span::styled("s", Style::default().fg(theme.key_hint)),
+            Span::styled("]", Style::default().fg(theme.inactive)),
+            Span::styled("securecore", Style::default().fg(theme.foreground)),
+            Span::styled("  ", Style::default().fg(theme.inactive)),
+            Span::styled("[", Style::default().fg(theme.inactive)),
+            Span::styled("r", Style::default().fg(theme.key_hint)),
+            Span::styled("]", Style::default().fg(theme.inactive)),
+            Span::styled("random", Style::default().fg(theme.foreground)),
+        ]);
+        hints
     }
 }
 

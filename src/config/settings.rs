@@ -85,7 +85,6 @@ impl SettingKey {
             SettingKey::PortForwarding => vec!["off", "on"],
             SettingKey::Theme => vec![
                 "System",
-                "Terminal",
                 "Catppuccin Mocha",
                 "Catppuccin Latte",
                 "Dracula",

@@ -1,4 +1,4 @@
-use crate::config::KeyBinding;
+use crate::config::{KeyBinding, UserConfig};
 use crate::ui::components::{centered_block, key_hint_style};
 use ratatui::{
     layout::Rect,
@@ -159,7 +159,7 @@ pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
         normal_style,
     )]));
     help_text.push(Line::from(vec![Span::styled(
-        "  ~/.config/protonvpn-tui/keybindings.json",
+        UserConfig::config_display_path(),
         normal_style,
     )]));
 

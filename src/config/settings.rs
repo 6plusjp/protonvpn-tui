@@ -3,6 +3,9 @@
 use crossterm::event::{KeyCode, KeyModifiers};
 use serde::{Deserialize, Serialize};
 
+pub const CONFIG_FILE_NAME: &str = "config.toml";
+pub const CONFIG_DISPLAY_PATH: &str = "~/.config/protonvpn-tui/config.toml";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum KeyModifier {
     None,

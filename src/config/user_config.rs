@@ -1,4 +1,4 @@
-use crate::config::{KeyBinding, KeyBindings, KeyModifier};
+use crate::config::{KeyBinding, KeyBindings, KeyModifier, CONFIG_DISPLAY_PATH, CONFIG_FILE_NAME};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -209,7 +209,21 @@ impl UserConfig {
     }
 
     fn get_config_path() -> Option<PathBuf> {
-        Self::get_config_dir().map(|p| p.join("config.toml"))
+        Self::get_config_dir().map(|p| p.join(CONFIG_FILE_NAME))
+    }
+
+    pub fn config_display_path() -> String {
+        if let Some(xdg_config) = std::env::var_os("XDG_CONFIG_HOME") {
+            let path = PathBuf::from(xdg_config)
+                .join("protonvpn-tui")
+                .join(CONFIG_FILE_NAME);
+            return path.to_string_lossy().to_string();
+        }
+        if let Some(config_dir) = dirs::config_dir() {
+            let path = config_dir.join("protonvpn-tui").join(CONFIG_FILE_NAME);
+            return path.to_string_lossy().to_string();
+        }
+        CONFIG_DISPLAY_PATH.to_string()
     }
 
     pub fn load() -> Self {

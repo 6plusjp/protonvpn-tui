@@ -36,6 +36,17 @@ pub struct VpnClient {
     cache_path: PathBuf,
 }
 
+impl VpnClient {
+    fn persistence_file_path(&self) -> PathBuf {
+        dirs::cache_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("Proton")
+            .join("VPN")
+            .join("connection")
+            .join("connection_persistence.json")
+    }
+}
+
 impl Default for VpnClient {
     fn default() -> Self {
         Self::new()
@@ -251,26 +262,26 @@ impl VpnClient {
     }
 
     pub fn is_connected(&self) -> bool {
-        let persistence_path = dirs::cache_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("Proton")
-            .join("VPN")
-            .join("connection")
-            .join("connection_persistence.json");
+        let proton0_exists = std::path::Path::new("/sys/class/net/proton0").exists();
+        if !proton0_exists {
+            tracing::debug!("Connected (proton0): false");
+            return false;
+        }
 
-        let connected = persistence_path.exists();
-        tracing::debug!("Connected (persistence file): {}", connected);
-        connected
+        let persistence_path = self.persistence_file_path();
+        let persistence_exists = persistence_path.exists();
+        tracing::debug!(
+            "Connected check: proton0={}, persistence={}",
+            proton0_exists,
+            persistence_exists
+        );
+
+        persistence_exists
     }
 
     /// Get connected server name and IP from connection_persistence.json
     pub fn get_connected_server_info(&self) -> Option<(String, String)> {
-        let persistence_path = dirs::cache_dir()?
-            .join("Proton")
-            .join("VPN")
-            .join("connection")
-            .join("connection_persistence.json");
-
+        let persistence_path = self.persistence_file_path();
         let content = std::fs::read_to_string(persistence_path).ok()?;
 
         #[derive(serde::Deserialize)]

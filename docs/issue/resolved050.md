@@ -4,6 +4,58 @@
 
 `VpnClient::is_connected()` returns `true` based solely on the existence of the persistence file (`~/.cache/Proton/VPN/connection/connection_persistence.json`), without verifying that the VPN is actually connected. This causes false positives when the file exists from a previous connection but the VPN is currently disconnected.
 
+## Status
+
+**[Implemented]**
+
+## Implementation
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `src/vpn/client.rs:253-275` | Rewrote `is_connected()` to check both proton0 interface and persistence file |
+| `src/vpn/client.rs:39-49` | Added `persistence_file_path()` helper to centralize file path |
+
+### Logic
+
+```rust
+pub fn is_connected(&self) -> bool {
+    let proton0_exists = std::path::Path::new("/sys/class/net/proton0").exists();
+    if !proton0_exists {
+        return false;
+    }
+
+    let persistence_path = self.persistence_file_path();
+    persistence_path.exists()
+}
+```
+
+- First checks if `proton0` interface exists (VPN is active)
+- Then checks if persistence file exists (connection is maintained)
+- Both must be true for `is_connected()` to return `true`
+
+### Helper Function
+
+```rust
+fn persistence_file_path(&self) -> PathBuf {
+    dirs::cache_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("Proton")
+        .join("VPN")
+        .join("connection")
+        .join("connection_persistence.json")
+}
+```
+
+Centralized persistence file path makes future path changes easier.
+
+### Why This Works
+
+- `proton0` alone is insufficient: lingers after `protonvpn disconnect`
+- Persistence alone is insufficient: remains after crash/network interruption
+- **Combined approach**: Both conditions must be true for accurate detection
+
 ## Problem Description
 
 ### Current Implementation

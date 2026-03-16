@@ -19,7 +19,7 @@ ProtonVPN TUI provides an interactive terminal interface for Proton VPN. It wrap
 ## Requirements
 
 - **Linux** (protonvpn-cli is Linux-only)
-- **ProtonVPN CLI** ([install](https://github.com/ProtonVPN/linux-cli)) installed and configured
+- **ProtonVPN CLI** ([install](https://github.com/ProtonVPN/proton-vpn-cli/)) installed and configured
   - Must run `protonvpn signin` manually before using this TUI
   - Must run `protonvpn signout` via CLI when needed (not supported in TUI)
 - Rust 2021 edition or later

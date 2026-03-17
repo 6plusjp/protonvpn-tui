@@ -26,9 +26,7 @@ pub struct Theme {
     pub error: Color,
     pub success: Color,
     pub warning: Color,
-    pub block_border: Color,
     pub selection: Color,
-    pub connected: Color,
     pub key_hint: Color,
     pub inactive: Color,
     pub scrollbar: Color,
@@ -84,12 +82,8 @@ impl Theme {
             success: Color::Green,
             // warning: Yellow (#ffff00) - warning indicator (ANSI yellow)
             warning: Color::Yellow,
-            // block_border: Cyan - border accent (ANSI cyan)
-            block_border: Color::Cyan,
             // selection: DarkGray - selection background (ANSI dark gray)
             selection: Color::DarkGray,
-            // connected: Green - connected indicator (ANSI green)
-            connected: Color::Green,
             // key_hint: Yellow - key hint (ANSI yellow)
             key_hint: Color::Yellow,
             // inactive: DarkGray - inactive state (ANSI dark gray)
@@ -122,12 +116,8 @@ impl Theme {
             success: Color::Rgb(0xa6, 0xe3, 0xa1),
             // warning: Yellow (#f9e2af) - soft yellow
             warning: Color::Rgb(0xf9, 0xe2, 0xaf),
-            // block_border: Blue (#89b4fa) - sky blue
-            block_border: Color::Rgb(0x89, 0xb4, 0xfa),
             // selection: Surface1 (#455274) - darker blue-gray
             selection: Color::Rgb(0x45, 0x52, 0x6b),
-            // connected: Green (#a6e3a1) - pastel green
-            connected: Color::Rgb(0xa6, 0xe3, 0xa1),
             // key_hint: Yellow (#f9e2af) - soft yellow
             key_hint: Color::Rgb(0xf9, 0xe2, 0xaf),
             // inactive: Overlay0 (#6c7086) - muted gray
@@ -160,12 +150,8 @@ impl Theme {
             success: Color::Rgb(0x40, 0xa0, 0x2e),
             // warning: Yellow (#df8e1d) - orange-yellow
             warning: Color::Rgb(0xdf, 0x8e, 0x1d),
-            // block_border: Blue (#040a9f) - deep blue
-            block_border: Color::Rgb(0x04, 0x0a, 0x9f),
             // selection: Surface1 (#ccd0e0) - light gray
             selection: Color::Rgb(0xcc, 0xd0, 0xe0),
-            // connected: Green (#40a02e) - green
-            connected: Color::Rgb(0x40, 0xa0, 0x2e),
             // key_hint: Yellow (#df8e1d) - orange-yellow
             key_hint: Color::Rgb(0xdf, 0x8e, 0x1d),
             // inactive: Overlay0 (#9ca0b0) - gray
@@ -198,12 +184,8 @@ impl Theme {
             success: Color::Rgb(0x50, 0xfa, 0x7b),
             // warning: Yellow (#f1fa8c) - light yellow
             warning: Color::Rgb(0xf1, 0xfa, 0x8c),
-            // block_border: Purple (#bd93f9) - lavender purple
-            block_border: Color::Rgb(0xbd, 0x93, 0xf9),
             // selection: Selection (#44495a) - dark gray
             selection: Color::Rgb(0x44, 0x49, 0x5a),
-            // connected: Green (#50fa7b) - bright green
-            connected: Color::Rgb(0x50, 0xfa, 0x7b),
             // key_hint: Yellow (#f1fa8c) - light yellow
             key_hint: Color::Rgb(0xf1, 0xfa, 0x8c),
             // inactive: Gray (#6272a8) - muted purple-gray
@@ -236,12 +218,8 @@ impl Theme {
             success: Color::Rgb(0xa3, 0xbe, 0x8c),
             // warning: Aurora (#ebcb8b) - soft yellow
             warning: Color::Rgb(0xeb, 0xcb, 0x8b),
-            // block_border: Frost (#88c0d0) - icy cyan
-            block_border: Color::Rgb(0x88, 0xc0, 0xd0),
             // selection: Polar Night (#434c5e) - darker blue-gray
             selection: Color::Rgb(0x43, 0x4c, 0x5e),
-            // connected: Aurora (#a3be8c) - soft green
-            connected: Color::Rgb(0xa3, 0xbe, 0x8c),
             // key_hint: Aurora (#ebcb8b) - soft yellow
             key_hint: Color::Rgb(0xeb, 0xcb, 0x8b),
             // inactive: Polar Night (#4c566a) - gray-blue
@@ -262,24 +240,20 @@ impl Theme {
             background: Color::Rgb(0x28, 0x28, 0x28),
             // foreground: Light0 (#ebdbb2) - warm beige
             foreground: Color::Rgb(0xeb, 0xdb, 0xb2),
-            // primary: Orange (#fe8019) - bright orange
-            primary: Color::Rgb(0xfe, 0x80, 0x19),
-            // secondary: Green (#8ec07c) - soft green
-            secondary: Color::Rgb(0x8e, 0xc0, 0x7c),
-            // accent: Purple (#d3869b) - muted pink-purple
-            accent: Color::Rgb(0xd3, 0x86, 0x9b),
+            // primary: Blue (#83a598) - soft blue
+            primary: Color::Rgb(0x83, 0xa5, 0x98),
+            // secondary: Purple (#d3869b) - muted purple
+            secondary: Color::Rgb(0xd3, 0x86, 0x9b),
+            // accent: Orange (#fe8019) - bright orange
+            accent: Color::Rgb(0xfe, 0x80, 0x19),
             // error: Red (#fb4934) - bright red
             error: Color::Rgb(0xfb, 0x49, 0x34),
             // success: Green (#b8bb26) - yellow-green
             success: Color::Rgb(0xb8, 0xbb, 0x26),
             // warning: Yellow (#fabd2f) - bright yellow
             warning: Color::Rgb(0xfa, 0xbd, 0x2f),
-            // block_border: Orange (#fe8019) - bright orange
-            block_border: Color::Rgb(0xfe, 0x80, 0x19),
             // selection: Dark4 (#504945) - medium brown
             selection: Color::Rgb(0x50, 0x49, 0x3e),
-            // connected: Green (#b8bb26) - yellow-green
-            connected: Color::Rgb(0xb8, 0xbb, 0x26),
             // key_hint: Yellow (#fabd2f) - bright yellow
             key_hint: Color::Rgb(0xfa, 0xbd, 0x2f),
             // inactive: Dark3 (#665c54) - muted brown
@@ -312,12 +286,8 @@ impl Theme {
             success: Color::Rgb(0x9e, 0xce, 0x6a),
             // warning: Yellow (#e0af68) - amber
             warning: Color::Rgb(0xe0, 0xaf, 0x68),
-            // block_border: Blue (#7aa2f7) - bright blue
-            block_border: Color::Rgb(0x7a, 0xa2, 0xf7),
             // selection: Black (#363d52) - dark blue-gray
             selection: Color::Rgb(0x36, 0x3d, 0x52),
-            // connected: Green (#9ece6a) - green
-            connected: Color::Rgb(0x9e, 0xce, 0x6a),
             // key_hint: Yellow (#e0af68) - amber
             key_hint: Color::Rgb(0xe0, 0xaf, 0x68),
             // inactive: Comment (#565f89) - muted blue-gray

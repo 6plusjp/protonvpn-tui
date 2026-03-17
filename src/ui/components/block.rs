@@ -6,7 +6,7 @@ use ratatui::{
 
 pub fn centered_block(title: &str, theme: &Theme, focused: bool) -> Block<'static> {
     let border_color = if focused {
-        theme.block_border
+        theme.primary
     } else {
         theme.inactive
     };

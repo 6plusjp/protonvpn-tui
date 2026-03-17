@@ -35,7 +35,7 @@ pub fn styled_list_item(
 pub fn connected_list_item(text: &str, theme: &Theme) -> ListItem<'static> {
     let prefix = "* ";
     let style = Style::default()
-        .fg(theme.connected)
+        .fg(theme.success)
         .add_modifier(Modifier::BOLD);
 
     let text_owned = text.to_string();

@@ -1330,7 +1330,7 @@ impl TuiApp {
         if let Some(ref proto) = protocol {
             status_spans.push(Span::styled("  ", Style::default().fg(theme.inactive)));
             status_spans.push(Span::styled("protocol:", Style::default().fg(theme.muted)));
-            status_spans.push(Span::styled(proto, Style::default().fg(theme.accent)));
+            status_spans.push(Span::styled(proto, Style::default().fg(theme.secondary)));
         }
 
         let chunks = Layout::default()
@@ -1360,7 +1360,7 @@ impl TuiApp {
 
         let block = Block::default()
             .borders(Borders::ALL)
-            .style(Style::default().fg(theme.block_border));
+            .style(Style::default().fg(theme.primary));
 
         f.render_widget(block, area);
         f.render_widget(Paragraph::new(title_line), chunks[0]);

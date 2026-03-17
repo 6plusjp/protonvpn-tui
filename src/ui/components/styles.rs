@@ -36,7 +36,7 @@ pub fn selected_text(theme: &Theme) -> Style {
 
 pub fn connected_text(theme: &Theme) -> Style {
     Style::default()
-        .fg(theme.connected)
+        .fg(theme.success)
         .add_modifier(Modifier::BOLD)
 }
 

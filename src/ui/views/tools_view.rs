@@ -42,7 +42,7 @@ pub fn render_tools_view(
         .title(settings_title)
         .borders(Borders::ALL)
         .border_style(if is_settings_focused {
-            Style::default().fg(theme.block_border)
+            Style::default().fg(theme.primary)
         } else {
             Style::default().fg(theme.inactive)
         });
@@ -51,7 +51,7 @@ pub fn render_tools_view(
         .title(logs_title)
         .borders(Borders::ALL)
         .border_style(if is_logs_focused {
-            Style::default().fg(theme.block_border)
+            Style::default().fg(theme.primary)
         } else {
             Style::default().fg(theme.inactive)
         });

@@ -118,7 +118,7 @@ fn render_countries_pane(
                 }
             } else if is_connected {
                 Style::default()
-                    .fg(theme.connected)
+                    .fg(theme.success)
                     .add_modifier(Modifier::BOLD)
             } else {
                 Style::default().fg(theme.foreground)

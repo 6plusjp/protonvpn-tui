@@ -73,7 +73,7 @@ pub fn render_settings_view(
         .style(Style::default().fg(theme.foreground))
         .highlight_style(if is_focused {
             Style::default()
-                .fg(theme.foreground)
+                .fg(theme.background)
                 .bg(theme.accent)
                 .add_modifier(Modifier::BOLD)
         } else {

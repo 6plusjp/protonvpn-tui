@@ -97,7 +97,7 @@ pub fn render_logs_view(
         .column_spacing(2)
         .row_highlight_style(if is_focused {
             Style::default()
-                .fg(theme.foreground)
+                .fg(theme.background)
                 .bg(theme.accent)
                 .add_modifier(Modifier::BOLD)
         } else {

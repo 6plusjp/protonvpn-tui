@@ -195,16 +195,16 @@ impl PaneTable {
                 // Add sort indicator for the sorted column (highlight arrow only)
                 let (content_text, indicator_text) = match (i, sort_by) {
                     (0, Some(ServerSort::Code)) => {
-                        (content.to_string(), sort_indicator.to_string())
+                        (content.to_string(), format!(" {}", sort_indicator))
                     }
                     (1, Some(ServerSort::Country)) => {
-                        (content.to_string(), sort_indicator.to_string())
+                        (content.to_string(), format!(" {}", sort_indicator))
                     }
                     _ => (content.to_string(), String::new()),
                 };
 
                 let header_primary = theme.map(|t| t.primary).unwrap_or(Theme::default().primary);
-                let header_accent = theme.map(|t| t.accent).unwrap_or(Theme::default().accent);
+                let header_accent = theme.map(|t| t.warning).unwrap_or(Theme::default().warning);
 
                 // Calculate total content length (key + text + indicator)
                 let key_len = key_num.map(|k| k.len()).unwrap_or(0);

@@ -52,10 +52,10 @@ pub fn render_logs_view(
 
     let header_cells = vec![
         Cell::from(format!("{:<width$}", "Type", width = max_type_len))
-            .style(Style::new().bold().fg(theme.foreground)),
-        Cell::from("Message").style(Style::new().bold().fg(theme.foreground)),
+            .style(Style::new().bold().fg(theme.primary)),
+        Cell::from("Message").style(Style::new().bold().fg(theme.primary)),
         Cell::from(format!("{:<width$}", "Time", width = max_time_len + 1))
-            .style(Style::new().bold().fg(theme.foreground)),
+            .style(Style::new().bold().fg(theme.primary)),
     ];
     let header_row = Row::new(header_cells).height(1);
 

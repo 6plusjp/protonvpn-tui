@@ -300,6 +300,19 @@ impl VpnClient {
         Some((persistence.server.server_name, persistence.server.server_ip))
     }
 
+    pub fn get_connection_protocol(&self) -> Option<String> {
+        let persistence_path = self.persistence_file_path();
+        let content = std::fs::read_to_string(persistence_path).ok()?;
+
+        #[derive(serde::Deserialize)]
+        struct Persistence {
+            protocol: Option<String>,
+        }
+
+        let persistence: Persistence = serde_json::from_str(&content).ok()?;
+        persistence.protocol
+    }
+
     pub fn refresh_countries(&self) -> AppResult<HashMap<String, String>> {
         let output = self
             .run_command_with_timeout(&["countries"], Duration::from_secs(60))

@@ -1318,12 +1318,7 @@ impl TuiApp {
                 }
             };
 
-        let protocol = self
-            .state
-            .config_state
-            .proton_settings_cache
-            .as_ref()
-            .and_then(|ps| ps.protocol.clone());
+        let protocol = self.state.vpn_state.get_connection_protocol();
 
         let title = " ProtonVPN TUI ";
 

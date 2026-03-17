@@ -20,29 +20,60 @@ protonvpn-tui/
 ├── src/
 │   ├── main.rs           # Entry point
 │   ├── lib.rs            # Library root
+│   ├── error.rs          # Error types (AppError, VpnError)
+│   ├── constants.rs      # Application constants
+│   ├── commands/         # CLI command handlers (placeholder)
 │   ├── vpn/              # VPN backend (protonvpn wrapper)
+│   │   ├── mod.rs
 │   │   ├── async_tasks.rs
 │   │   ├── cache.rs
 │   │   ├── client.rs
 │   │   └── types.rs
 │   ├── ui/               # TUI components
-│   │   ├── components/  # Reusable widgets
-│   │   ├── views/       # Full views (connect, stats, settings)
-│   │   └── styles.rs    # Theme and styling
+│   │   ├── mod.rs
+│   │   ├── app.rs        # Main TUI application
+│   │   ├── render.rs     # Render logic
+│   │   ├── styles.rs     # Theme and styling
+│   │   ├── components/   # Reusable widgets
+│   │   │   ├── block.rs
+│   │   │   ├── list.rs
+│   │   │   ├── pane_table.rs
+│   │   │   └── styles.rs
+│   │   └── views/        # Full views
+│   │       ├── help_view.rs
+│   │       ├── logs_view.rs
+│   │       ├── servers_view.rs
+│   │       ├── settings_view.rs
+│   │       └── tools_view.rs
 │   ├── state/            # Application state
-│   │   ├── app_state.rs
-│   │   └── ...
+│   │   ├── mod.rs
+│   │   ├── app_state.rs  # Main application state
+│   │   ├── app_view.rs   # View enum
+│   │   ├── config_state.rs
+│   │   ├── connection.rs
+│   │   ├── connection_state.rs
+│   │   ├── log_persistence.rs
+│   │   ├── notifications.rs
+│   │   ├── server_data.rs
+│   │   ├── server_filter.rs
+│   │   ├── server_sort.rs
+│   │   └── ui_state.rs
 │   └── config/           # Configuration
-│       └── settings.rs
+│       ├── mod.rs
+│       ├── settings.rs
+│       └── user_config.rs
 ├── docs/                 # Documentation (source of truth)
-│   ├── specifications/   # Feature specifications
 │   ├── issue/            # Issue tracking (issue001.md, issue002.md, ...)
-│   ├── reference/       # Reference docs (user-managed)
-│   └── policy/          # Project policies
-│       ├── policy.md
-│       ├── commit-message-rule.md
-│       ├── naming-conventions.md
-│       └── reference-convention.md
+│   ├── reference/        # Reference docs (user-managed)
+│   ├── policy/           # Project policies
+│   │   ├── policy.md
+│   │   ├── commit-message-rule.md
+│   │   ├── naming-conventions.md
+│   │   ├── reference-convention.md
+│   │   ├── coding-standards.md
+│   │   └── rust-maintainability.md
+│   └── ja/               # Japanese translations
+├── tests/                # Integration tests
 ├── AGENTS.md             # AI agent context
 └── Cargo.toml
 ```
@@ -57,6 +88,7 @@ Load these policy documents before working on this project:
 - [@docs/policy/commit-message-rule.md](docs/policy/commit-message-rule.md) — Commit message format
 - [@docs/policy/naming-conventions.md](docs/policy/naming-conventions.md) — Naming conventions
 - [@docs/policy/reference-convention.md](docs/policy/reference-convention.md) — Document reference syntax
+- [@docs/policy/coding-standards.md](docs/policy/coding-standards.md) — Rust coding standards
 
 ---
 

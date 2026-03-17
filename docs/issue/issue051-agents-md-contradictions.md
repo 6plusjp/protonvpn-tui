@@ -2,85 +2,80 @@
 
 ## Summary
 
-AGENTS.md specifies certain conventions that the current implementation violates:
-1. **Getter/Setter Patterns**: AGENTS.md prohibits getter/setter patterns, but 31 methods across 11 files use `get_*`/`set_*` prefixes
-2. **Structure Documentation**: AGENTS.md doesn't document several actual source files (`error.rs`, `constants.rs`, `app.rs`, etc.)
+Track contradictions between AGENTS.md/Policy and actual implementation.
 
-## Status
+**Status: [Open]**
 
-**[Open]**
+---
 
-## Problem 1: Getter/Setter Violations
+## Current State (2026-03-17)
 
-### AGENTS.md Rule
-> Don't use getter/setter patterns (e.g., `get_field()`, `set_field()`) — use `pub` fields or methods directly
+### 1. Getter/Setter Violations (Ongoing)
 
-### Violations Found
+| Period | Violations |
+|--------|-------------|
+| Initial | 31 |
+| Current | 24 |
+| **Resolved** | **-7** |
 
-| File | Methods |
-|------|---------|
-| `src/state/app_state.rs` | `get_theme()`, `set_search_query()`, `set_servers()`, `set_sort_by_*()`, `set_filter()` |
-| `src/vpn/client.rs` | `get_servers()`, `get_connected_server_info()` |
-| `src/state/ui_state.rs` | `set_view()`, `set_cached()` |
-| `src/state/connection.rs` | `set_connection()` |
-| `src/vpn/cache.rs` | `set_connected()`, `set_disconnected()`, `set_cli_unavailable()` |
-| `src/config/settings.rs` | `get_selectable_option_command()` |
-| `src/ui/app.rs` | `get_theme()`, `get_footer_action_hints()`, `get_global_connect_hints()` |
-| `src/ui/views/settings_view.rs` | `get_setting_value()`, `get_setting_label()` |
-| `src/config/user_config.rs` | `get_config_dir()`, `get_config_path()` |
-| `src/state/log_persistence.rs` | `get_log_file_path()`, `set_test_mode()` |
+#### Current Violations (24)
 
-**Total: 31 violations across 11 files**
+**get_ (12)**:
+| File | Count | Functions |
+|------|-------|-----------|
+| `vpn/client.rs` | 2 | `get_connected_server_info()`, `get_connection_protocol()` |
+| `ui/app.rs` | 3 | `get_theme()`, `get_footer_action_hints()`, `get_global_connect_hints()` |
+| `config/settings.rs` | 1 | `get_selectable_option_command()` |
+| `ui/views/settings_view.rs` | 2 | `get_setting_value()`, `get_setting_label()` |
+| `state/app_state.rs` | 2 | `get_theme()`, `get_selection_bounds()` |
+| `state/log_persistence.rs` | 1 | `get_log_file_path()` |
+| `state/ui_state.rs` | 1 | `get_cached()` |
 
-### Analysis
+**set_ (12)**:
+| File | Count | Functions |
+|------|-------|-----------|
+| `vpn/client.rs` | 3 | `set_config()`, `set_netshield()`, `set_custom_dns()` |
+| `vpn/cache.rs` | 2 | `set_connected()`, `set_disconnected()` |
+| `state/app_state.rs` | 4 | `set_search_query()`, `set_servers()`, `set_sort_by_code()`, `set_sort_by_country()` |
+| `state/ui_state.rs` | 2 | `set_view()`, `set_cached()` |
+| `state/log_persistence.rs` | 1 | `set_test_mode()` |
 
-The getter/setter pattern is common in TUI applications for:
-- Encapsulating state mutations with validation
-- Providing read-only or controlled write access
-- Computed properties
+#### Resolved (7)
 
-## Problem 2: Structure Documentation Gaps
+Previously resolved via past PRs.
 
-### AGENTS.md Lists
+---
 
-```
-src/
-├── main.rs           # Entry point
-├── lib.rs            # Library root
-├── vpn/              # VPN backend
-├── ui/               # TUI components
-│   └── styles.rs    # Theme and styling
-├── state/            # Application state
-│   └── app_state.rs
-└── config/          # Configuration
-    └── settings.rs
-```
+### 2. unwrap() Usage
 
-### Actual Structure
+| File | Count | Notes |
+|------|-------|-------|
+| `config/user_config.rs` | 1 | ~~`toml::from_str(...).unwrap()`~~ → Fixed with `expect()` + justification |
+| `vpn/async_tasks.rs` | 5 | Mutex lock - **Justified** (synchronization) |
+| `vpn/types.rs` | 1 | `parts.last().unwrap()` - Needs review |
+| `state/connection.rs` | 4 | Mutex/Condvar wait - **Justified** |
 
-| Missing from AGENTS.md | Notes |
-|-----------------------|-------|
-| `src/error.rs` | Error types (`AppError`, `VpnError`) |
-| `src/constants.rs` | Application constants |
-| `src/ui/app.rs` | Main TUI application (68KB, core file) |
-| `src/ui/render.rs` | Render logic |
-| `src/ui/mod.rs` | UI module |
-| `src/config/user_config.rs` | User config (vs settings.rs) |
-| `src/state/*.rs` | 12 state files (only app_state.rs documented) |
-| `src/commands/mod.rs` | Empty placeholder |
+**Resolved**: 1 (`user_config.rs:363`)
 
-### Extra Files Not in AGENTS.md
+---
 
-- `src/vpn/AGENTS.md` - Embedded documentation
-- `src/state/AGENTS.md` - Embedded documentation
-- `docs/specifications/` - Listed but doesn't exist
+### 3. main.rs Documentation
 
-## Options
+| Item | Status |
+|------|--------|
+| `//!` doc comment | ❌ Missing |
 
-1. **Update AGENTS.md** to document current patterns (low effort)
-2. **Refactor code** to remove getter/setters (high effort)
-3. **Accept** as project-specific exception (document in AGENTS.md)
+---
+
+## Prioritized Tasks
+
+1. ~~**[Todo] Small**: Add `//!` doc comment to `src/main.rs`~~ ✓ Resolved
+2. ~~**[Todo] Medium**: Replace `unwrap()` in `user_config.rs:363` with proper error handling~~ ✓ Resolved
+3. **[Todo] Large**: Convert 24 getter/setters to pub fields (phase gradually)
+
+---
 
 ## Related
 
 - [@docs/policy/coding-standards.md](docs/policy/coding-standards.md)
+- [@docs/policy/rust-maintainability.md](docs/policy/rust-maintainability.md)

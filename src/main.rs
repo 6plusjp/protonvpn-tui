@@ -1,3 +1,5 @@
+//! ProtonVPN TUI - Binary entry point
+
 use protonvpn_tui::config::UserConfig;
 use protonvpn_tui::constants::paths::APP_LOG_FILE;
 use protonvpn_tui::ui::app::TuiApp;

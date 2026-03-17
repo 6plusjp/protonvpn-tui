@@ -360,7 +360,9 @@ footer = false
 navigation_down = { code = "j", modifiers = [] }
 navigation_up = { code = "k", modifiers = [] }
 "#;
-        let config: UserConfig = toml::from_str(toml_content).unwrap();
+        // Hardcoded test TOML - parsing should always succeed with valid input
+        let config: UserConfig =
+            toml::from_str(toml_content).expect("test TOML is valid and should parse");
         assert_eq!(config.ui.theme, "Nord");
         assert_eq!(config.ui.footer, false);
         assert_eq!(config.keybindings.navigation_down.code, 'j');

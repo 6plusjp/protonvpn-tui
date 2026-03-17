@@ -192,45 +192,51 @@ impl PaneTable {
                     _ => None,
                 };
 
-                let has_indicator = matches!(
-                    (i, sort_by),
-                    (0, Some(ServerSort::Code)) | (1, Some(ServerSort::Country))
-                );
-
-                // Add sort indicator for the sorted column
-                let text_with_indicator = match (i, sort_by) {
+                // Add sort indicator for the sorted column (highlight arrow only)
+                let (content_text, indicator_text) = match (i, sort_by) {
                     (0, Some(ServerSort::Code)) => {
-                        format!("{} {}", content, sort_indicator)
+                        (content.to_string(), sort_indicator.to_string())
                     }
                     (1, Some(ServerSort::Country)) => {
-                        format!("{} {}", content, sort_indicator)
+                        (content.to_string(), sort_indicator.to_string())
                     }
-                    _ => content.to_string(),
+                    _ => (content.to_string(), String::new()),
                 };
 
-                // Calculate total content length (key + text)
+                let header_primary = theme.map(|t| t.primary).unwrap_or(Theme::default().primary);
+                let header_accent = theme.map(|t| t.accent).unwrap_or(Theme::default().accent);
+
+                // Calculate total content length (key + text + indicator)
                 let key_len = key_num.map(|k| k.len()).unwrap_or(0);
-                let total_len = key_len + text_with_indicator.len();
+                let total_len = key_len + content_text.len() + indicator_text.len();
                 let pad_len = width.saturating_sub(total_len);
 
                 let key_style = theme
                     .map(|t| Style::default().fg(t.warning))
                     .unwrap_or_else(|| Style::default().fg(Theme::default().warning));
 
-                let header_fg = if has_indicator {
-                    theme.map(|t| t.accent).unwrap_or(Theme::default().accent)
-                } else {
-                    theme.map(|t| t.primary).unwrap_or(Theme::default().primary)
-                };
-                let header_style = Style::default().fg(header_fg).add_modifier(Modifier::BOLD);
-
-                // Build spans: [key?] + [text] + [padding] for Left align
+                // Build spans: [key?] + [text] + [arrow?] + [padding]
                 let mut spans = Vec::new();
 
                 if let Some(key) = key_num {
                     spans.push(Span::styled(key, key_style));
                 }
-                spans.push(Span::styled(text_with_indicator, header_style));
+                // Content with primary
+                spans.push(Span::styled(
+                    content_text,
+                    Style::default()
+                        .fg(header_primary)
+                        .add_modifier(Modifier::BOLD),
+                ));
+                // Arrow with accent (only if sorted column)
+                if !indicator_text.is_empty() {
+                    spans.push(Span::styled(
+                        indicator_text,
+                        Style::default()
+                            .fg(header_accent)
+                            .add_modifier(Modifier::BOLD),
+                    ));
+                }
 
                 // Add padding at the end for Left align
                 if pad_len > 0 {

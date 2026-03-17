@@ -1,7 +1,8 @@
 use crate::config::{KeyBinding, UserConfig};
-use crate::ui::components::{centered_block, key_hint_style};
+use crate::ui::components::centered_block;
 use ratatui::{
     layout::Rect,
+    style::Style,
     text::{Line, Span},
     widgets::Paragraph,
     Frame,
@@ -143,7 +144,7 @@ pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
 
         for (key, action) in keybinds {
             let padded_key = format!("{:<width$}", key, width = KEY_WIDTH);
-            let key_style = key_hint_style(&theme);
+            let key_style = Style::default().fg(theme.warning);
             help_text.push(Line::from(vec![
                 Span::styled("  ", normal_style),
                 Span::styled(padded_key, key_style),

@@ -110,7 +110,7 @@ fn render_countries_pane(
             let style = if is_selected {
                 if is_focused {
                     Style::default()
-                        .fg(theme.foreground)
+                        .fg(theme.background)
                         .bg(theme.accent)
                         .add_modifier(Modifier::BOLD)
                 } else {

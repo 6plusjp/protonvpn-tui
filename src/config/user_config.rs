@@ -1,6 +1,6 @@
-use crate::config::{KeyBinding, KeyBindings, KeyModifier, CONFIG_DISPLAY_PATH, CONFIG_FILE_NAME};
+use crate::config::{KeyBinding, KeyBindings, KeyModifier};
+use crate::paths;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UiConfig {
@@ -201,33 +201,12 @@ pub struct UserConfig {
 }
 
 impl UserConfig {
-    fn get_config_dir() -> Option<PathBuf> {
-        if let Some(xdg_config) = std::env::var_os("XDG_CONFIG_HOME") {
-            return Some(PathBuf::from(xdg_config).join("protonvpn-tui"));
-        }
-        dirs::config_dir().map(|p| p.join("protonvpn-tui"))
-    }
-
-    fn get_config_path() -> Option<PathBuf> {
-        Self::get_config_dir().map(|p| p.join(CONFIG_FILE_NAME))
-    }
-
     pub fn config_display_path() -> String {
-        if let Some(xdg_config) = std::env::var_os("XDG_CONFIG_HOME") {
-            let path = PathBuf::from(xdg_config)
-                .join("protonvpn-tui")
-                .join(CONFIG_FILE_NAME);
-            return path.to_string_lossy().to_string();
-        }
-        if let Some(config_dir) = dirs::config_dir() {
-            let path = config_dir.join("protonvpn-tui").join(CONFIG_FILE_NAME);
-            return path.to_string_lossy().to_string();
-        }
-        CONFIG_DISPLAY_PATH.to_string()
+        paths::config_display_path()
     }
 
     pub fn load() -> Self {
-        let config_path = match Self::get_config_path() {
+        let config_path = match paths::config_path() {
             Some(path) => path,
             None => {
                 tracing::debug!("Could not determine config directory, using defaults");
@@ -269,12 +248,12 @@ impl UserConfig {
         }
     }
 
-    pub fn config_dir() -> Option<PathBuf> {
-        Self::get_config_dir()
+    pub fn config_dir() -> Option<std::path::PathBuf> {
+        paths::config_dir()
     }
 
     pub fn save(&self) {
-        let config_path = match Self::get_config_path() {
+        let config_path = match paths::config_path() {
             Some(path) => path,
             None => {
                 tracing::warn!("Could not determine config path for saving");

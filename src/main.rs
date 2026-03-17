@@ -1,4 +1,5 @@
 use protonvpn_tui::config::UserConfig;
+use protonvpn_tui::constants::paths::APP_LOG_FILE;
 use protonvpn_tui::ui::app::TuiApp;
 use std::io;
 
@@ -17,7 +18,7 @@ fn main() -> io::Result<()> {
     // Log to file in home directory or temp
     let log_path = std::env::var("PROTONVPN_TUI_LOG")
         .map(std::path::PathBuf::from)
-        .unwrap_or_else(|_| std::env::temp_dir().join("protonvpn-tui.log"));
+        .unwrap_or_else(|_| std::env::temp_dir().join(APP_LOG_FILE));
 
     let log_file = std::fs::OpenOptions::new()
         .create(true)

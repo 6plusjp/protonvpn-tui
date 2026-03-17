@@ -1,5 +1,6 @@
 //! Proton VPN settings
 
+use crate::paths;
 use crossterm::event::{KeyCode, KeyModifiers};
 use serde::{Deserialize, Serialize};
 
@@ -175,12 +176,8 @@ pub struct ProtonSplitTunneling {
 }
 
 impl ProtonSettings {
-    /// Load Proton VPN settings from ~/.config/Proton/VPN/settings.json
     pub fn load() -> Option<Self> {
-        let config_path = dirs::config_dir()?
-            .join("Proton")
-            .join("VPN")
-            .join("settings.json");
+        let config_path = paths::proton_settings_path()?;
         let content = std::fs::read_to_string(config_path).ok()?;
         let settings: Self = serde_json::from_str(&content).ok()?;
         tracing::debug!(

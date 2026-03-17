@@ -247,12 +247,9 @@ fn render_cities_pane(
                     .bg(theme.accent)
                     .add_modifier(Modifier::BOLD);
                 (s, s, s)
-            } else if is_selected {
+            } else {
                 let s = Style::default().fg(theme.foreground);
                 (s, s, s)
-            } else {
-                let n = Style::default().fg(theme.foreground);
-                (n, n, n)
             };
 
             if features.is_empty() {

@@ -1,13 +1,10 @@
+use crate::paths;
 use crate::state::Notification;
 use chrono::{DateTime, Utc};
 use std::fs;
-use std::path::PathBuf;
 
-const LOG_FILE_NAME: &str = "logs.json";
-
-fn get_log_file_path() -> PathBuf {
-    let base = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
-    base.join("protonvpn-tui").join(LOG_FILE_NAME)
+fn get_log_file_path() -> std::path::PathBuf {
+    paths::logs_path().unwrap_or_else(|| std::path::PathBuf::from("."))
 }
 
 #[cfg(test)]

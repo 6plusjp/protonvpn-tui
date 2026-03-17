@@ -1,3 +1,24 @@
+pub mod paths {
+    /// Application name (kebab-case for app-specific files)
+    pub const APP_NAME: &str = "protonvpn-tui";
+
+    /// Proton VPN official directory name (PascalCase - matches Proton's actual structure)
+    pub const PROTON_DIR: &str = "Proton";
+
+    // File names
+    pub const CONFIG_FILE_NAME: &str = "config.toml";
+    pub const CACHE_FILE_NAME: &str = "server_cache.toml";
+    pub const LOGS_FILE_NAME: &str = "logs.json";
+    pub const APP_LOG_FILE: &str = "protonvpn-tui.log";
+
+    // Proton VPN official file names
+    pub const PROTON_SETTINGS_FILE: &str = "settings.json";
+    pub const PROTON_CONNECTION_PERSISTENCE_FILE: &str = "connection_persistence.json";
+
+    // Display paths (for user-facing messages)
+    pub const CONFIG_DISPLAY_PATH: &str = "~/.config/protonvpn-tui/config.toml";
+}
+
 pub mod ui {
     pub const NOTIFICATION_TIMER_DEFAULT: u16 = 300; // 30 × 10 (loop interval 10ms)
     pub const NOTIFICATION_TIMER_SHORT: u16 = 150; // 15 × 10 (loop interval 10ms)

@@ -26,6 +26,7 @@ use super::types::{
 };
 
 use crate::error::{AppError, AppResult};
+use crate::paths;
 
 /// VPN client for interacting with protonvpn CLI
 #[derive(Debug)]
@@ -38,12 +39,7 @@ pub struct VpnClient {
 
 impl VpnClient {
     fn persistence_file_path(&self) -> PathBuf {
-        dirs::cache_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("Proton")
-            .join("VPN")
-            .join("connection")
-            .join("connection_persistence.json")
+        paths::proton_connection_persistence_fallback()
     }
 }
 
@@ -55,10 +51,7 @@ impl Default for VpnClient {
 
 impl VpnClient {
     pub fn new() -> Self {
-        let cache_path = dirs::cache_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("protonvpn-tui")
-            .join("server_cache.toml");
+        let cache_path = paths::cache_path().unwrap_or_else(|| PathBuf::from("."));
 
         let cache = match ServerCache::load(cache_path.clone()) {
             Ok(c) => c,

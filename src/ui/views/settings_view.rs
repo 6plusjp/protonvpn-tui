@@ -56,12 +56,13 @@ pub fn render_settings_view(
                     } else if opt_idx == opt_len - 1 {
                         "└─"
                     } else {
-                        "│ "
+                        "├─"
                     };
-                    let opt_line = format!("  {} {}", prefix, option);
-                    all_items.push(
-                        ListItem::from(Line::from(opt_line)).style(Style::default().fg(theme.dim)),
-                    );
+                    let opt_line = Line::from(vec![
+                        Span::styled(format!("  {} ", prefix), Style::default().fg(theme.dim)),
+                        Span::styled(option.to_string(), Style::default().fg(theme.foreground)),
+                    ]);
+                    all_items.push(ListItem::from(opt_line));
                 }
             }
         }

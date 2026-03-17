@@ -108,10 +108,6 @@ impl UiState {
         };
     }
 
-    pub fn toggle_footer(&mut self) {
-        self.show_footer = !self.show_footer;
-    }
-
     pub fn reset_settings_selection(&mut self) {
         self.settings_expanded = false;
         self.settings_option_selected = 0;

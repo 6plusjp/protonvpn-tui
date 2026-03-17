@@ -206,7 +206,7 @@ impl AppState {
 
     pub fn set_search_query(&mut self, query: String) {
         self.ui_state.search_query.set(query);
-        self.invalidate_filtered_cache();
+        self.server_cache.invalidate();
 
         let filtered_len = self.filtered_servers().len();
         if let Some(idx) = self.ui_state.selected_server {
@@ -221,7 +221,7 @@ impl AppState {
     pub fn set_servers(&mut self, servers: Vec<Server>) {
         self.servers = servers;
         self.server_data.servers = self.servers.clone();
-        self.invalidate_filtered_cache();
+        self.server_cache.invalidate();
 
         if let Some(idx) = self.ui_state.selected_server {
             if let Some(server) = self.filtered_servers().get(idx) {
@@ -558,7 +558,7 @@ impl AppState {
         }
 
         if !self.connection_manager.pending_cities.is_empty() {
-            self.invalidate_filtered_cache();
+            self.server_cache.invalidate();
         }
 
         // Check for pending connect city result
@@ -1011,38 +1011,37 @@ impl AppState {
         variants
     }
 
-    fn invalidate_filtered_cache(&mut self) {
-        self.server_cache.invalidate();
-    }
-
     pub fn cycle_filter(&mut self) {
         self.ui_state.filter = self.ui_state.filter.next();
-        self.invalidate_filtered_cache();
+        self.server_cache.invalidate();
     }
 
     pub fn cycle_sort(&mut self) {
         self.ui_state.sort_direction = self.ui_state.sort_direction.toggle();
-        self.invalidate_filtered_cache();
+        self.server_cache.invalidate();
     }
 
     pub fn cycle_sort_field(&mut self) {
         self.ui_state.sort = self.ui_state.sort.next();
-        self.invalidate_filtered_cache();
+        self.server_cache.invalidate();
     }
 
     pub fn set_sort_by_code(&mut self) {
         self.ui_state.sort = ServerSort::Code;
-        self.invalidate_filtered_cache();
+        self.server_cache.invalidate();
+        self.switch_cities_to_selected();
     }
 
     pub fn set_sort_by_country(&mut self) {
         self.ui_state.sort = ServerSort::Country;
-        self.invalidate_filtered_cache();
+        self.server_cache.invalidate();
+        self.switch_cities_to_selected();
     }
 
     pub fn toggle_sort_direction(&mut self) {
         self.ui_state.sort_direction = self.ui_state.sort_direction.toggle();
-        self.invalidate_filtered_cache();
+        self.server_cache.invalidate();
+        self.switch_cities_to_selected();
     }
 
     pub fn select_next(&mut self) {

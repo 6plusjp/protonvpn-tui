@@ -139,10 +139,10 @@ impl Theme {
             foreground: Color::Rgb(0xf8, 0xf8, 0xf2),
             // primary: Purple (#bd93f9) - lavender purple
             primary: Color::Rgb(0xbd, 0x93, 0xf9),
-            // secondary: Green (#50fa7b) - bright green
-            secondary: Color::Rgb(0x50, 0xfa, 0x7b),
-            // accent: Pink (#ff79c6) - hot pink
-            accent: Color::Rgb(0xff, 0x79, 0xc6),
+            // secondary: Pink (#ff79c6) - hot pink
+            secondary: Color::Rgb(0xff, 0x79, 0xc6),
+            // accent: Cyan (#8be9fd) - cyan
+            accent: Color::Rgb(0x8b, 0xe9, 0xfd),
             // error: Red (#ff5555) - bright red
             error: Color::Rgb(0xff, 0x55, 0x55),
             // success: Green (#50fa7b) - bright green
@@ -163,10 +163,10 @@ impl Theme {
             foreground: Color::Rgb(0xec, 0xef, 0xf4),
             // primary: Frost (#88c0d0) - icy cyan
             primary: Color::Rgb(0x88, 0xc0, 0xd0),
-            // secondary: Frost (#81a1c1) - muted blue
-            secondary: Color::Rgb(0x81, 0xa1, 0xc1),
-            // accent: Aurora (#b48ead) - muted purple
-            accent: Color::Rgb(0xb4, 0x8e, 0xad),
+            // secondary: Frost (#8fbcbb) - sea blue
+            secondary: Color::Rgb(0x8f, 0xbc, 0xbb),
+            // accent: Aurora (#d08770) - orange
+            accent: Color::Rgb(0xd0, 0x87, 0x70),
             // error: Aurora (#bf616a) - soft red
             error: Color::Rgb(0xbf, 0x61, 0x6a),
             // success: Aurora (#a3be8c) - soft green

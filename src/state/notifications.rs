@@ -95,13 +95,16 @@ impl NotificationState {
         log_persistence::save_notification_log(&self.notification_log);
     }
 
-    pub fn tick(&mut self) {
+    /// Decrements timers and returns true if any notifications were removed
+    pub fn tick(&mut self) -> bool {
+        let before = self.notifications.len();
         for notification in &mut self.notifications {
             if notification.timer > 0 {
                 notification.timer -= 1;
             }
         }
         self.notifications.retain(|n| n.timer > 0);
+        self.notifications.len() != before
     }
 }
 

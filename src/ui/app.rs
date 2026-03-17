@@ -77,11 +77,11 @@ impl TuiApp {
             // Check remaining pending async events
             let notification_shown = self.state.check_pending_async_events();
 
-            self.state.notification_state.tick();
+            let notifications_expired = self.state.notification_state.tick();
 
             // Always redraw on first iteration to show loading screen
             let is_first_render = self.state.server_data.is_initialized;
-            if !is_first_render || async_processed || notification_shown {
+            if !is_first_render || async_processed || notification_shown || notifications_expired {
                 terminal.draw(|f| self.render(f))?;
             }
 

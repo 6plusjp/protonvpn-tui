@@ -1120,7 +1120,7 @@ impl TuiApp {
         let line = if input_text.is_empty() {
             Line::from(vec![
                 Span::styled(prompt, Style::default().fg(theme.primary)),
-                Span::styled(placeholder, Style::default().fg(theme.muted)),
+                Span::styled(placeholder, Style::default().fg(theme.dim)),
             ])
         } else {
             let text_style = if self.filter_mode {
@@ -1155,7 +1155,7 @@ impl TuiApp {
         let line = if dns_input.is_empty() {
             Line::from(vec![
                 Span::styled(prompt, Style::default().fg(theme.primary)),
-                Span::styled(placeholder, Style::default().fg(theme.muted)),
+                Span::styled(placeholder, Style::default().fg(theme.dim)),
             ])
         } else {
             Line::from(vec![
@@ -1282,8 +1282,8 @@ impl TuiApp {
                     ));
 
                     if !ip.is_empty() {
-                        spans.push(Span::styled("  ", Style::default().fg(theme.muted)));
-                        spans.push(Span::styled("ip:", Style::default().fg(theme.muted)));
+                        spans.push(Span::styled("  ", Style::default().fg(theme.dim)));
+                        spans.push(Span::styled("ip:", Style::default().fg(theme.dim)));
                         spans.push(Span::styled(ip, Style::default().fg(theme.secondary)));
                     }
 
@@ -1298,8 +1298,8 @@ impl TuiApp {
                         (None, None, None) => String::new(),
                     };
                     if !loc.is_empty() {
-                        spans.push(Span::styled("  ", Style::default().fg(theme.muted)));
-                        spans.push(Span::styled("loc:", Style::default().fg(theme.muted)));
+                        spans.push(Span::styled("  ", Style::default().fg(theme.dim)));
+                        spans.push(Span::styled("loc:", Style::default().fg(theme.dim)));
                         spans.push(Span::styled(loc, Style::default().fg(theme.secondary)));
                     }
 
@@ -1328,8 +1328,8 @@ impl TuiApp {
         let title = " ProtonVPN TUI ";
 
         if let Some(ref proto) = protocol {
-            status_spans.push(Span::styled("  ", Style::default().fg(theme.inactive)));
-            status_spans.push(Span::styled("protocol:", Style::default().fg(theme.muted)));
+            status_spans.push(Span::styled("  ", Style::default().fg(theme.dim)));
+            status_spans.push(Span::styled("protocol:", Style::default().fg(theme.dim)));
             status_spans.push(Span::styled(proto, Style::default().fg(theme.secondary)));
         }
 
@@ -1406,32 +1406,32 @@ impl TuiApp {
         if is_help_view {
             text.spans.push(Span::raw("  "));
             text.spans.extend(vec![
-                Span::styled("[", Style::default().fg(theme.inactive)),
+                Span::styled("[", Style::default().fg(theme.dim)),
                 Span::styled("Tab", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.inactive)),
+                Span::styled("]", Style::default().fg(theme.dim)),
                 Span::styled("switch view", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.inactive)),
-                Span::styled("[", Style::default().fg(theme.inactive)),
+                Span::styled("  ", Style::default().fg(theme.dim)),
+                Span::styled("[", Style::default().fg(theme.dim)),
                 Span::styled("q", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.inactive)),
+                Span::styled("]", Style::default().fg(theme.dim)),
                 Span::styled("quit", Style::default().fg(theme.foreground)),
             ]);
         } else {
             text.spans.push(Span::raw("  "));
             text.spans.extend(vec![
-                Span::styled("[", Style::default().fg(theme.inactive)),
+                Span::styled("[", Style::default().fg(theme.dim)),
                 Span::styled("Tab", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.inactive)),
+                Span::styled("]", Style::default().fg(theme.dim)),
                 Span::styled("switch view", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.inactive)),
-                Span::styled("[", Style::default().fg(theme.inactive)),
+                Span::styled("  ", Style::default().fg(theme.dim)),
+                Span::styled("[", Style::default().fg(theme.dim)),
                 Span::styled("?", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.inactive)),
+                Span::styled("]", Style::default().fg(theme.dim)),
                 Span::styled("help", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.inactive)),
-                Span::styled("[", Style::default().fg(theme.inactive)),
+                Span::styled("  ", Style::default().fg(theme.dim)),
+                Span::styled("[", Style::default().fg(theme.dim)),
                 Span::styled("q", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.inactive)),
+                Span::styled("]", Style::default().fg(theme.dim)),
                 Span::styled("quit", Style::default().fg(theme.foreground)),
             ]);
         }
@@ -1449,129 +1449,129 @@ impl TuiApp {
         ) {
             (AppView::Servers, Pane::Countries) => {
                 let mut hints = vec![
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("j/k", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("navigate", Style::default().fg(theme.foreground)),
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("l", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("cities", Style::default().fg(theme.foreground)),
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("c", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("connect", Style::default().fg(theme.foreground)),
                 ];
                 if !is_disconnected {
                     hints.extend([
-                        Span::styled("  ", Style::default().fg(theme.inactive)),
-                        Span::styled("[", Style::default().fg(theme.inactive)),
+                        Span::styled("  ", Style::default().fg(theme.dim)),
+                        Span::styled("[", Style::default().fg(theme.dim)),
                         Span::styled("d", Style::default().fg(theme.warning)),
-                        Span::styled("]", Style::default().fg(theme.inactive)),
+                        Span::styled("]", Style::default().fg(theme.dim)),
                         Span::styled("disconnect", Style::default().fg(theme.foreground)),
                     ]);
                 }
                 hints.extend([
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("r", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("refresh", Style::default().fg(theme.foreground)),
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("f", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("fastest", Style::default().fg(theme.foreground)),
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("p", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("p2p", Style::default().fg(theme.foreground)),
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("t", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("tor", Style::default().fg(theme.foreground)),
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("s", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("securecore", Style::default().fg(theme.foreground)),
                 ]);
                 hints
             }
             (AppView::Servers, Pane::Cities) => {
                 let mut hints = vec![
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("j/k", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("navigate", Style::default().fg(theme.foreground)),
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("h", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("countries", Style::default().fg(theme.foreground)),
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("c", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("connect", Style::default().fg(theme.foreground)),
                 ];
                 if !is_disconnected {
                     hints.extend([
-                        Span::styled("  ", Style::default().fg(theme.inactive)),
-                        Span::styled("[", Style::default().fg(theme.inactive)),
+                        Span::styled("  ", Style::default().fg(theme.dim)),
+                        Span::styled("[", Style::default().fg(theme.dim)),
                         Span::styled("d", Style::default().fg(theme.warning)),
-                        Span::styled("]", Style::default().fg(theme.inactive)),
+                        Span::styled("]", Style::default().fg(theme.dim)),
                         Span::styled("disconnect", Style::default().fg(theme.foreground)),
                     ]);
                 }
                 hints.extend([
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("r", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("refresh", Style::default().fg(theme.foreground)),
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("f", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("fastest", Style::default().fg(theme.foreground)),
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("p", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("p2p", Style::default().fg(theme.foreground)),
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("t", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("tor", Style::default().fg(theme.foreground)),
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("s", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("secure core", Style::default().fg(theme.foreground)),
                 ]);
                 hints
             }
             (AppView::Tools, Pane::Settings) => {
                 let mut hints = vec![
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("j/k", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("navigate", Style::default().fg(theme.foreground)),
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("l", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("logs", Style::default().fg(theme.foreground)),
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("Enter", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("toggle expand", Style::default().fg(theme.foreground)),
                 ];
                 hints.extend(self.get_global_connect_hints(&theme, is_disconnected));
@@ -1579,14 +1579,14 @@ impl TuiApp {
             }
             (AppView::Tools, Pane::Logs) => {
                 let mut hints = vec![
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("j/k", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("navigate", Style::default().fg(theme.foreground)),
-                    Span::styled("  ", Style::default().fg(theme.inactive)),
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("  ", Style::default().fg(theme.dim)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("h", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("settings", Style::default().fg(theme.foreground)),
                 ];
                 hints.extend(self.get_global_connect_hints(&theme, is_disconnected));
@@ -1594,11 +1594,11 @@ impl TuiApp {
             }
             (AppView::Help, _) => {
                 let mut hints = vec![
-                    Span::styled("[", Style::default().fg(theme.inactive)),
+                    Span::styled("[", Style::default().fg(theme.dim)),
                     Span::styled("Esc", Style::default().fg(theme.warning)),
-                    Span::styled("/", Style::default().fg(theme.inactive)),
+                    Span::styled("/", Style::default().fg(theme.dim)),
                     Span::styled("?", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.inactive)),
+                    Span::styled("]", Style::default().fg(theme.dim)),
                     Span::styled("return", Style::default().fg(theme.foreground)),
                 ];
                 hints.extend(self.get_global_connect_hints(&theme, is_disconnected));
@@ -1612,38 +1612,38 @@ impl TuiApp {
         let mut hints = vec![];
         if !is_disconnected {
             hints.extend([
-                Span::styled("  ", Style::default().fg(theme.inactive)),
-                Span::styled("[", Style::default().fg(theme.inactive)),
+                Span::styled("  ", Style::default().fg(theme.dim)),
+                Span::styled("[", Style::default().fg(theme.dim)),
                 Span::styled("d", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.inactive)),
+                Span::styled("]", Style::default().fg(theme.dim)),
                 Span::styled("disconnect", Style::default().fg(theme.foreground)),
             ]);
         }
         hints.extend([
-            Span::styled("  ", Style::default().fg(theme.inactive)),
-            Span::styled("[", Style::default().fg(theme.inactive)),
+            Span::styled("  ", Style::default().fg(theme.dim)),
+            Span::styled("[", Style::default().fg(theme.dim)),
             Span::styled("f", Style::default().fg(theme.warning)),
-            Span::styled("]", Style::default().fg(theme.inactive)),
+            Span::styled("]", Style::default().fg(theme.dim)),
             Span::styled("fastest", Style::default().fg(theme.foreground)),
-            Span::styled("  ", Style::default().fg(theme.inactive)),
-            Span::styled("[", Style::default().fg(theme.inactive)),
+            Span::styled("  ", Style::default().fg(theme.dim)),
+            Span::styled("[", Style::default().fg(theme.dim)),
             Span::styled("p", Style::default().fg(theme.warning)),
-            Span::styled("]", Style::default().fg(theme.inactive)),
+            Span::styled("]", Style::default().fg(theme.dim)),
             Span::styled("p2p", Style::default().fg(theme.foreground)),
-            Span::styled("  ", Style::default().fg(theme.inactive)),
-            Span::styled("[", Style::default().fg(theme.inactive)),
+            Span::styled("  ", Style::default().fg(theme.dim)),
+            Span::styled("[", Style::default().fg(theme.dim)),
             Span::styled("t", Style::default().fg(theme.warning)),
-            Span::styled("]", Style::default().fg(theme.inactive)),
+            Span::styled("]", Style::default().fg(theme.dim)),
             Span::styled("tor", Style::default().fg(theme.foreground)),
-            Span::styled("  ", Style::default().fg(theme.inactive)),
-            Span::styled("[", Style::default().fg(theme.inactive)),
+            Span::styled("  ", Style::default().fg(theme.dim)),
+            Span::styled("[", Style::default().fg(theme.dim)),
             Span::styled("s", Style::default().fg(theme.warning)),
-            Span::styled("]", Style::default().fg(theme.inactive)),
+            Span::styled("]", Style::default().fg(theme.dim)),
             Span::styled("securecore", Style::default().fg(theme.foreground)),
-            Span::styled("  ", Style::default().fg(theme.inactive)),
-            Span::styled("[", Style::default().fg(theme.inactive)),
+            Span::styled("  ", Style::default().fg(theme.dim)),
+            Span::styled("[", Style::default().fg(theme.dim)),
             Span::styled("r", Style::default().fg(theme.warning)),
-            Span::styled("]", Style::default().fg(theme.inactive)),
+            Span::styled("]", Style::default().fg(theme.dim)),
             Span::styled("random", Style::default().fg(theme.foreground)),
         ]);
         hints

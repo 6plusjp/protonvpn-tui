@@ -60,8 +60,7 @@ pub fn render_settings_view(
                     };
                     let opt_line = format!("  {} {}", prefix, option);
                     all_items.push(
-                        ListItem::from(Line::from(opt_line))
-                            .style(Style::default().fg(theme.inactive)),
+                        ListItem::from(Line::from(opt_line)).style(Style::default().fg(theme.dim)),
                     );
                 }
             }
@@ -75,7 +74,7 @@ pub fn render_settings_view(
         .highlight_style(if is_focused {
             Style::default()
                 .fg(theme.foreground)
-                .bg(theme.selection)
+                .bg(theme.accent)
                 .add_modifier(Modifier::BOLD)
         } else {
             Style::default()

@@ -30,7 +30,7 @@ pub fn info_style(theme: &Theme) -> Style {
 
 pub fn selected_text(theme: &Theme) -> Style {
     Style::default()
-        .fg(theme.selection)
+        .fg(theme.accent)
         .add_modifier(Modifier::BOLD)
 }
 
@@ -49,7 +49,7 @@ pub fn footer_style(theme: &Theme) -> Style {
 }
 
 pub fn muted_style(theme: &Theme) -> Style {
-    Style::default().fg(theme.muted)
+    Style::default().fg(theme.dim)
 }
 
 pub fn key_span<'a>(key: &'a str, theme: &'a Theme) -> Span<'a> {

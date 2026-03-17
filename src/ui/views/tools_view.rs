@@ -44,7 +44,7 @@ pub fn render_tools_view(
         .border_style(if is_settings_focused {
             Style::default().fg(theme.primary)
         } else {
-            Style::default().fg(theme.inactive)
+            Style::default().fg(theme.dim)
         });
 
     let logs_block = Block::default()
@@ -53,7 +53,7 @@ pub fn render_tools_view(
         .border_style(if is_logs_focused {
             Style::default().fg(theme.primary)
         } else {
-            Style::default().fg(theme.inactive)
+            Style::default().fg(theme.dim)
         });
 
     let settings_inner = settings_block.inner(settings_area);

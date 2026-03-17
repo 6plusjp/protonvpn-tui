@@ -111,7 +111,7 @@ fn render_countries_pane(
                 if is_focused {
                     Style::default()
                         .fg(theme.foreground)
-                        .bg(theme.selection)
+                        .bg(theme.accent)
                         .add_modifier(Modifier::BOLD)
                 } else {
                     Style::default().fg(theme.foreground)
@@ -127,7 +127,7 @@ fn render_countries_pane(
             Row::new(vec![
                 Cell::from(server.code.clone()),
                 Cell::from(server.country.clone()),
-                Cell::from(cities_str).style(Style::default().fg(theme.muted)),
+                Cell::from(cities_str).style(Style::default().fg(theme.dim)),
             ])
             .style(style)
         })
@@ -143,7 +143,7 @@ fn render_countries_pane(
         .row_highlight_style(if is_focused {
             Style::default()
                 .fg(theme.foreground)
-                .bg(theme.selection)
+                .bg(theme.accent)
                 .add_modifier(Modifier::BOLD)
         } else {
             Style::default()
@@ -241,7 +241,7 @@ fn render_cities_pane(
             let style = if is_selected && is_focused {
                 Style::default()
                     .fg(theme.foreground)
-                    .bg(theme.selection)
+                    .bg(theme.accent)
                     .add_modifier(Modifier::BOLD)
             } else {
                 Style::default().fg(theme.foreground)
@@ -252,7 +252,7 @@ fn render_cities_pane(
             } else {
                 Row::new(vec![
                     Cell::from(city_name.clone()),
-                    Cell::from(features.clone()).style(Style::default().fg(theme.muted)),
+                    Cell::from(features.clone()).style(Style::default().fg(theme.dim)),
                 ])
                 .style(style)
             }
@@ -268,7 +268,7 @@ fn render_cities_pane(
         .row_highlight_style(if is_focused {
             Style::default()
                 .fg(theme.foreground)
-                .bg(theme.selection)
+                .bg(theme.accent)
                 .add_modifier(Modifier::BOLD)
         } else {
             Style::default()

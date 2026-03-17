@@ -52,10 +52,10 @@ pub fn render_logs_view(
 
     let header_cells = vec![
         Cell::from(format!("{:<width$}", "Type", width = max_type_len))
-            .style(Style::new().bold().fg(theme.secondary)),
-        Cell::from("Message").style(Style::new().bold().fg(theme.secondary)),
+            .style(Style::new().bold().fg(theme.foreground)),
+        Cell::from("Message").style(Style::new().bold().fg(theme.foreground)),
         Cell::from(format!("{:<width$}", "Time", width = max_time_len + 1))
-            .style(Style::new().bold().fg(theme.secondary)),
+            .style(Style::new().bold().fg(theme.foreground)),
     ];
     let header_row = Row::new(header_cells).height(1);
 
@@ -84,7 +84,7 @@ pub fn render_logs_view(
             Row::new(vec![
                 Cell::from(type_cell).style(Style::default().fg(color)),
                 Cell::from(n.message.clone()).style(Style::default().fg(theme.foreground)),
-                Cell::from(time_cell).style(Style::default().fg(theme.muted)),
+                Cell::from(time_cell).style(Style::default().fg(theme.dim)),
             ])
         })
         .collect();
@@ -98,7 +98,7 @@ pub fn render_logs_view(
         .row_highlight_style(if is_focused {
             Style::default()
                 .fg(theme.foreground)
-                .bg(theme.selection)
+                .bg(theme.accent)
                 .add_modifier(Modifier::BOLD)
         } else {
             Style::default()
@@ -119,7 +119,7 @@ pub fn render_logs_view(
 
             let detail_text = Paragraph::new(log.message.as_str())
                 .block(detail_block)
-                .style(Style::default().fg(theme.inactive))
+                .style(Style::default().fg(theme.dim))
                 .wrap(Wrap { trim: true });
 
             f.render_widget(detail_text, detail_area);

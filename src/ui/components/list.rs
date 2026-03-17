@@ -16,7 +16,7 @@ pub fn styled_list_item(
         if is_focused {
             Style::default()
                 .fg(theme.foreground)
-                .bg(theme.selection)
+                .bg(theme.accent)
                 .add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(theme.foreground)

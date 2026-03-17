@@ -26,11 +26,7 @@ pub struct Theme {
     pub error: Color,
     pub success: Color,
     pub warning: Color,
-    pub selection: Color,
-    pub inactive: Color,
-    pub scrollbar: Color,
-    pub disabled: Color,
-    pub muted: Color,
+    pub dim: Color,
 }
 
 impl Default for Theme {
@@ -81,16 +77,8 @@ impl Theme {
             success: Color::Green,
             // warning: Yellow (#ffff00) - warning indicator (ANSI yellow)
             warning: Color::Yellow,
-            // selection: DarkGray - selection background (ANSI dark gray)
-            selection: Color::DarkGray,
-            // inactive: DarkGray - inactive state (ANSI dark gray)
-            inactive: Color::DarkGray,
-            // scrollbar: DarkGray - scrollbar (ANSI dark gray)
-            scrollbar: Color::DarkGray,
-            // disabled: DarkGray - disabled state (ANSI dark gray)
-            disabled: Color::DarkGray,
-            // muted: Gray - muted text (ANSI gray)
-            muted: Color::Gray,
+            // dim: DarkGray - dimmed/inactive state (ANSI dark gray)
+            dim: Color::DarkGray,
         }
     }
 
@@ -113,16 +101,8 @@ impl Theme {
             success: Color::Rgb(0xa6, 0xe3, 0xa1),
             // warning: Yellow (#f9e2af) - soft yellow
             warning: Color::Rgb(0xf9, 0xe2, 0xaf),
-            // selection: Surface1 (#455274) - darker blue-gray
-            selection: Color::Rgb(0x45, 0x52, 0x6b),
-            // inactive: Overlay0 (#6c7086) - muted gray
-            inactive: Color::Rgb(0x6c, 0x70, 0x86),
-            // scrollbar: Surface1 (#455274) - darker blue-gray
-            scrollbar: Color::Rgb(0x45, 0x52, 0x6b),
-            // disabled: Overlay0 (#6c7086) - muted gray
-            disabled: Color::Rgb(0x6c, 0x70, 0x86),
-            // muted: Overlay0 (#6c7086) - muted gray
-            muted: Color::Rgb(0x6c, 0x70, 0x86),
+            // dim: Overlay0 (#6c7086) - muted gray
+            dim: Color::Rgb(0x6c, 0x70, 0x86),
         }
     }
 
@@ -145,16 +125,8 @@ impl Theme {
             success: Color::Rgb(0x40, 0xa0, 0x2e),
             // warning: Yellow (#df8e1d) - orange-yellow
             warning: Color::Rgb(0xdf, 0x8e, 0x1d),
-            // selection: Surface1 (#ccd0e0) - light gray
-            selection: Color::Rgb(0xcc, 0xd0, 0xe0),
-            // inactive: Overlay0 (#9ca0b0) - gray
-            inactive: Color::Rgb(0x9c, 0xa0, 0xb0),
-            // scrollbar: Surface1 (#ccd0e0) - light gray
-            scrollbar: Color::Rgb(0xcc, 0xd0, 0xe0),
-            // disabled: Overlay0 (#9ca0b0) - gray
-            disabled: Color::Rgb(0x9c, 0xa0, 0xb0),
-            // muted: Overlay0 (#9ca0b0) - gray
-            muted: Color::Rgb(0x9c, 0xa0, 0xb0),
+            // dim: Overlay0 (#9ca0b0) - gray
+            dim: Color::Rgb(0x9c, 0xa0, 0xb0),
         }
     }
 
@@ -177,16 +149,8 @@ impl Theme {
             success: Color::Rgb(0x50, 0xfa, 0x7b),
             // warning: Yellow (#f1fa8c) - light yellow
             warning: Color::Rgb(0xf1, 0xfa, 0x8c),
-            // selection: Selection (#44495a) - dark gray
-            selection: Color::Rgb(0x44, 0x49, 0x5a),
-            // inactive: Gray (#6272a8) - muted purple-gray
-            inactive: Color::Rgb(0x62, 0x72, 0x88),
-            // scrollbar: Selection (#44495a) - dark gray
-            scrollbar: Color::Rgb(0x44, 0x49, 0x5a),
-            // disabled: Gray (#6272a8) - muted purple-gray
-            disabled: Color::Rgb(0x62, 0x72, 0x88),
-            // muted: Gray (#6272a8) - muted purple-gray
-            muted: Color::Rgb(0x62, 0x72, 0x88),
+            // dim: Gray (#6272a8) - muted purple-gray
+            dim: Color::Rgb(0x62, 0x72, 0x88),
         }
     }
 
@@ -209,16 +173,8 @@ impl Theme {
             success: Color::Rgb(0xa3, 0xbe, 0x8c),
             // warning: Aurora (#ebcb8b) - soft yellow
             warning: Color::Rgb(0xeb, 0xcb, 0x8b),
-            // selection: Polar Night (#434c5e) - darker blue-gray
-            selection: Color::Rgb(0x43, 0x4c, 0x5e),
-            // inactive: Polar Night (#4c566a) - gray-blue
-            inactive: Color::Rgb(0x4c, 0x56, 0x6a),
-            // scrollbar: Polar Night (#434c5e) - darker blue-gray
-            scrollbar: Color::Rgb(0x43, 0x4c, 0x5e),
-            // disabled: Polar Night (#4c566a) - gray-blue
-            disabled: Color::Rgb(0x4c, 0x56, 0x6a),
-            // muted: Polar Night (#4c566a) - gray-blue
-            muted: Color::Rgb(0x4c, 0x56, 0x6a),
+            // dim: Polar Night (#4c566a) - gray-blue
+            dim: Color::Rgb(0x4c, 0x56, 0x6a),
         }
     }
 
@@ -241,16 +197,8 @@ impl Theme {
             success: Color::Rgb(0xb8, 0xbb, 0x26),
             // warning: Yellow (#fabd2f) - bright yellow
             warning: Color::Rgb(0xfa, 0xbd, 0x2f),
-            // selection: Dark4 (#504945) - medium brown
-            selection: Color::Rgb(0x50, 0x49, 0x3e),
-            // inactive: Dark3 (#665c54) - muted brown
-            inactive: Color::Rgb(0x66, 0x5d, 0x4e),
-            // scrollbar: Dark4 (#504945) - medium brown
-            scrollbar: Color::Rgb(0x50, 0x49, 0x3e),
-            // disabled: Dark3 (#665c54) - muted brown
-            disabled: Color::Rgb(0x66, 0x5d, 0x4e),
-            // muted: Dark3 (#665c54) - muted brown
-            muted: Color::Rgb(0x66, 0x5d, 0x4e),
+            // dim: Dark3 (#665c54) - muted brown
+            dim: Color::Rgb(0x66, 0x5d, 0x4e),
         }
     }
 
@@ -273,16 +221,8 @@ impl Theme {
             success: Color::Rgb(0x9e, 0xce, 0x6a),
             // warning: Yellow (#e0af68) - amber
             warning: Color::Rgb(0xe0, 0xaf, 0x68),
-            // selection: Black (#363d52) - dark blue-gray
-            selection: Color::Rgb(0x36, 0x3d, 0x52),
-            // inactive: Comment (#565f89) - muted blue-gray
-            inactive: Color::Rgb(0x56, 0x5f, 0x75),
-            // scrollbar: Black (#363d52) - dark blue-gray
-            scrollbar: Color::Rgb(0x36, 0x3d, 0x52),
-            // disabled: Comment (#565f89) - muted blue-gray
-            disabled: Color::Rgb(0x56, 0x5f, 0x75),
-            // muted: Comment (#565f89) - muted blue-gray
-            muted: Color::Rgb(0x56, 0x5f, 0x75),
+            // dim: Comment (#565f89) - muted blue-gray
+            dim: Color::Rgb(0x56, 0x5f, 0x75),
         }
     }
 }

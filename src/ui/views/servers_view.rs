@@ -17,7 +17,7 @@ pub fn render_servers_view(
     f: &mut Frame<'_>,
     area: Rect,
 ) {
-    let theme = state.get_theme();
+    let theme = state.theme();
 
     let chunks = Layout::default()
         .direction(Direction::Horizontal)

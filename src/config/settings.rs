@@ -78,6 +78,20 @@ impl SettingKey {
 
     /// Return selectable options only (excludes "unknown").
     /// "unknown" is display-only - users cannot set a setting to "unknown".
+    pub fn label(&self) -> &'static str {
+        match self {
+            SettingKey::Killswitch => "Kill Switch:       ",
+            SettingKey::Ipv6 => "IPv6:              ",
+            SettingKey::Dns => "DNS:               ",
+            SettingKey::NetShield => "NetShield:         ",
+            SettingKey::ModerateNat => "Moderate NAT:      ",
+            SettingKey::VpnAccelerator => "VPN Accelerator:   ",
+            SettingKey::PortForwarding => "Port Forwarding:   ",
+            SettingKey::Theme => "Theme:             ",
+            SettingKey::Footer => "Footer:            ",
+        }
+    }
+
     pub fn selectable_options(&self) -> Vec<&'static str> {
         match self {
             SettingKey::Killswitch => vec!["off", "standard"],

@@ -53,10 +53,6 @@ impl TuiApp {
         })
     }
 
-    pub fn get_theme(&self) -> Theme {
-        Theme::from_mode(self.state.ui_state.theme_mode)
-    }
-
     pub fn run(&mut self) -> io::Result<()> {
         execute!(
             io::stdout(),
@@ -1039,7 +1035,7 @@ impl TuiApp {
 
     fn render(&mut self, f: &mut Frame<'_>) {
         // Apply theme background to entire terminal
-        let theme = self.get_theme();
+        let theme = self.state.theme();
         let area = f.area();
         f.render_widget(
             Paragraph::new("").style(Style::default().bg(theme.background)),
@@ -1102,7 +1098,7 @@ impl TuiApp {
     }
 
     fn render_filter_input(&self, f: &mut Frame<'_>, area: Rect, has_filter_active: bool) {
-        let theme = self.get_theme();
+        let theme = self.state.theme();
         let prompt = "search: ";
         let placeholder = "Esc to cancel...";
 
@@ -1144,7 +1140,7 @@ impl TuiApp {
     }
 
     fn render_dns_input(&self, f: &mut Frame<'_>, area: Rect) {
-        let theme = self.get_theme();
+        let theme = self.state.theme();
         let prompt = "DNS IPs: ";
         let placeholder = "comma-separated IPs(eg. 1.1.1.1,9.9.9.9)...";
         let dns_input = &self.state.ui_state.dns_input;
@@ -1174,7 +1170,7 @@ impl TuiApp {
     }
 
     fn render_notification_popup(&self, f: &mut Frame<'_>) {
-        let theme = self.get_theme();
+        let theme = self.state.theme();
         let terminal = f.area();
 
         let notifications: Vec<_> = self
@@ -1239,7 +1235,7 @@ impl TuiApp {
     }
 
     fn render_header(&mut self, f: &mut Frame<'_>, area: Rect) {
-        let theme = self.get_theme();
+        let theme = self.state.theme();
 
         let status_indicator = match self.state.connection_manager.connection {
             crate::state::ConnectionState::Connected { .. } => "●",
@@ -1401,7 +1397,7 @@ impl TuiApp {
     }
 
     fn render_footer(&self, f: &mut Frame<'_>, area: Rect) {
-        let theme = self.get_theme();
+        let theme = self.state.theme();
 
         let action_spans = self.get_footer_action_hints();
 
@@ -1446,7 +1442,7 @@ impl TuiApp {
     }
 
     fn get_footer_action_hints(&self) -> Vec<Span<'_>> {
-        let theme = self.get_theme();
+        let theme = self.state.theme();
         let is_disconnected = self.state.connection_manager.connection.is_disconnected();
 
         match (

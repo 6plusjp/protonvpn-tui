@@ -16,7 +16,7 @@ pub fn render_logs_view(
     area: Rect,
     is_focused: bool,
 ) {
-    let theme = state.get_theme();
+    let theme = state.theme();
 
     let logs = &state.notification_state.notification_log;
     if logs.is_empty() {

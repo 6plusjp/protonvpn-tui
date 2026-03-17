@@ -14,7 +14,7 @@ pub fn render_tools_view(
     f: &mut Frame<'_>,
     area: Rect,
 ) {
-    let theme = state.get_theme();
+    let theme = state.theme();
     let is_settings_focused = state.ui_state.pane_focus == Pane::Settings;
     let is_logs_focused = state.ui_state.pane_focus == Pane::Logs;
 

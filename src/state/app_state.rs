@@ -165,7 +165,7 @@ impl AppState {
     }
 
     /// Get current theme based on theme mode
-    pub fn get_theme(&self) -> Theme {
+    pub fn theme(&self) -> Theme {
         Theme::from_mode(self.ui_state.theme_mode)
     }
 
@@ -1048,7 +1048,7 @@ impl AppState {
         let old_idx = self.ui_state.selected_server;
         self.ui_state
             .selected_server
-            .move_next(self.get_selection_bounds());
+            .move_next(self.selection_bounds());
 
         if old_idx != self.ui_state.selected_server {
             self.switch_cities_to_selected();
@@ -1059,7 +1059,7 @@ impl AppState {
         let old_idx = self.ui_state.selected_server;
         self.ui_state
             .selected_server
-            .move_prev(self.get_selection_bounds());
+            .move_prev(self.selection_bounds());
 
         if old_idx != self.ui_state.selected_server {
             self.switch_cities_to_selected();
@@ -1143,7 +1143,7 @@ impl AppState {
         let old_idx = self.ui_state.selected_server;
         self.ui_state
             .selected_server
-            .move_first(self.get_selection_bounds());
+            .move_first(self.selection_bounds());
 
         if old_idx != self.ui_state.selected_server {
             self.switch_cities_to_selected();
@@ -1154,7 +1154,7 @@ impl AppState {
         let old_idx = self.ui_state.selected_server;
         self.ui_state
             .selected_server
-            .move_last(self.get_selection_bounds());
+            .move_last(self.selection_bounds());
 
         if old_idx != self.ui_state.selected_server {
             self.switch_cities_to_selected();
@@ -1165,7 +1165,7 @@ impl AppState {
         let old_idx = self.ui_state.selected_server;
         self.ui_state
             .selected_server
-            .move_page_down(self.get_selection_bounds());
+            .move_page_down(self.selection_bounds());
 
         if old_idx != self.ui_state.selected_server {
             self.switch_cities_to_selected();
@@ -1176,7 +1176,7 @@ impl AppState {
         let old_idx = self.ui_state.selected_server;
         self.ui_state
             .selected_server
-            .move_page_up(self.get_selection_bounds());
+            .move_page_up(self.selection_bounds());
 
         if old_idx != self.ui_state.selected_server {
             self.switch_cities_to_selected();
@@ -1241,7 +1241,7 @@ impl AppState {
         }
     }
 
-    fn get_selection_bounds(&self) -> usize {
+    fn selection_bounds(&self) -> usize {
         if self.ui_state.current_view == crate::state::AppView::Servers
             && self.ui_state.pane_focus == Pane::Cities
         {

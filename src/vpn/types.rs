@@ -105,8 +105,11 @@ pub fn parse_countries(output: &str) -> HashMap<String, String> {
         // Parse: "Country Name             XX" (code at the end)
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() >= 2 {
-            // Last part is the code
-            let code = parts.last().unwrap();
+            // SAFETY: parts.len() >= 2 guarantees at least one element exists.
+            // This is checked immediately above, so unwrap is safe here.
+            let code = parts
+                .last()
+                .expect("parts has at least 2 elements due to length check");
             // Everything before is the country name
             let name = parts[..parts.len() - 1].join(" ");
             if !code.is_empty() && !name.is_empty() && code.len() <= 3 {

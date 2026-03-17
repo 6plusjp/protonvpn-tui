@@ -17,7 +17,7 @@ pub fn render_settings_view(
     area: Rect,
     is_focused: bool,
 ) {
-    let theme = state.get_theme();
+    let theme = state.theme();
 
     let proton_settings = state.config_state.proton_settings_cache.as_ref();
     let selected = state.ui_state.settings_selected.unwrap_or(0);
@@ -29,7 +29,7 @@ pub fn render_settings_view(
 
     for (idx, key) in SettingKey::ALL.iter().enumerate() {
         let value = get_setting_value(key, proton_settings, state.ui_state.theme_mode, show_footer);
-        let label = get_setting_label(key);
+        let label = key.label();
 
         let is_selected = selected == idx;
         let is_expanded = expanded && is_selected;
@@ -186,19 +186,5 @@ fn get_setting_value(
             .unwrap_or_else(|| "unknown".to_string()),
         SettingKey::Theme => unreachable!(),
         SettingKey::Footer => unreachable!(),
-    }
-}
-
-fn get_setting_label(key: &SettingKey) -> &'static str {
-    match key {
-        SettingKey::Killswitch => "Kill Switch:       ",
-        SettingKey::Ipv6 => "IPv6:              ",
-        SettingKey::Dns => "DNS:               ",
-        SettingKey::NetShield => "NetShield:         ",
-        SettingKey::ModerateNat => "Moderate NAT:      ",
-        SettingKey::VpnAccelerator => "VPN Accelerator:   ",
-        SettingKey::PortForwarding => "Port Forwarding:   ",
-        SettingKey::Theme => "Theme:             ",
-        SettingKey::Footer => "Footer:            ",
     }
 }

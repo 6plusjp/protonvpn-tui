@@ -22,6 +22,7 @@ protonvpn-tui/
 │   ├── lib.rs            # Library root
 │   ├── error.rs          # Error types (AppError, VpnError)
 │   ├── constants.rs      # Application constants
+│   ├── paths.rs          # Path utilities (config, cache, logs)
 │   ├── commands/         # CLI command handlers (placeholder)
 │   ├── vpn/              # VPN backend (protonvpn wrapper)
 │   │   ├── mod.rs

@@ -214,8 +214,8 @@ impl PaneTable {
                 let pad_len = width.saturating_sub(total_len);
 
                 let key_style = theme
-                    .map(|t| Style::default().fg(t.key_hint))
-                    .unwrap_or_else(|| Style::default().fg(Theme::default().key_hint));
+                    .map(|t| Style::default().fg(t.warning))
+                    .unwrap_or_else(|| Style::default().fg(Theme::default().warning));
 
                 let header_fg = if has_indicator {
                     theme.map(|t| t.accent).unwrap_or(Theme::default().accent)

@@ -27,7 +27,6 @@ pub struct Theme {
     pub success: Color,
     pub warning: Color,
     pub selection: Color,
-    pub key_hint: Color,
     pub inactive: Color,
     pub scrollbar: Color,
     pub disabled: Color,
@@ -84,8 +83,6 @@ impl Theme {
             warning: Color::Yellow,
             // selection: DarkGray - selection background (ANSI dark gray)
             selection: Color::DarkGray,
-            // key_hint: Yellow - key hint (ANSI yellow)
-            key_hint: Color::Yellow,
             // inactive: DarkGray - inactive state (ANSI dark gray)
             inactive: Color::DarkGray,
             // scrollbar: DarkGray - scrollbar (ANSI dark gray)
@@ -118,8 +115,6 @@ impl Theme {
             warning: Color::Rgb(0xf9, 0xe2, 0xaf),
             // selection: Surface1 (#455274) - darker blue-gray
             selection: Color::Rgb(0x45, 0x52, 0x6b),
-            // key_hint: Yellow (#f9e2af) - soft yellow
-            key_hint: Color::Rgb(0xf9, 0xe2, 0xaf),
             // inactive: Overlay0 (#6c7086) - muted gray
             inactive: Color::Rgb(0x6c, 0x70, 0x86),
             // scrollbar: Surface1 (#455274) - darker blue-gray
@@ -152,8 +147,6 @@ impl Theme {
             warning: Color::Rgb(0xdf, 0x8e, 0x1d),
             // selection: Surface1 (#ccd0e0) - light gray
             selection: Color::Rgb(0xcc, 0xd0, 0xe0),
-            // key_hint: Yellow (#df8e1d) - orange-yellow
-            key_hint: Color::Rgb(0xdf, 0x8e, 0x1d),
             // inactive: Overlay0 (#9ca0b0) - gray
             inactive: Color::Rgb(0x9c, 0xa0, 0xb0),
             // scrollbar: Surface1 (#ccd0e0) - light gray
@@ -186,8 +179,6 @@ impl Theme {
             warning: Color::Rgb(0xf1, 0xfa, 0x8c),
             // selection: Selection (#44495a) - dark gray
             selection: Color::Rgb(0x44, 0x49, 0x5a),
-            // key_hint: Yellow (#f1fa8c) - light yellow
-            key_hint: Color::Rgb(0xf1, 0xfa, 0x8c),
             // inactive: Gray (#6272a8) - muted purple-gray
             inactive: Color::Rgb(0x62, 0x72, 0x88),
             // scrollbar: Selection (#44495a) - dark gray
@@ -220,8 +211,6 @@ impl Theme {
             warning: Color::Rgb(0xeb, 0xcb, 0x8b),
             // selection: Polar Night (#434c5e) - darker blue-gray
             selection: Color::Rgb(0x43, 0x4c, 0x5e),
-            // key_hint: Aurora (#ebcb8b) - soft yellow
-            key_hint: Color::Rgb(0xeb, 0xcb, 0x8b),
             // inactive: Polar Night (#4c566a) - gray-blue
             inactive: Color::Rgb(0x4c, 0x56, 0x6a),
             // scrollbar: Polar Night (#434c5e) - darker blue-gray
@@ -254,8 +243,6 @@ impl Theme {
             warning: Color::Rgb(0xfa, 0xbd, 0x2f),
             // selection: Dark4 (#504945) - medium brown
             selection: Color::Rgb(0x50, 0x49, 0x3e),
-            // key_hint: Yellow (#fabd2f) - bright yellow
-            key_hint: Color::Rgb(0xfa, 0xbd, 0x2f),
             // inactive: Dark3 (#665c54) - muted brown
             inactive: Color::Rgb(0x66, 0x5d, 0x4e),
             // scrollbar: Dark4 (#504945) - medium brown
@@ -288,8 +275,6 @@ impl Theme {
             warning: Color::Rgb(0xe0, 0xaf, 0x68),
             // selection: Black (#363d52) - dark blue-gray
             selection: Color::Rgb(0x36, 0x3d, 0x52),
-            // key_hint: Yellow (#e0af68) - amber
-            key_hint: Color::Rgb(0xe0, 0xaf, 0x68),
             // inactive: Comment (#565f89) - muted blue-gray
             inactive: Color::Rgb(0x56, 0x5f, 0x75),
             // scrollbar: Black (#363d52) - dark blue-gray

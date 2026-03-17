@@ -5,7 +5,7 @@ use ratatui::{
 };
 
 pub fn key_hint_style(theme: &Theme) -> Style {
-    Style::default().fg(theme.key_hint)
+    Style::default().fg(theme.warning)
 }
 
 pub fn primary_style(theme: &Theme) -> Style {
@@ -45,7 +45,7 @@ pub fn header_style(theme: &Theme) -> Style {
 }
 
 pub fn footer_style(theme: &Theme) -> Style {
-    Style::default().fg(theme.key_hint)
+    Style::default().fg(theme.warning)
 }
 
 pub fn muted_style(theme: &Theme) -> Style {

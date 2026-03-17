@@ -107,29 +107,33 @@ fn render_countries_pane(
                     .join(", ")
             };
 
-            let style = if is_selected {
-                if is_focused {
-                    Style::default()
-                        .fg(theme.background)
-                        .bg(theme.accent)
-                        .add_modifier(Modifier::BOLD)
-                } else {
-                    Style::default().fg(theme.foreground)
-                }
+            let (row_style, code_style, country_style, cities_style) = if is_selected && is_focused
+            {
+                let s = Style::default()
+                    .fg(theme.background)
+                    .bg(theme.accent)
+                    .add_modifier(Modifier::BOLD);
+                (s, s, s, s)
+            } else if is_selected {
+                let s = Style::default().fg(theme.foreground);
+                (s, s, s, s)
             } else if is_connected {
-                Style::default()
+                let s = Style::default()
                     .fg(theme.success)
-                    .add_modifier(Modifier::BOLD)
+                    .add_modifier(Modifier::BOLD);
+                let n = Style::default().fg(theme.foreground);
+                (s, s, n, n)
             } else {
-                Style::default().fg(theme.foreground)
+                let n = Style::default().fg(theme.foreground);
+                (n, n, n, n)
             };
 
             Row::new(vec![
-                Cell::from(server.code.clone()),
-                Cell::from(server.country.clone()),
-                Cell::from(cities_str).style(Style::default().fg(theme.dim)),
+                Cell::from(server.code.clone()).style(code_style),
+                Cell::from(server.country.clone()).style(country_style),
+                Cell::from(cities_str).style(cities_style),
             ])
-            .style(style)
+            .style(row_style)
         })
         .collect();
 
@@ -142,7 +146,7 @@ fn render_countries_pane(
         .column_spacing(2)
         .row_highlight_style(if is_focused {
             Style::default()
-                .fg(theme.foreground)
+                .fg(theme.background)
                 .bg(theme.accent)
                 .add_modifier(Modifier::BOLD)
         } else {
@@ -238,23 +242,28 @@ fn render_cities_pane(
         .map(|(idx, (city_name, features))| {
             let is_selected = state.ui_state.selected_city == Some(idx);
 
-            let style = if is_selected && is_focused {
-                Style::default()
-                    .fg(theme.foreground)
+            let (row_style, name_style, features_style) = if is_selected && is_focused {
+                let s = Style::default()
+                    .fg(theme.background)
                     .bg(theme.accent)
-                    .add_modifier(Modifier::BOLD)
+                    .add_modifier(Modifier::BOLD);
+                (s, s, s)
+            } else if is_selected {
+                let s = Style::default().fg(theme.foreground);
+                (s, s, s)
             } else {
-                Style::default().fg(theme.foreground)
+                let n = Style::default().fg(theme.foreground);
+                (n, n, n)
             };
 
             if features.is_empty() {
-                Row::new(vec![Cell::from(city_name.clone())]).style(style)
+                Row::new(vec![Cell::from(city_name.clone()).style(name_style)]).style(row_style)
             } else {
                 Row::new(vec![
-                    Cell::from(city_name.clone()),
-                    Cell::from(features.clone()).style(Style::default().fg(theme.dim)),
+                    Cell::from(city_name.clone()).style(name_style),
+                    Cell::from(features.clone()).style(features_style),
                 ])
-                .style(style)
+                .style(row_style)
             }
         })
         .collect();
@@ -267,7 +276,7 @@ fn render_cities_pane(
         .column_spacing(2)
         .row_highlight_style(if is_focused {
             Style::default()
-                .fg(theme.foreground)
+                .fg(theme.background)
                 .bg(theme.accent)
                 .add_modifier(Modifier::BOLD)
         } else {

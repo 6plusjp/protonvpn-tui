@@ -121,8 +121,7 @@ fn render_countries_pane(
                 let s = Style::default()
                     .fg(theme.success)
                     .add_modifier(Modifier::BOLD);
-                let n = Style::default().fg(theme.foreground);
-                (s, s, n, n)
+                (s, s, s, s)
             } else {
                 let n = Style::default().fg(theme.foreground);
                 (n, n, n, n)

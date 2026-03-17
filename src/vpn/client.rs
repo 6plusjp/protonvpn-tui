@@ -408,19 +408,6 @@ impl VpnClient {
         self.refresh_servers()
     }
 
-    /// Get cached servers (non-refreshing)
-    pub fn get_servers(&self) -> Vec<Server> {
-        let countries = match self.with_cache(|c| c.countries.clone()) {
-            Ok(c) => c,
-            Err(e) => {
-                tracing::debug!("Failed to get countries from cache: {}", e);
-                HashMap::new()
-            }
-        };
-        let cities = self.with_cache(|c| c.cities.clone()).unwrap_or_default();
-        countries_to_servers(&countries, &cities)
-    }
-
     pub fn refresh_servers(&self) -> AppResult<Vec<Server>> {
         let countries = self.refresh_countries()?;
         let cities = self.with_cache(|c| c.cities.clone()).unwrap_or_default();

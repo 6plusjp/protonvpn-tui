@@ -93,10 +93,7 @@ impl ServerCache {
         self.connected_server.is_some()
     }
 
-    pub fn set_cli_unavailable(&mut self, unavailable: bool) {
-        self.cli_unavailable = unavailable;
-    }
-
+    /// Check if CLI was unavailable during last refresh
     pub fn is_cli_unavailable(&self) -> bool {
         self.cli_unavailable
     }

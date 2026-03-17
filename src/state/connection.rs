@@ -106,10 +106,6 @@ impl ConnectionManager {
         }
     }
 
-    pub fn set_connection(&mut self, state: ConnectionState) {
-        self.previous_connection = Some(std::mem::replace(&mut self.connection, state));
-    }
-
     pub fn is_idle(&self) -> bool {
         self.pending_refresh.is_empty()
             && self.pending_connect.is_empty()

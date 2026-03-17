@@ -20,9 +20,9 @@ mod vpn_client_operations {
     }
 
     #[test]
-    fn test_vpn_client_get_servers() {
+    fn test_vpn_client_servers() {
         let client = VpnClient::new();
-        let _servers = client.get_servers();
+        let _servers = client.servers();
     }
 
     #[test]
@@ -32,15 +32,15 @@ mod vpn_client_operations {
     }
 
     #[test]
-    fn test_vpn_state_get_servers() {
+    fn test_vpn_state_servers() {
         let client = VpnClient::new();
-        let _servers = client.get_servers();
+        let _servers = client.servers();
     }
 
     #[test]
-    fn test_vpn_state_get_servers_or_refresh() {
+    fn test_vpn_state_servers_or_refresh() {
         let client = VpnClient::new();
-        let _servers = client.get_servers();
+        let _servers = client.servers();
     }
 }
 

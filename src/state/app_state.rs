@@ -1045,11 +1045,6 @@ impl AppState {
         self.invalidate_filtered_cache();
     }
 
-    pub fn set_filter(&mut self, filter: ServerFilter) {
-        self.ui_state.filter = filter;
-        self.invalidate_filtered_cache();
-    }
-
     pub fn select_next(&mut self) {
         let old_idx = self.ui_state.selected_server;
         self.ui_state

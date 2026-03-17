@@ -1318,7 +1318,18 @@ impl TuiApp {
                 }
             };
 
-        let protocol = self.state.vpn_state.get_connection_protocol();
+        // Only read protocol from persistence file when connected or disconnected.
+        // During Connecting/Disconnecting, the file is being updated by protonvpn-cli
+        // which causes the protocol to momentarily disappear.
+        let protocol = match self.state.connection_manager.connection {
+            crate::state::ConnectionState::Connected { .. }
+            | crate::state::ConnectionState::Disconnected => {
+                self.state.vpn_state.get_connection_protocol()
+            }
+            crate::state::ConnectionState::Connecting
+            | crate::state::ConnectionState::Disconnecting
+            | crate::state::ConnectionState::Error(_) => None,
+        };
 
         let title = " ProtonVPN TUI ";
 

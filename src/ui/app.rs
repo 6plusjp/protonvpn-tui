@@ -648,12 +648,16 @@ impl TuiApp {
                 self.handle_connect();
                 None
             }
-            (false, KeyCode::Char('j') | KeyCode::Down) => {
+            (false, KeyCode::Char('j') | KeyCode::Down | KeyCode::Char('n'))
+                if !key_event.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
                 self.state.ui_state.settings_last_key_g = false;
                 self.state.settings_select_next();
                 None
             }
-            (false, KeyCode::Char('k') | KeyCode::Up) => {
+            (false, KeyCode::Char('k') | KeyCode::Up | KeyCode::Char('p'))
+                if !key_event.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
                 self.state.ui_state.settings_last_key_g = false;
                 self.state.settings_select_prev();
                 None
@@ -766,7 +770,9 @@ impl TuiApp {
                 self.state.ui_state.settings_expanded = false;
                 None
             }
-            (true, KeyCode::Char('j') | KeyCode::Down) => {
+            (true, KeyCode::Char('j') | KeyCode::Down)
+                if !key_event.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
                 if let Some(idx) = self.state.ui_state.settings_selected {
                     if let Some(key) = SettingKey::from_index(idx) {
                         let opt_count = key.selectable_option_count();
@@ -777,7 +783,28 @@ impl TuiApp {
                 }
                 None
             }
-            (true, KeyCode::Char('k') | KeyCode::Up) => {
+            (true, KeyCode::Char('k') | KeyCode::Up)
+                if !key_event.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
+                self.state.ui_state.settings_option_selected = self
+                    .state
+                    .ui_state
+                    .settings_option_selected
+                    .saturating_sub(1);
+                None
+            }
+            (true, KeyCode::Char('n')) if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                if let Some(idx) = self.state.ui_state.settings_selected {
+                    if let Some(key) = SettingKey::from_index(idx) {
+                        let opt_count = key.selectable_option_count();
+                        self.state.ui_state.settings_option_selected =
+                            (self.state.ui_state.settings_option_selected + 1)
+                                .min(opt_count.saturating_sub(1));
+                    }
+                }
+                None
+            }
+            (true, KeyCode::Char('p')) if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.state.ui_state.settings_option_selected = self
                     .state
                     .ui_state
@@ -904,11 +931,17 @@ impl TuiApp {
             self.handle_navigation_up();
             return true;
         }
-        if key_event.code == KeyCode::Down {
+        if key_event.code == KeyCode::Down
+            || (key_event.code == KeyCode::Char('n')
+                && key_event.modifiers.contains(KeyModifiers::CONTROL))
+        {
             self.handle_navigation_down();
             return true;
         }
-        if key_event.code == KeyCode::Up {
+        if key_event.code == KeyCode::Up
+            || (key_event.code == KeyCode::Char('p')
+                && key_event.modifiers.contains(KeyModifiers::CONTROL))
+        {
             self.handle_navigation_up();
             return true;
         }

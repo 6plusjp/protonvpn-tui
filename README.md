@@ -97,18 +97,20 @@ Multiple themes available (toggle in Settings view):
 
 ### Navigation
 
-| Key       | Action                             |
-| --------- | ---------------------------------- |
-| `j` / `k` | Navigate up/down                   |
-| `g`       | Jump to top                        |
-| `G`       | Jump to bottom                     |
-| `Ctrl+d`  | Page down                          |
-| `Ctrl+u`  | Page up                            |
-| `l`       | Next pane (countries → cities)     |
-| `h`       | Previous pane (cities → countries) |
-| `Tab`     | Switch view (Servers ↔ Tools)     |
-| `/`       | Search/filter                      |
-| `Esc`     | Clear filter / Cancel              |
+| Key           | Action                             |
+| ------------- | ---------------------------------- |
+| `j` / `k`     | Navigate up/down                   |
+| `↑` / `↓`     | Navigate up/down (arrow keys)      |
+| `Ctrl+n` / `Ctrl+p` | Navigate down/up (vim-style) |
+| `g`           | Jump to top                        |
+| `G`           | Jump to bottom                     |
+| `Ctrl+d`      | Page down                          |
+| `Ctrl+u`      | Page up                            |
+| `l`           | Next pane (countries → cities)     |
+| `h`           | Previous pane (cities → countries) |
+| `Tab`         | Switch view (Servers ↔ Tools)     |
+| `/`           | Search/filter                      |
+| `Esc`         | Clear filter / Cancel              |
 
 ### Connection
 

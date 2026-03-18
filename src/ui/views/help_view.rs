@@ -79,6 +79,10 @@ pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
                     "Navigate up / down (alternative)".to_string(),
                 ),
                 (
+                    "Ctrl+n / Ctrl+p".to_string(),
+                    "Navigate up / down (vim-style)".to_string(),
+                ),
+                (
                     format_keybinding(&bindings.go_first),
                     "Go to top (press twice)".to_string(),
                 ),

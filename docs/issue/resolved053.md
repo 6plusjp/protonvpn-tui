@@ -1,6 +1,6 @@
 # Issue 053: Systematize Keybinding Handling
 
-## Status: Open
+## Status: Phase 3 Complete
 
 ## Created: 2026-03-18
 
@@ -53,22 +53,12 @@ Example: Cannot assign `j`, `Down`, and `Ctrl+n` all to the "Down" action.
 ### Introduce KeyMap Structure
 
 ```rust
-// src/ui/keymap.rs (new file)
+// src/ui/keymap.rs (implemented)
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-/// Single key matcher
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum KeyMatcher {
-    /// Plain character without modifiers (e.g., 'j', 'k')
-    Char(char),
-    /// Character with modifiers (e.g., Ctrl+'d', Alt+'j')
-    CharWithMod(char, KeyModifiers),
-    /// Arrow key
-    Arrow(KeyArrow),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// Arrow key direction
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum KeyArrow {
     Up,
     Down,
@@ -76,8 +66,21 @@ pub enum KeyArrow {
     Right,
 }
 
+/// Single key matcher
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum KeyMatcher {
+    /// Plain character without modifiers (e.g., 'j', 'k')
+    Char(char),
+    /// Character with modifiers (e.g., Ctrl+'d', Alt+'j')
+    CharWithMod(char, KeyModifiers),
+    /// Arrow key
+    Arrow(KeyArrow),
+    /// Double character sequence (e.g., 'gg' for go first)
+    DoubleChar(char),
+}
+
 impl KeyMatcher {
-    pub fn matches(&self, event: &KeyEvent) -> bool {
+    pub fn matches(&self, event: &KeyEvent, pending: Option<char>) -> bool {
         match self {
             KeyMatcher::Char(c) => {
                 event.code == KeyCode::Char(*c) && event.modifiers.is_empty()
@@ -92,7 +95,14 @@ impl KeyMatcher {
                     KeyArrow::Left => KeyCode::Left,
                     KeyArrow::Right => KeyCode::Right,
                 };
-                event.code == code
+                event.code == code && event.modifiers.is_empty()
+            }
+            KeyMatcher::DoubleChar(c) => {
+                if let Some(p) = pending {
+                    event.code == KeyCode::Char(*c) && event.modifiers.is_empty() && p == *c
+                } else {
+                    false
+                }
             }
         }
     }
@@ -105,8 +115,8 @@ pub struct KeyMap {
     pub up: Vec<KeyMatcher>,
     pub page_down: Vec<KeyMatcher>,
     pub page_up: Vec<KeyMatcher>,
-    pub go_first: Vec<KeyMatcher>,
-    pub go_last: Vec<KeyMatcher>,
+    pub go_first: Vec<KeyMatcher>,    // DoubleChar('g') = 'gg'
+    pub go_last: Vec<KeyMatcher>,     // Char('G')
     pub connect: Vec<KeyMatcher>,
     pub disconnect: Vec<KeyMatcher>,
     pub refresh: Vec<KeyMatcher>,
@@ -119,12 +129,21 @@ pub struct KeyMap {
     pub connect_p2p: Vec<KeyMatcher>,
     pub connect_tor: Vec<KeyMatcher>,
     pub securecore: Vec<KeyMatcher>,
+    pub search: Vec<KeyMatcher>,
+    pub cancel: Vec<KeyMatcher>,
+    pub help: Vec<KeyMatcher>,
+    pub quit: Vec<KeyMatcher>,
+    pub next_setting: Vec<KeyMatcher>,
+    pub prev_setting: Vec<KeyMatcher>,
+    pub toggle_setting: Vec<KeyMatcher>,
+    pub select_city: Vec<KeyMatcher>,
+    pub refresh_cities: Vec<KeyMatcher>,
 }
 
 impl Default for KeyMap {
     fn default() -> Self {
         Self {
-            // Vim-style + Arrow keys
+            // Navigation: Vim-style + Arrow keys + Ctrl+n/Ctrl+p
             down: vec![
                 KeyMatcher::Char('j'),
                 KeyMatcher::Arrow(KeyArrow::Down),
@@ -135,13 +154,24 @@ impl Default for KeyMap {
                 KeyMatcher::Arrow(KeyArrow::Up),
                 KeyMatcher::CharWithMod('p', KeyModifiers::CONTROL),
             ],
+            page_down: vec![
+                KeyMatcher::CharWithMod('d', KeyModifiers::CONTROL),
+                KeyMatcher::CharWithMod('f', KeyModifiers::CONTROL),
+            ],
+            page_up: vec![
+                KeyMatcher::CharWithMod('u', KeyModifiers::CONTROL),
+                KeyMatcher::CharWithMod('b', KeyModifiers::CONTROL),
+            ],
+            // 'gg' = go first, 'G' = go last
+            go_first: vec![KeyMatcher::DoubleChar('g')],
+            go_last: vec![KeyMatcher::CharWithMod('G', KeyModifiers::SHIFT)],
             // ... other actions
         }
     }
 }
 
 impl KeyMap {
-    pub fn matches(&self, action: KeyAction, event: &KeyEvent) -> bool {
+    pub fn matches(&self, action: KeyAction, event: &KeyEvent, pending: Option<char>) -> bool {
         let matchers = match action {
             KeyAction::Down => &self.down,
             KeyAction::Up => &self.up,
@@ -161,12 +191,21 @@ impl KeyMap {
             KeyAction::ConnectP2p => &self.connect_p2p,
             KeyAction::ConnectTor => &self.connect_tor,
             KeyAction::Securecore => &self.securecore,
+            KeyAction::Search => &self.search,
+            KeyAction::Cancel => &self.cancel,
+            KeyAction::Help => &self.help,
+            KeyAction::Quit => &self.quit,
+            KeyAction::NextSetting => &self.next_setting,
+            KeyAction::PrevSetting => &self.prev_setting,
+            KeyAction::ToggleSetting => &self.toggle_setting,
+            KeyAction::SelectCity => &self.select_city,
+            KeyAction::RefreshCities => &self.refresh_cities,
         };
-        matchers.iter().any(|m| m.matches(event))
+        matchers.iter().any(|m| m.matches(event, pending))
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum KeyAction {
     Down,
     Up,
@@ -186,7 +225,49 @@ pub enum KeyAction {
     ConnectP2p,
     ConnectTor,
     Securecore,
+    Search,
+    Cancel,
+    Help,
+    Quit,
+    NextSetting,
+    PrevSetting,
+    ToggleSetting,
+    SelectCity,
+    RefreshCities,
 }
+```
+
+### Config-Level KeyMatcherConfig
+
+For TOML configuration, `KeyMatcherConfig` serializes as:
+
+```rust
+// src/config/user_config.rs
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "type", content = "value")]
+pub enum KeyMatcherConfig {
+    Char(char),
+    CharWithMod { code: char, modifiers: Vec<String> },
+    Arrow(String),
+    DoubleChar(char),
+}
+```
+
+Example TOML config:
+```toml
+[keybindings]
+navigation_down = [
+    { type = "Char", value = "j" },
+    { type = "Arrow", value = "Down" },
+    { type = "CharWithMod", value = { code = "n", modifiers = ["Control"] } }
+]
+navigation_up = [
+    { type = "Char", value = "k" },
+    { type = "Arrow", value = "Up" },
+    { type = "CharWithMod", value = { code = "p", modifiers = ["Control"] } }
+]
+go_first = [{ type = "DoubleChar", value = "g" }]
+go_last = [{ type = "CharWithMod", value = { code = "G", modifiers = ["Shift"] } }]
 ```
 
 ### Simplified app.rs
@@ -194,17 +275,35 @@ pub enum KeyAction {
 ```rust
 fn handle_common_navigation(&mut self, key_event: KeyEvent) -> bool {
     let keymap = &self.state.keymap;
-    
-    if keymap.matches(KeyAction::Down, &key_event) {
+    let pending = self.pending_g.then_some('g');
+
+    // Handle 'gg' double-key sequence
+    if let KeyCode::Char('g') = key_event.code {
+        if key_event.modifiers.is_empty() {
+            if self.pending_g {
+                self.pending_g = false;
+                self.handle_go_to_first();
+                return true;
+            } else {
+                self.pending_g = true;
+                return true;
+            }
+        }
+    }
+
+    // Handle other navigation actions
+    if keymap.matches(KeyAction::Down, &key_event, pending) {
+        self.pending_g = false;
         self.handle_navigation_down();
         return true;
     }
-    if keymap.matches(KeyAction::Up, &key_event) {
+    if keymap.matches(KeyAction::Up, &key_event, pending) {
+        self.pending_g = false;
         self.handle_navigation_up();
         return true;
     }
     // ... other actions
-    
+
     false
 }
 ```
@@ -225,18 +324,28 @@ fn handle_common_navigation(&mut self, key_event: KeyEvent) -> bool {
 
 ## Implementation Notes
 
-### Phase 1: Create KeyMap
-- Create `src/ui/keymap.rs`
-- Define `KeyMatcher`, `KeyMap`, `KeyAction`
-- Implement `matches()` method
+### Phase 1: Create KeyMap ✅ COMPLETE
+- Created `src/ui/keymap.rs`
+- Defined `KeyMatcher`, `KeyMap`, `KeyAction`
+- Implemented `matches()` methods
+- Added `DoubleChar` variant for multi-key sequences (e.g., `gg`)
+- Added comprehensive unit tests (7 tests passing)
 
-### Phase 2: Integration
-- Add `keymap: KeyMap` field to `AppState`
-- Refactor `handle_common_navigation()` to use KeyMap
-- Refactor settings pane handlers to use KeyMap
+### Phase 2: Integration ✅ COMPLETE
+- Added `keymap: KeyMap` field to `AppState`
+- Added `KeyAction` import to `app.rs`
+- Refactored `handle_common_navigation()` to use KeyMap
+- Implemented `gg` double-key sequence handling via `pending_g` state
+- Fixed `go_last` to use `CharWithMod('G', SHIFT)` for proper Shift key matching
+- All tests passing (53 tests)
 
-### Phase 3: Config File Support (optional)
-- Support generating KeyMap from TOML config
+### Phase 3: Config File Support ✅ COMPLETE
+- Added `KeyMatcherConfig` enum with variants: `Char`, `CharWithMod`, `Arrow`, `DoubleChar`
+- Updated `KeyBindingsConfig` to use `Vec<KeyMatcherConfig>` per action
+- Implemented `From<KeyBindingsConfig> for KeyMap` for config-to-KeyMap conversion
+- Added `to_keymatcher()` method to convert config to runtime `KeyMatcher`
+- Config format now supports multiple keys per action
+- Config file schema updated to support new format (see example above)
 
 ---
 

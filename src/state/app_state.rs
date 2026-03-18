@@ -17,6 +17,7 @@ use crate::state::ServerFilter;
 use crate::state::ServerSort;
 use crate::state::SortDirection;
 use crate::state::UiState;
+use crate::ui::keymap::KeyMap;
 use crate::ui::styles::{Theme, ThemeMode};
 use crate::vpn::async_tasks::create_channel;
 use crate::vpn::ConnectResult;
@@ -127,6 +128,9 @@ pub struct AppState {
     pub proton_settings_cache: Option<ProtonSettings>,
     pub key_bindings: crate::config::KeyBindings,
     pub user_config: UserConfig,
+
+    // === KeyMap (centralized keybindings) ===
+    pub keymap: KeyMap,
 }
 
 impl Default for AppState {
@@ -161,6 +165,7 @@ impl AppState {
             is_initialized: false,
             key_bindings: key_bindings.clone(),
             user_config,
+            keymap: KeyMap::default(),
         }
     }
 

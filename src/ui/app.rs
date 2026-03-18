@@ -1,6 +1,7 @@
 use crate::config::{SettingKey, UserConfig};
 use crate::constants::ui::{NOTIFICATION_MSG_MAX_LEN, POPUP_WIDTH_MAX, POPUP_WIDTH_MIN};
 use crate::state::{AppState, AppView, InputMode, Pane};
+use crate::ui::keymap::KeyAction;
 use crate::ui::render::{Renderable, ServersViewState, ToolsViewState, View};
 use crate::ui::styles::{Theme, ThemeMode};
 use crossterm::{
@@ -883,20 +884,15 @@ impl TuiApp {
     }
 
     fn handle_go_to_first(&mut self) {
-        if self.pending_g {
-            match (
-                self.state.ui_state.current_view,
-                self.state.ui_state.pane_focus,
-            ) {
-                (AppView::Servers, Pane::Cities) => self.state.city_select_first(),
-                (AppView::Servers, Pane::Countries) => self.state.select_first(),
-                (AppView::Tools, Pane::Settings) => self.state.settings_select_first(),
-                (AppView::Tools, Pane::Logs) => self.state.logs_select_first(),
-                _ => {}
-            }
-            self.pending_g = false;
-        } else {
-            self.pending_g = true;
+        match (
+            self.state.ui_state.current_view,
+            self.state.ui_state.pane_focus,
+        ) {
+            (AppView::Servers, Pane::Cities) => self.state.city_select_first(),
+            (AppView::Servers, Pane::Countries) => self.state.select_first(),
+            (AppView::Tools, Pane::Settings) => self.state.settings_select_first(),
+            (AppView::Tools, Pane::Logs) => self.state.logs_select_first(),
+            _ => {}
         }
     }
 
@@ -915,64 +911,62 @@ impl TuiApp {
     }
 
     fn handle_common_navigation(&mut self, key_event: crossterm::event::KeyEvent) -> bool {
-        let bindings = &self.state.key_bindings;
+        let keymap = &self.state.keymap;
+        let pending = self.pending_g.then_some('g');
 
-        if bindings
-            .navigation_down
-            .matches(key_event.code, key_event.modifiers)
-        {
-            self.handle_navigation_down();
-            return true;
+        // Check for 'g' key to initiate double-key sequence
+        if let KeyCode::Char('g') = key_event.code {
+            if key_event.modifiers.is_empty() {
+                if self.pending_g {
+                    // Second 'g' - execute go to first
+                    self.pending_g = false;
+                    self.handle_go_to_first();
+                    return true;
+                } else {
+                    // First 'g' - set pending
+                    self.pending_g = true;
+                    return true;
+                }
+            }
         }
-        if bindings
-            .navigation_up
-            .matches(key_event.code, key_event.modifiers)
-        {
-            self.handle_navigation_up();
-            return true;
-        }
-        if key_event.code == KeyCode::Down
-            || (key_event.code == KeyCode::Char('n')
-                && key_event.modifiers.contains(KeyModifiers::CONTROL))
-        {
-            self.handle_navigation_down();
-            return true;
-        }
-        if key_event.code == KeyCode::Up
-            || (key_event.code == KeyCode::Char('p')
-                && key_event.modifiers.contains(KeyModifiers::CONTROL))
-        {
-            self.handle_navigation_up();
-            return true;
-        }
-        if bindings
-            .page_down
-            .matches(key_event.code, key_event.modifiers)
-        {
-            self.handle_page_down();
-            return true;
-        }
-        if bindings
-            .page_up
-            .matches(key_event.code, key_event.modifiers)
-        {
-            self.handle_page_up();
-            return true;
-        }
-        if bindings
-            .go_first
-            .matches(key_event.code, key_event.modifiers)
-        {
-            self.handle_go_to_first();
-            return true;
-        }
-        if bindings
-            .go_last
-            .matches(key_event.code, key_event.modifiers)
-        {
+
+        // Handle 'G' for go to last (clears pending_g)
+        if keymap.matches(KeyAction::GoLast, &key_event, pending) {
+            self.pending_g = false;
             self.handle_go_to_last();
             return true;
         }
+
+        // Clear pending on any other navigation key
+        if keymap.matches(KeyAction::Down, &key_event, pending) {
+            self.pending_g = false;
+            self.handle_navigation_down();
+            return true;
+        }
+        if keymap.matches(KeyAction::Up, &key_event, pending) {
+            self.pending_g = false;
+            self.handle_navigation_up();
+            return true;
+        }
+        if keymap.matches(KeyAction::PageDown, &key_event, pending) {
+            self.pending_g = false;
+            self.handle_page_down();
+            return true;
+        }
+        if keymap.matches(KeyAction::PageUp, &key_event, pending) {
+            self.pending_g = false;
+            self.handle_page_up();
+            return true;
+        }
+
+        // Clear pending on other common keys (Enter, Space, etc.)
+        match key_event.code {
+            KeyCode::Enter | KeyCode::Char(' ') | KeyCode::Esc => {
+                self.pending_g = false;
+            }
+            _ => {}
+        }
+
         false
     }
 

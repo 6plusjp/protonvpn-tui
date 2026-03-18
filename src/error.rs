@@ -16,7 +16,7 @@ pub enum AppError {
     ServerNotFound(String),
 
     #[error("Command execution failed: {0}")]
-    CommandFailed(#[from] std::io::Error),
+    CommandFailed(String),
 
     #[error("Parse error: {0}")]
     ParseError(String),
@@ -36,6 +36,12 @@ impl From<toml::de::Error> for AppError {
 
 impl From<toml::ser::Error> for AppError {
     fn from(e: toml::ser::Error) -> Self {
+        AppError::ConfigError(e.to_string())
+    }
+}
+
+impl From<std::io::Error> for AppError {
+    fn from(e: std::io::Error) -> Self {
         AppError::ConfigError(e.to_string())
     }
 }

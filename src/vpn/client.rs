@@ -81,7 +81,7 @@ impl VpnClient {
         let mut cache = self
             .cache
             .lock()
-            .map_err(|e| AppError::ConfigError(format!("Failed to lock cache: {}", e)))?;
+            .map_err(|e| AppError::CommandFailed(format!("Failed to lock cache: {}", e)))?;
         Ok(f(&mut cache))
     }
 
@@ -90,7 +90,7 @@ impl VpnClient {
             let cache = self
                 .cache
                 .lock()
-                .map_err(|e| AppError::ConfigError(format!("Failed to lock cache: {}", e)))?;
+                .map_err(|e| AppError::CommandFailed(format!("Failed to lock cache: {}", e)))?;
             tracing::debug!("Saving server cache to disk");
             (cache.clone(), self.cache_path.clone())
         };
@@ -162,7 +162,7 @@ impl VpnClient {
         let output = self
             .run_command_with_timeout(&cmd_args, Duration::from_secs(30))
             .map_err(|e| {
-                AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
+                AppError::CommandFailed(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -310,13 +310,13 @@ impl VpnClient {
         let output = self
             .run_command_with_timeout(&["countries", "list"], Duration::from_secs(60))
             .map_err(|e| {
-                AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
+                AppError::CommandFailed(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             tracing::warn!("protonvpn countries list failed: {}", stderr);
-            return Err(AppError::ConfigError(format!(
+            return Err(AppError::CommandFailed(format!(
                 "protonvpn countries list command failed: {}",
                 stderr
             )));
@@ -362,13 +362,13 @@ impl VpnClient {
         let output = self
             .run_command_with_timeout(&["cities", "list", country_code], Duration::from_secs(20))
             .map_err(|e| {
-                AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
+                AppError::CommandFailed(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             tracing::warn!("protonvpn cities list {} failed: {}", country_code, stderr);
-            return Err(AppError::ConfigError(format!(
+            return Err(AppError::CommandFailed(format!(
                 "protonvpn cities list command failed: {}",
                 stderr.trim()
             )));
@@ -418,7 +418,7 @@ impl VpnClient {
         let output = self
             .run_command_with_timeout(&["config", "set", setting, value], Duration::from_secs(10))
             .map_err(|e| {
-                AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
+                AppError::CommandFailed(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -481,7 +481,7 @@ impl VpnClient {
                 Duration::from_secs(10),
             )
             .map_err(|e| {
-                AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
+                AppError::CommandFailed(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -500,7 +500,7 @@ impl VpnClient {
                 Duration::from_secs(10),
             )
             .map_err(|e| {
-                AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
+                AppError::CommandFailed(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -533,7 +533,7 @@ impl VpnClient {
 
         match rx.recv_timeout(timeout) {
             Ok(Ok(output)) => Ok(output),
-            Ok(Err(e)) => Err(AppError::CommandFailed(e)),
+            Ok(Err(e)) => Err(AppError::CommandFailed(e.to_string())),
             Err(_) => Err(AppError::Timeout(format!(
                 "Command '{}' timed out after {:?}",
                 args_display, timeout

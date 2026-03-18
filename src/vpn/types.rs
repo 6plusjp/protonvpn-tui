@@ -188,6 +188,31 @@ pub fn parse_cities_with_features(output: &str) -> Vec<City> {
     cities
 }
 
+/// Extract IP address from a line
+fn extract_ip_from_line(line: &str) -> Option<String> {
+    let parts: Vec<&str> = line.split_whitespace().collect();
+    for (i, part) in parts.iter().enumerate() {
+        let part_clean = part.trim_end_matches(':');
+        if (part_clean == "is"
+            || part_clean == "IP"
+            || part_clean == "address"
+            || part_clean == "address.")
+            && i + 1 < parts.len()
+        {
+            let potential_ip = parts[i + 1].trim_end_matches('.');
+            if potential_ip.contains('.')
+                && potential_ip.chars().filter(|&c| c == '.').count() == 3
+                && !potential_ip.starts_with("10.")
+                && !potential_ip.starts_with("172.")
+                && !potential_ip.starts_with("192.168")
+            {
+                return Some(potential_ip.to_string());
+            }
+        }
+    }
+    None
+}
+
 /// Parse connect output to extract server ID, IP, city and country
 pub fn parse_connect_output(output: &str) -> ConnectResult {
     let mut server_id = String::new();
@@ -196,13 +221,16 @@ pub fn parse_connect_output(output: &str) -> ConnectResult {
     let mut country = None;
     let mut via = None;
 
-    // Find "Connected to" line first - all info is in this single line
-    let connected_line = output
-        .lines()
-        .find(|l| l.trim().starts_with("Connected to "));
+    // Collect all lines
+    let lines: Vec<&str> = output.lines().collect();
 
-    if let Some(line) = connected_line {
-        let line = line.trim();
+    // Find "Connected to" line - skip any preceding error/traceback lines
+    let connected_idx = lines
+        .iter()
+        .position(|l| l.trim().starts_with("Connected to "));
+
+    if let Some(idx) = connected_idx {
+        let line = lines[idx].trim();
 
         // Extract server_id, city, country
         if let Some(rest) = line.strip_prefix("Connected to ") {
@@ -236,25 +264,15 @@ pub fn parse_connect_output(output: &str) -> ConnectResult {
                 }
             }
 
-            // Extract IP from same line
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            for (i, part) in parts.iter().enumerate() {
-                let part_clean = part.trim_end_matches(':');
-                if (part_clean == "is" || part_clean == "IP" || part_clean == "address")
-                    && i + 1 < parts.len()
-                {
-                    let potential_ip = parts[i + 1].trim_end_matches('.');
-                    if potential_ip.contains('.')
-                        && potential_ip.chars().filter(|&c| c == '.').count() == 3
-                        && !potential_ip.starts_with("10.")
-                        && !potential_ip.starts_with("172.")
-                        && !potential_ip.starts_with("192.168")
-                    {
-                        ip = Some(potential_ip.to_string());
-                        break;
-                    }
-                }
-            }
+            // Try to extract IP from same line first
+            ip = extract_ip_from_line(line);
+        }
+
+        // If IP not on same line, look at subsequent lines
+        if ip.is_none() && idx + 1 < lines.len() {
+            // Check next line for "Your new IP address is X.X.X.X."
+            let next_line = lines[idx + 1].trim();
+            ip = extract_ip_from_line(next_line);
         }
     }
 
@@ -512,5 +530,28 @@ Connected to JP#374 in Tokyo, Japan. Your new IP address is 159.26.119.144."#;
         assert_eq!(result.city, None);
         assert_eq!(result.country, Some("Japan".to_string()));
         assert_eq!(result.via, None);
+    }
+
+    #[test]
+    fn test_parse_connect_output_ip_on_separate_line() {
+        let output = "Connected to JP#423 in Tokyo, Japan.\nYour new IP address is 159.26.119.172.";
+        let result = parse_connect_output(output);
+
+        assert_eq!(result.server_id, "JP#423");
+        assert_eq!(result.ip, Some("159.26.119.172".to_string()));
+        assert_eq!(result.city, Some("Tokyo".to_string()));
+        assert_eq!(result.country, Some("Japan".to_string()));
+    }
+
+    #[test]
+    fn test_parse_connect_output_secure_core_ip_on_separate_line() {
+        let output = "Connected to CH-JP#2 in Tokyo, via Switzerland.\nYour new IP address is 103.155.232.232.";
+        let result = parse_connect_output(output);
+
+        assert_eq!(result.server_id, "CH-JP#2");
+        assert_eq!(result.ip, Some("103.155.232.232".to_string()));
+        assert_eq!(result.city, Some("Tokyo".to_string()));
+        assert_eq!(result.country, None);
+        assert_eq!(result.via, Some("Switzerland".to_string()));
     }
 }

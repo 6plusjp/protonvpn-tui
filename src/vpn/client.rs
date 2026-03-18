@@ -1,16 +1,16 @@
 //! VPN client - wraps protonvpn CLI
 //!
 //! Uses the new `protonvpn` CLI commands:
-//! - protonvpn countries     -> list countries
-//! - protonvpn cities --country <CC>  -> list cities for a country
-//! - protonvpn connect       -> connect to fastest server
+//! - protonvpn countries list     -> list countries
+//! - protonvpn cities list <CC>  -> list cities for a country
+//! - protonvpn connect           -> connect to fastest server
 //! - protonvpn connect --country <CC>  -> connect to a country
-//! - protonvpn connect --city <city>  -> connect to a city
+//! - protonvpn connect --city <city>   -> connect to a city
 //! - protonvpn connect --fastest      -> connect to fastest server
-//! - protonvpn connect --p2p          -> connect to fastest P2P server
-//! - protonvpn connect --tor          -> connect to fastest Tor server
-//! - protonvpn connect --securecore    -> connect to fastest Secure Core server
-//! - protonvpn disconnect    -> disconnect
+//! - protonvpn connect --p2p            -> connect to fastest P2P server
+//! - protonvpn connect --tor            -> connect to fastest Tor server
+//! - protonvpn connect --securecore     -> connect to fastest Secure Core server
+//! - protonvpn disconnect              -> disconnect
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -308,16 +308,16 @@ impl VpnClient {
 
     pub fn refresh_countries(&self) -> AppResult<HashMap<String, String>> {
         let output = self
-            .run_command_with_timeout(&["countries"], Duration::from_secs(60))
+            .run_command_with_timeout(&["countries", "list"], Duration::from_secs(60))
             .map_err(|e| {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            tracing::warn!("protonvpn countries failed: {}", stderr);
+            tracing::warn!("protonvpn countries list failed: {}", stderr);
             return Err(AppError::ConfigError(format!(
-                "protonvpn countries command failed: {}",
+                "protonvpn countries list command failed: {}",
                 stderr
             )));
         }
@@ -360,23 +360,16 @@ impl VpnClient {
         }
 
         let output = self
-            .run_command_with_timeout(
-                &["cities", "--country", country_code],
-                Duration::from_secs(20),
-            )
+            .run_command_with_timeout(&["cities", "list", country_code], Duration::from_secs(20))
             .map_err(|e| {
                 AppError::ConfigError(format!("Failed to execute {}: {}", self.cli_path, e))
             })?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            tracing::warn!(
-                "protonvpn cities --country {} failed: {}",
-                country_code,
-                stderr
-            );
+            tracing::warn!("protonvpn cities list {} failed: {}", country_code, stderr);
             return Err(AppError::ConfigError(format!(
-                "protonvpn cities command failed: {}",
+                "protonvpn cities list command failed: {}",
                 stderr.trim()
             )));
         }

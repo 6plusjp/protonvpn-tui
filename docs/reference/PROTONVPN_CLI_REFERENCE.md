@@ -1,11 +1,13 @@
 # ProtonVPN CLI Reference
 
+**Current Version**: 0.1.7 (March 2, 2026)
+
 ## Overview
 
 This document provides a comprehensive reference for the official ProtonVPN CLI (`protonvpn`), based on the [proton-vpn-cli](https://github.com/ProtonVPN/proton-vpn-cli) repository.
 
 **Repository**: https://github.com/ProtonVPN/proton-vpn-cli  
-**CLI Entry Point**: `proton.vpn.cli:main` (console script: `protonvpn`)  
+**CLI Entry Point**: `protonvpn`  
 **Language**: Python
 
 ## Supported Distributions
@@ -30,9 +32,10 @@ This document provides a comprehensive reference for the official ProtonVPN CLI 
 | `protonvpn info` | Display Proton VPN account information |
 | `protonvpn connect` | Connect to VPN server |
 | `protonvpn disconnect` | Disconnect from VPN |
-| `protonvpn countries` | Discover available countries |
-| `protonvpn cities` | Discover available cities |
+| `protonvpn countries list` | Discover available countries |
+| `protonvpn cities list <COUNTRY>` | Discover available cities for a country |
 | `protonvpn config` | Configure VPN settings |
+| `protonvpn config list` | List all configured settings (v0.1.7+) |
 
 ---
 
@@ -214,7 +217,7 @@ $ protonvpn disconnect
 
 ## Discovery Commands
 
-### countries
+### countries list
 
 List available countries.
 
@@ -224,17 +227,19 @@ protonvpn countries list
 
 **Output Example**:
 ```
-Country          Code
-United States    US
-United Kingdom   GB
-Germany          DE
-Japan            JP
+Server list is outdated, updating... This may take a moment.
+Country                 Code
+----------------------  ------
+United States           US
+United Kingdom          GB
+Germany                 DE
+Japan                   JP
 ...
 ```
 
 ---
 
-### cities
+### cities list
 
 List cities in a specific country.
 
@@ -280,7 +285,7 @@ protonvpn config <subcommand>
 
 #### config list
 
-Show current configuration for all settings.
+Show current configuration for all settings. **(Added in v0.1.7)**
 
 ```bash
 protonvpn config list
@@ -435,11 +440,10 @@ The CLI supports connecting to servers with specific features:
 
 ---
 
-## Limitations (as of current version)
+## Limitations (as of v0.1.7)
 
-- No advanced features: NetShield, kill switch, split tunneling, port forwarding (these are now partially available)
 - Cannot run alongside Proton VPN GUI app
-- No server list command (use connection options instead)
+- No server list command (use connection options or `protonvpn countries list` / `protonvpn cities list` instead)
 - No headless support
 
 ---

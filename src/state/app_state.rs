@@ -1,6 +1,6 @@
 //! Application state management
 
-use crate::config::{KeyBindings, ProtonSettings, SettingKey, UiConfig, UserConfig};
+use crate::config::{KeyBindings, SettingKey, UiConfig, UserConfig};
 use crate::constants::state::PAGE_SIZE;
 use crate::state::AsyncEvent;
 use crate::state::AsyncResult;
@@ -120,7 +120,6 @@ pub struct AppState {
 
     // === Config  ===
     pub config_state: ConfigState,
-    pub proton_settings_cache: Option<ProtonSettings>,
     pub key_bindings: crate::config::KeyBindings,
     pub user_config: UserConfig,
 
@@ -154,7 +153,6 @@ impl AppState {
             current_country_code: None,
             notification_state: NotificationState::new(),
             config_state: ConfigState::new(),
-            proton_settings_cache: ProtonSettings::load(),
             server_cache: FilteredServerCache::new(),
             is_initialized: false,
             key_bindings: key_bindings.clone(),

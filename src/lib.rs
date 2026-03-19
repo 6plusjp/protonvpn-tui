@@ -1,6 +1,5 @@
 //! ProtonVPN TUI - Library root
 
-pub mod commands;
 pub mod config;
 pub mod constants;
 pub mod error;

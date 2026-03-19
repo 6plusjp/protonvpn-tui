@@ -67,7 +67,7 @@ fn render_countries_pane(
         .max()
         .unwrap_or(1);
 
-    let dynamic_widths = [7, max_country_len, max_cities_len];
+    let dynamic_widths = [1, 6, max_country_len, max_cities_len];
 
     let sort_by = state.ui_state.sort;
     let sort_direction = state.ui_state.sort_direction;
@@ -107,27 +107,36 @@ fn render_countries_pane(
                     .join(", ")
             };
 
-            let (row_style, code_style, country_style, cities_style) = if is_selected && is_focused
-            {
-                let s = Style::default()
-                    .fg(theme.background)
-                    .bg(theme.accent)
-                    .add_modifier(Modifier::BOLD);
-                (s, s, s, s)
-            } else if is_selected {
-                let s = Style::default().fg(theme.foreground);
-                (s, s, s, s)
-            } else if is_connected {
-                let s = Style::default()
-                    .fg(theme.success)
-                    .add_modifier(Modifier::BOLD);
-                (s, s, s, s)
+            let indicator = if is_selected {
+                ">"
+            } else if state.is_favorite(&server.code) {
+                "*"
             } else {
-                let n = Style::default().fg(theme.foreground);
-                (n, n, n, n)
+                " "
             };
 
+            let (row_style, status_style, code_style, country_style, cities_style) =
+                if is_selected && is_focused {
+                    let s = Style::default()
+                        .fg(theme.background)
+                        .bg(theme.accent)
+                        .add_modifier(Modifier::BOLD);
+                    (s, s, s, s, s)
+                } else if is_selected {
+                    let s = Style::default().fg(theme.foreground);
+                    (s, s, s, s, s)
+                } else if is_connected {
+                    let s = Style::default()
+                        .fg(theme.success)
+                        .add_modifier(Modifier::BOLD);
+                    (s, s, s, s, s)
+                } else {
+                    let n = Style::default().fg(theme.foreground);
+                    (n, n, n, n, n)
+                };
+
             Row::new(vec![
+                Cell::from(indicator.to_string()).style(status_style),
                 Cell::from(server.code.clone()).style(code_style),
                 Cell::from(server.country.clone()).style(country_style),
                 Cell::from(cities_str).style(cities_style),
@@ -150,8 +159,7 @@ fn render_countries_pane(
                 .add_modifier(Modifier::BOLD)
         } else {
             Style::default()
-        })
-        .highlight_symbol("> ");
+        });
 
     table_state.select(state.ui_state.selected_server);
     f.render_stateful_widget(table, area, table_state);

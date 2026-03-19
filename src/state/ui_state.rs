@@ -5,6 +5,7 @@ use crate::state::ServerSort;
 use crate::state::SortDirection;
 use crate::ui::styles::ThemeMode;
 use crate::vpn::Server;
+use std::collections::HashSet;
 use std::fmt;
 use std::sync::RwLock;
 
@@ -36,6 +37,7 @@ pub struct UiState {
     pub show_footer: bool,
     pub input_mode: InputMode,
     pub dns_input: String,
+    pub favorite_countries: HashSet<String>,
 }
 
 impl Default for UiState {
@@ -59,6 +61,7 @@ impl Default for UiState {
             show_footer: true,
             input_mode: InputMode::Normal,
             dns_input: String::new(),
+            favorite_countries: HashSet::new(),
         }
     }
 }
@@ -93,6 +96,7 @@ impl UiState {
             show_footer,
             input_mode: InputMode::Normal,
             dns_input: String::new(),
+            favorite_countries: HashSet::new(),
         }
     }
 

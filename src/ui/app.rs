@@ -154,6 +154,10 @@ impl TuiApp {
         let is_securecore = bindings
             .securecore
             .matches(key_event.code, key_event.modifiers);
+        // NEW: check for toggle favorite binding
+        let is_toggle_favorite = bindings
+            .toggle_favorite
+            .matches(key_event.code, key_event.modifiers);
         let is_random_connect = bindings
             .random_connect
             .matches(key_event.code, key_event.modifiers);
@@ -331,6 +335,26 @@ impl TuiApp {
                 } else {
                     None
                 }
+            }
+            _ if is_toggle_favorite => {
+                let idx = match self.state.ui_state.selected_server {
+                    Some(i) => i,
+                    None => return None,
+                };
+                let code = match self.state.filtered_servers().get(idx) {
+                    Some(s) => s.code.clone(),
+                    None => return None,
+                };
+                self.state.toggle_favorite(&code);
+                if let Some(new_idx) = self
+                    .state
+                    .filtered_servers()
+                    .iter()
+                    .position(|s| s.code == code)
+                {
+                    self.state.ui_state.selected_server = Some(new_idx);
+                }
+                None
             }
             _ => None,
         }

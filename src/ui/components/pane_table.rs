@@ -187,17 +187,17 @@ impl PaneTable {
 
                 // Add key number prefix only for sortable columns that are currently sorted
                 let key_num: Option<&str> = match (i, sort_by) {
-                    (0, Some(ServerSort::Country)) => Some("¹"),
-                    (1, Some(ServerSort::Code)) => Some("²"),
+                    (1, Some(ServerSort::Country)) => Some("¹"),
+                    (2, Some(ServerSort::Code)) => Some("²"),
                     _ => None,
                 };
 
                 // Add sort indicator for the sorted column (highlight arrow only)
                 let (content_text, indicator_text) = match (i, sort_by) {
-                    (0, Some(ServerSort::Code)) => {
+                    (1, Some(ServerSort::Code)) => {
                         (content.to_string(), format!(" {}", sort_indicator))
                     }
-                    (1, Some(ServerSort::Country)) => {
+                    (2, Some(ServerSort::Country)) => {
                         (content.to_string(), format!(" {}", sort_indicator))
                     }
                     _ => (content.to_string(), String::new()),
@@ -255,6 +255,7 @@ pub struct CountriesTable;
 impl CountriesTable {
     pub fn table() -> PaneTable {
         PaneTable::new("Countries").with_columns(vec![
+            Column::left("", 1),
             Column::left("Code", 0),
             Column::left("Country", 0),
             Column::left("Cities", 0),

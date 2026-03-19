@@ -150,7 +150,7 @@ impl AppState {
         let ui_state = UiState::from_config(&ui_config.theme, ui_config.footer);
         let user_config = UserConfig::load();
 
-        Self {
+        let mut state = Self {
             vpn_state,
             connection_manager: ConnectionManager::new(),
             ui_state,
@@ -166,7 +166,12 @@ impl AppState {
             key_bindings: key_bindings.clone(),
             user_config,
             keymap: KeyMap::default(),
-        }
+        };
+
+        state.ui_state.favorite_countries =
+            state.user_config.ui.favorites.iter().cloned().collect();
+
+        state
     }
 
     /// Get current theme based on theme mode
@@ -192,6 +197,11 @@ impl AppState {
     pub fn save_footer(&mut self, show_footer: bool) {
         self.ui_state.show_footer = show_footer;
         self.user_config.ui.footer = show_footer;
+        self.user_config.save();
+    }
+
+    pub fn save_favorites(&mut self) {
+        self.user_config.ui.favorites = self.ui_state.favorite_countries.iter().cloned().collect();
         self.user_config.save();
     }
 
@@ -929,7 +939,7 @@ impl AppState {
             Self::compute_fuzzy_variants(&servers, query)
         };
 
-        let mut result: Vec<Server> = if query.is_empty() {
+        let result: Vec<Server> = if query.is_empty() {
             servers.clone()
         } else {
             let query_len = query.len();
@@ -967,7 +977,38 @@ impl AppState {
                 .collect()
         };
 
-        match (self.ui_state.sort, self.ui_state.sort_direction) {
+        let mut favorites: Vec<Server> = Vec::new();
+        let mut non_favorites: Vec<Server> = Vec::new();
+
+        for server in result {
+            if self.ui_state.favorite_countries.contains(&server.code) {
+                favorites.push(server);
+            } else {
+                non_favorites.push(server);
+            }
+        }
+
+        let favorites_sorted =
+            Self::sort_servers(favorites, self.ui_state.sort, self.ui_state.sort_direction);
+        let non_favorites_sorted = Self::sort_servers(
+            non_favorites,
+            self.ui_state.sort,
+            self.ui_state.sort_direction,
+        );
+
+        favorites_sorted
+            .into_iter()
+            .chain(non_favorites_sorted)
+            .collect()
+    }
+
+    fn sort_servers(
+        servers: Vec<Server>,
+        sort: ServerSort,
+        direction: SortDirection,
+    ) -> Vec<Server> {
+        let mut result = servers;
+        match (sort, direction) {
             (ServerSort::Code, SortDirection::Asc) => {
                 result.sort_by(|a, b| a.code_lower.cmp(&b.code_lower))
             }
@@ -981,7 +1022,6 @@ impl AppState {
                 result.sort_by(|a, b| b.country_lower.cmp(&a.country_lower))
             }
         }
-
         result
     }
 
@@ -1029,6 +1069,33 @@ impl AppState {
     pub fn cycle_sort_field(&mut self) {
         self.ui_state.sort = self.ui_state.sort.next();
         self.server_cache.invalidate();
+    }
+
+    pub fn toggle_favorite(&mut self, country_code: &str) {
+        self.server_cache.invalidate();
+
+        if self.ui_state.favorite_countries.contains(country_code) {
+            self.ui_state.favorite_countries.remove(country_code);
+            self.show_notification(
+                format!("Removed {} from favorites", country_code),
+                NotificationType::Info,
+                None,
+            );
+        } else {
+            self.ui_state
+                .favorite_countries
+                .insert(country_code.to_string());
+            self.show_notification(
+                format!("Added {} to favorites", country_code),
+                NotificationType::Success,
+                None,
+            );
+        }
+        self.save_favorites();
+    }
+
+    pub fn is_favorite(&self, country_code: &str) -> bool {
+        self.ui_state.favorite_countries.contains(country_code)
     }
 
     pub fn set_sort_by_code(&mut self) {
@@ -1682,6 +1749,8 @@ mod tests {
         state.ui_state.search_query.set(String::new());
         state.ui_state.sort = ServerSort::Code;
         state.ui_state.sort_direction = SortDirection::Asc;
+        state.ui_state.favorite_countries.clear();
+        state.server_cache.invalidate();
 
         let result = state.filtered_servers();
 
@@ -1696,6 +1765,8 @@ mod tests {
         state.ui_state.search_query.set(String::new());
         state.ui_state.sort = ServerSort::Code;
         state.ui_state.sort_direction = SortDirection::Desc;
+        state.ui_state.favorite_countries.clear();
+        state.server_cache.invalidate();
 
         let result = state.filtered_servers();
 
@@ -1710,6 +1781,8 @@ mod tests {
         state.ui_state.search_query.set(String::new());
         state.ui_state.sort = ServerSort::Country;
         state.ui_state.sort_direction = SortDirection::Asc;
+        state.ui_state.favorite_countries.clear();
+        state.server_cache.invalidate();
 
         let result = state.filtered_servers();
 
@@ -1724,6 +1797,8 @@ mod tests {
         state.ui_state.search_query.set(String::new());
         state.ui_state.sort = ServerSort::Country;
         state.ui_state.sort_direction = SortDirection::Desc;
+        state.ui_state.favorite_countries.clear();
+        state.server_cache.invalidate();
 
         let result = state.filtered_servers();
 

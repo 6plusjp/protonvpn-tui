@@ -463,6 +463,12 @@ impl VpnClient {
         self.set_config("port-forwarding", new_value)
     }
 
+    /// Toggle anonymous crash reports (off <-> on)
+    pub fn toggle_anonymous_crash_reports(&self, current: Option<bool>) -> AppResult<String> {
+        let new_value = if current == Some(true) { "off" } else { "on" };
+        self.set_config("anonymous-crash-reports", new_value)
+    }
+
     /// Set NetShield mode (off -> malware-only -> malware-ads-trackers -> off)
     pub fn set_netshield(&self, current: Option<i32>, _next: i32) -> AppResult<String> {
         let new_value = match current.unwrap_or(0) {

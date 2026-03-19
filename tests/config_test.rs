@@ -122,6 +122,7 @@ mod proton_settings {
                 enabled: true,
                 ip_list: vec![],
             },
+            anonymous_crash_reports: Some(true),
             features: Some(ProtonFeatures {
                 netshield: Some(1),
                 moderate_nat: Some(true),
@@ -130,6 +131,6 @@ mod proton_settings {
                 split_tunneling: None,
             }),
         };
-        assert_eq!(settings.settings_count(), 7);
+        assert_eq!(settings.settings_count(), 8);
     }
 }

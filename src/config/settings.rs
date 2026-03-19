@@ -50,13 +50,14 @@ pub enum SettingKey {
     ModerateNat,
     VpnAccelerator,
     PortForwarding,
+    AnonymousCrashReports,
     Theme,
     Footer,
 }
 
 impl SettingKey {
     /// All settings in display order (indices match UI)
-    pub const ALL: [SettingKey; 9] = [
+    pub const ALL: [SettingKey; 10] = [
         SettingKey::Killswitch,
         SettingKey::Ipv6,
         SettingKey::Dns,
@@ -64,6 +65,7 @@ impl SettingKey {
         SettingKey::ModerateNat,
         SettingKey::VpnAccelerator,
         SettingKey::PortForwarding,
+        SettingKey::AnonymousCrashReports,
         SettingKey::Theme,
         SettingKey::Footer,
     ];
@@ -80,15 +82,16 @@ impl SettingKey {
     /// "unknown" is display-only - users cannot set a setting to "unknown".
     pub fn label(&self) -> &'static str {
         match self {
-            SettingKey::Killswitch => "Kill Switch:       ",
-            SettingKey::Ipv6 => "IPv6:              ",
-            SettingKey::Dns => "DNS:               ",
-            SettingKey::NetShield => "NetShield:         ",
-            SettingKey::ModerateNat => "Moderate NAT:      ",
-            SettingKey::VpnAccelerator => "VPN Accelerator:   ",
-            SettingKey::PortForwarding => "Port Forwarding:   ",
-            SettingKey::Theme => "Theme:             ",
-            SettingKey::Footer => "Footer:            ",
+            SettingKey::Killswitch => "Kill Switch:          ",
+            SettingKey::Ipv6 => "IPv6:                 ",
+            SettingKey::Dns => "DNS:                  ",
+            SettingKey::NetShield => "NetShield:            ",
+            SettingKey::ModerateNat => "Moderate NAT:         ",
+            SettingKey::VpnAccelerator => "VPN Accelerator:      ",
+            SettingKey::PortForwarding => "Port Forwarding:      ",
+            SettingKey::AnonymousCrashReports => "Crash Reports:        ",
+            SettingKey::Theme => "Theme:                ",
+            SettingKey::Footer => "Footer:               ",
         }
     }
 
@@ -101,6 +104,7 @@ impl SettingKey {
             SettingKey::ModerateNat => vec!["off", "on"],
             SettingKey::VpnAccelerator => vec!["off", "on"],
             SettingKey::PortForwarding => vec!["off", "on"],
+            SettingKey::AnonymousCrashReports => vec!["off", "on"],
             SettingKey::Theme => vec![
                 "System",
                 "Catppuccin Mocha",
@@ -139,6 +143,7 @@ impl SettingKey {
             SettingKey::ModerateNat => "moderate-nat",
             SettingKey::VpnAccelerator => "vpn-accelerator",
             SettingKey::PortForwarding => "port-forwarding",
+            SettingKey::AnonymousCrashReports => "anonymous-crash-reports",
             SettingKey::Theme => "theme",
             SettingKey::Footer => "footer",
         }
@@ -153,6 +158,8 @@ pub struct ProtonSettings {
     pub ipv6: Option<bool>,
     #[serde(rename = "custom_dns")]
     pub custom_dns: ProtonCustomDns,
+    #[serde(rename = "anonymous_crash_reports")]
+    pub anonymous_crash_reports: Option<bool>,
     pub features: Option<ProtonFeatures>,
 }
 
@@ -239,6 +246,9 @@ impl ProtonSettings {
             .and_then(|f| f.port_forwarding)
             .is_some()
         {
+            c += 1;
+        }
+        if self.anonymous_crash_reports.is_some() {
             c += 1;
         }
         c

@@ -1477,6 +1477,14 @@ impl AppState {
                     .and_then(|f| f.port_forwarding);
                 self.vpn_state.toggle_port_forwarding(current)
             }
+            SettingKey::AnonymousCrashReports => {
+                let current = self
+                    .config_state
+                    .proton_settings_cache
+                    .as_ref()
+                    .and_then(|p| p.anonymous_crash_reports);
+                self.vpn_state.toggle_anonymous_crash_reports(current)
+            }
             SettingKey::Theme => unreachable!(),
             SettingKey::Footer => unreachable!(),
         };

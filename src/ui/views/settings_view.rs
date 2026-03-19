@@ -184,6 +184,16 @@ fn get_setting_value(
                 }
             })
             .unwrap_or_else(|| "unknown".to_string()),
+        SettingKey::AnonymousCrashReports => proton_settings
+            .and_then(|p| p.anonymous_crash_reports)
+            .map(|v| {
+                if v {
+                    "on".to_string()
+                } else {
+                    "off".to_string()
+                }
+            })
+            .unwrap_or_else(|| "unknown".to_string()),
         SettingKey::Theme => unreachable!(),
         SettingKey::Footer => unreachable!(),
     }

@@ -162,7 +162,12 @@ impl VpnClient {
         let output = self
             .run_command_with_timeout(&cmd_args, Duration::from_secs(30))
             .map_err(|e| {
-                AppError::CommandFailed(format!("Failed to execute {}: {}", self.cli_path, e))
+                let msg = if matches!(e, AppError::Timeout(_)) {
+                    "Timeout"
+                } else {
+                    &e.to_string()
+                };
+                AppError::CommandFailed(msg.to_string())
             })?;
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -310,7 +315,12 @@ impl VpnClient {
         let output = self
             .run_command_with_timeout(&["countries", "list"], Duration::from_secs(60))
             .map_err(|e| {
-                AppError::CommandFailed(format!("Failed to execute {}: {}", self.cli_path, e))
+                let msg = if matches!(e, AppError::Timeout(_)) {
+                    "Timeout"
+                } else {
+                    &e.to_string()
+                };
+                AppError::CommandFailed(msg.to_string())
             })?;
 
         if !output.status.success() {
@@ -362,7 +372,12 @@ impl VpnClient {
         let output = self
             .run_command_with_timeout(&["cities", "list", country_code], Duration::from_secs(20))
             .map_err(|e| {
-                AppError::CommandFailed(format!("Failed to execute {}: {}", self.cli_path, e))
+                let msg = if matches!(e, AppError::Timeout(_)) {
+                    "Timeout"
+                } else {
+                    &e.to_string()
+                };
+                AppError::CommandFailed(msg.to_string())
             })?;
 
         if !output.status.success() {
@@ -416,9 +431,14 @@ impl VpnClient {
     /// Set a configuration option via `protonvpn config set <setting> <value>`
     pub fn set_config(&self, setting: &str, value: &str) -> AppResult<String> {
         let output = self
-            .run_command_with_timeout(&["config", "set", setting, value], Duration::from_secs(10))
+            .run_command_with_timeout(&["config", "set", setting, value], Duration::from_secs(20))
             .map_err(|e| {
-                AppError::CommandFailed(format!("Failed to execute {}: {}", self.cli_path, e))
+                let msg = if matches!(e, AppError::Timeout(_)) {
+                    "Timeout"
+                } else {
+                    &e.to_string()
+                };
+                AppError::CommandFailed(msg.to_string())
             })?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -484,10 +504,15 @@ impl VpnClient {
         let output = self
             .run_command_with_timeout(
                 &["config", "set", "custom-dns", "on", "--dns", dns_list],
-                Duration::from_secs(10),
+                Duration::from_secs(20),
             )
             .map_err(|e| {
-                AppError::CommandFailed(format!("Failed to execute {}: {}", self.cli_path, e))
+                let msg = if matches!(e, AppError::Timeout(_)) {
+                    "Timeout"
+                } else {
+                    &e.to_string()
+                };
+                AppError::CommandFailed(msg.to_string())
             })?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -503,10 +528,15 @@ impl VpnClient {
         let output = self
             .run_command_with_timeout(
                 &["config", "set", "custom-dns", "off"],
-                Duration::from_secs(10),
+                Duration::from_secs(20),
             )
             .map_err(|e| {
-                AppError::CommandFailed(format!("Failed to execute {}: {}", self.cli_path, e))
+                let msg = if matches!(e, AppError::Timeout(_)) {
+                    "Timeout"
+                } else {
+                    &e.to_string()
+                };
+                AppError::CommandFailed(msg.to_string())
             })?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);

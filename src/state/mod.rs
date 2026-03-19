@@ -27,8 +27,8 @@ pub use ui_state::*;
 mod notifications;
 pub use notifications::*;
 
-mod connection;
-pub use connection::*;
+mod connection_manager;
+pub use connection_manager::*;
 
 mod config_state;
 pub use config_state::*;

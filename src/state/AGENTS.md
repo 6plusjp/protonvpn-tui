@@ -10,7 +10,7 @@ The `state/` module manages all application state including UI state, VPN connec
 src/state/
 ├── mod.rs              # Module root - re-exports public APIs
 ├── app_state.rs        # Main application state (AppState struct)
-├── connection.rs       # Async operations + event handling
+├── connection_manager.rs       # Async operations + event handling
 ├── connection_state.rs # VPN connection state enum
 ├── notifications.rs    # Toast notifications + notification log
 ├── ui_state.rs         # UI state (selection, scroll, filters)
@@ -40,7 +40,7 @@ pub struct AppState {
 }
 ```
 
-### ConnectionManager (connection.rs)
+### ConnectionManager (connection_manager.rs)
 
 Manages async VPN operations and event-driven notifications:
 
@@ -94,7 +94,7 @@ Each file has one clear purpose:
 | File | Responsibility |
 |------|----------------|
 | `app_state.rs` | Central state container, main business logic |
-| `connection.rs` | Async task management, event handling |
+| `connection_manager.rs` | Async task management, event handling |
 | `notifications.rs` | Toast + log notification management |
 | `ui_state.rs` | Selection, scroll, filter state |
 | `server_filter.rs` | Filter logic (by country, city, features) |
@@ -185,10 +185,10 @@ pub enum NotificationType {
 }
 ```
 
-### New Async Operation? → Add to `connection.rs`
+### New Async Operation? → Add to `connection_manager.rs`
 
 ```rust
-// src/state/connection.rs
+// src/state/connection_manager.rs
 pub enum AsyncEvent {
     ServersRefreshed(Vec<Server>),
     Connected(ConnectResult),

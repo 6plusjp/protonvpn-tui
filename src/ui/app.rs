@@ -337,14 +337,8 @@ impl TuiApp {
                 }
             }
             _ if is_toggle_favorite => {
-                let idx = match self.state.ui_state.selected_server {
-                    Some(i) => i,
-                    None => return None,
-                };
-                let code = match self.state.filtered_servers().get(idx) {
-                    Some(s) => s.code.clone(),
-                    None => return None,
-                };
+                let idx = self.state.ui_state.selected_server?;
+                let code = self.state.filtered_servers().get(idx)?.code.clone();
                 self.state.toggle_favorite(&code);
                 if let Some(new_idx) = self
                     .state

@@ -25,7 +25,7 @@ use super::types::{
     parse_cities_with_features, parse_connect_output, parse_countries, City, ConnectResult, Server,
 };
 
-use crate::error::{AppError, AppResult};
+use crate::error::{categorize_error, AppError, AppResult};
 use crate::paths;
 
 /// VPN client for interacting with protonvpn CLI
@@ -161,14 +161,7 @@ impl VpnClient {
         cmd_args.extend(args.iter().copied());
         let output = self
             .run_command_with_timeout(&cmd_args, Duration::from_secs(30))
-            .map_err(|e| {
-                let msg = if matches!(e, AppError::Timeout(_)) {
-                    "Timeout"
-                } else {
-                    &e.to_string()
-                };
-                AppError::CommandFailed(msg.to_string())
-            })?;
+            .map_err(|e| AppError::CommandFailed(categorize_error(&e).to_string()))?;
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
 
@@ -314,14 +307,7 @@ impl VpnClient {
     pub fn refresh_countries(&self) -> AppResult<HashMap<String, String>> {
         let output = self
             .run_command_with_timeout(&["countries", "list"], Duration::from_secs(60))
-            .map_err(|e| {
-                let msg = if matches!(e, AppError::Timeout(_)) {
-                    "Timeout"
-                } else {
-                    &e.to_string()
-                };
-                AppError::CommandFailed(msg.to_string())
-            })?;
+            .map_err(|e| AppError::CommandFailed(categorize_error(&e).to_string()))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -371,14 +357,7 @@ impl VpnClient {
 
         let output = self
             .run_command_with_timeout(&["cities", "list", country_code], Duration::from_secs(20))
-            .map_err(|e| {
-                let msg = if matches!(e, AppError::Timeout(_)) {
-                    "Timeout"
-                } else {
-                    &e.to_string()
-                };
-                AppError::CommandFailed(msg.to_string())
-            })?;
+            .map_err(|e| AppError::CommandFailed(categorize_error(&e).to_string()))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -432,14 +411,7 @@ impl VpnClient {
     pub fn set_config(&self, setting: &str, value: &str) -> AppResult<String> {
         let output = self
             .run_command_with_timeout(&["config", "set", setting, value], Duration::from_secs(20))
-            .map_err(|e| {
-                let msg = if matches!(e, AppError::Timeout(_)) {
-                    "Timeout"
-                } else {
-                    &e.to_string()
-                };
-                AppError::CommandFailed(msg.to_string())
-            })?;
+            .map_err(|e| AppError::CommandFailed(categorize_error(&e).to_string()))?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -506,14 +478,7 @@ impl VpnClient {
                 &["config", "set", "custom-dns", "on", "--dns", dns_list],
                 Duration::from_secs(20),
             )
-            .map_err(|e| {
-                let msg = if matches!(e, AppError::Timeout(_)) {
-                    "Timeout"
-                } else {
-                    &e.to_string()
-                };
-                AppError::CommandFailed(msg.to_string())
-            })?;
+            .map_err(|e| AppError::CommandFailed(categorize_error(&e).to_string()))?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -530,14 +495,7 @@ impl VpnClient {
                 &["config", "set", "custom-dns", "off"],
                 Duration::from_secs(20),
             )
-            .map_err(|e| {
-                let msg = if matches!(e, AppError::Timeout(_)) {
-                    "Timeout"
-                } else {
-                    &e.to_string()
-                };
-                AppError::CommandFailed(msg.to_string())
-            })?;
+            .map_err(|e| AppError::CommandFailed(categorize_error(&e).to_string()))?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);

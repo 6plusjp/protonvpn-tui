@@ -2,6 +2,7 @@
 
 use crate::config::{KeyBindings, SettingKey, UiConfig, UserConfig};
 use crate::constants::state::PAGE_SIZE;
+use crate::error::categorize_error;
 use crate::state::AsyncEvent;
 use crate::state::AsyncResult;
 use crate::state::ConfigState;
@@ -320,7 +321,7 @@ impl AppState {
                     }
                     tracing::warn!("Connection failed: {}", e);
                     self.show_notification(
-                        format!("Connection failed: {}", e),
+                        format!("Connection failed ({}):", e),
                         NotificationType::Error,
                         Some("connect".to_string()),
                     );
@@ -379,7 +380,7 @@ impl AppState {
                         self.connection_manager.connection = ConnectionState::Disconnected;
                     }
                     self.show_notification(
-                        format!("Connection failed: {}", e),
+                        format!("Connection failed ({}):", e),
                         NotificationType::Error,
                         Some("connect:city".to_string()),
                     );
@@ -472,7 +473,7 @@ impl AppState {
                             }
                             tracing::warn!("Connection failed: {}", e);
                             self.show_notification(
-                                format!("Connection failed: {}", e),
+                                format!("Connection failed ({}):", categorize_error(&e)),
                                 NotificationType::Error,
                                 Some("connect".to_string()),
                             );
@@ -516,7 +517,7 @@ impl AppState {
                             }
                             tracing::warn!("Disconnect failed: {}", e);
                             self.show_notification(
-                                format!("Disconnect failed: {}", e),
+                                format!("Disconnect failed ({}):", categorize_error(&e)),
                                 NotificationType::Error,
                                 Some("disconnect".to_string()),
                             );
@@ -553,7 +554,7 @@ impl AppState {
                 }
                 Err(e) => {
                     self.show_notification(
-                        format!("Failed to load cities: {}", e),
+                        format!("Failed to load cities ({}):", categorize_error(&e)),
                         NotificationType::Error,
                         Some(format!("cities:{}", country_code)),
                     );
@@ -600,7 +601,7 @@ impl AppState {
                         }
                         tracing::warn!("Connection failed (connect_city): {}", e);
                         self.show_notification(
-                            format!("Connection failed: {}", e),
+                            format!("Connection failed ({}):", e),
                             NotificationType::Error,
                             Some("connect:city".to_string()),
                         );
@@ -626,7 +627,7 @@ impl AppState {
                     Err(e) => {
                         tracing::warn!("Config set failed: {}", e);
                         self.show_notification(
-                            format!("Failed to update setting: {}", e),
+                            format!("Failed to update setting ({}):", categorize_error(&e)),
                             NotificationType::Error,
                             None,
                         );

@@ -267,30 +267,12 @@ pub struct KeyBindings {
     pub connect_p2p: KeyBinding,
     pub connect_tor: KeyBinding,
     pub securecore: KeyBinding,
+    pub toggle_favorite: KeyBinding,
 }
 
 impl Default for KeyBindings {
     fn default() -> Self {
-        Self {
-            navigation_down: KeyBinding::new('j', KeyModifier::None),
-            navigation_up: KeyBinding::new('k', KeyModifier::None),
-            page_down: KeyBinding::new('d', KeyModifier::Control),
-            page_up: KeyBinding::new('u', KeyModifier::Control),
-            go_first: KeyBinding::new('g', KeyModifier::None),
-            go_last: KeyBinding::new('G', KeyModifier::Shift),
-            connect: KeyBinding::new('c', KeyModifier::None),
-            disconnect: KeyBinding::new('d', KeyModifier::None),
-            refresh: KeyBinding::new('r', KeyModifier::None),
-            random_connect: KeyBinding::new('x', KeyModifier::None),
-            pane_next: KeyBinding::new('l', KeyModifier::None),
-            pane_prev: KeyBinding::new('h', KeyModifier::None),
-            sort_by_code: KeyBinding::new('1', KeyModifier::None),
-            sort_by_country: KeyBinding::new('2', KeyModifier::None),
-            connect_fastest: KeyBinding::new('f', KeyModifier::None),
-            connect_p2p: KeyBinding::new('p', KeyModifier::None),
-            connect_tor: KeyBinding::new('t', KeyModifier::None),
-            securecore: KeyBinding::new('s', KeyModifier::None),
-        }
+        crate::ui::keymap::default_keybindings()
     }
 }
 

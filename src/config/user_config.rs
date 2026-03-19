@@ -1,14 +1,18 @@
 use crate::config::{KeyBinding, KeyBindings, KeyModifier};
 use crate::paths;
 use crate::ui::keymap::{KeyArrow, KeyMap, KeyMatcher};
+use crossterm::event::KeyModifiers;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct UiConfig {
     #[serde(default)]
     pub theme: String,
     #[serde(default = "default_true")]
     pub footer: bool,
+    #[serde(default)]
+    pub favorites: Vec<String>,
 }
 
 impl Default for UiConfig {
@@ -16,6 +20,7 @@ impl Default for UiConfig {
         Self {
             theme: String::new(),
             footer: true,
+            favorites: Vec::new(),
         }
     }
 }
@@ -130,6 +135,34 @@ impl KeyMatcherConfig {
             KeyMatcherConfig::DoubleChar(c) => KeyMatcher::DoubleChar(*c),
         }
     }
+
+    pub fn from_keymatcher(m: &KeyMatcher) -> Self {
+        match m {
+            KeyMatcher::Char(c) => KeyMatcherConfig::Char(*c),
+            KeyMatcher::CharWithMod(c, mods) => {
+                let modifiers = match *mods {
+                    KeyModifiers::CONTROL => vec!["Control".to_string()],
+                    KeyModifiers::ALT => vec!["Alt".to_string()],
+                    KeyModifiers::SHIFT => vec!["Shift".to_string()],
+                    _ => vec![],
+                };
+                KeyMatcherConfig::CharWithMod {
+                    code: *c,
+                    modifiers,
+                }
+            }
+            KeyMatcher::Arrow(dir) => {
+                let dir_str = match dir {
+                    KeyArrow::Up => "Up",
+                    KeyArrow::Down => "Down",
+                    KeyArrow::Left => "Left",
+                    KeyArrow::Right => "Right",
+                };
+                KeyMatcherConfig::Arrow(dir_str.to_string())
+            }
+            KeyMatcher::DoubleChar(c) => KeyMatcherConfig::DoubleChar(*c),
+        }
+    }
 }
 
 impl Default for KeyBindingConfig {
@@ -171,125 +204,153 @@ pub struct KeyBindingsConfig {
     pub toggle_setting: Vec<KeyMatcherConfig>,
     pub select_city: Vec<KeyMatcherConfig>,
     pub refresh_cities: Vec<KeyMatcherConfig>,
+    pub toggle_favorite: Vec<KeyMatcherConfig>,
 }
 
 impl Default for KeyBindingsConfig {
     fn default() -> Self {
+        let km = KeyMap::default();
         Self {
-            navigation_down: vec![
-                KeyMatcherConfig::Char('j'),
-                KeyMatcherConfig::Arrow("Down".to_string()),
-                KeyMatcherConfig::CharWithMod {
-                    code: 'n',
-                    modifiers: vec!["Control".to_string()],
-                },
-            ],
-            navigation_up: vec![
-                KeyMatcherConfig::Char('k'),
-                KeyMatcherConfig::Arrow("Up".to_string()),
-                KeyMatcherConfig::CharWithMod {
-                    code: 'p',
-                    modifiers: vec!["Control".to_string()],
-                },
-            ],
-            page_down: vec![
-                KeyMatcherConfig::CharWithMod {
-                    code: 'd',
-                    modifiers: vec!["Control".to_string()],
-                },
-                KeyMatcherConfig::CharWithMod {
-                    code: 'f',
-                    modifiers: vec!["Control".to_string()],
-                },
-            ],
-            page_up: vec![
-                KeyMatcherConfig::CharWithMod {
-                    code: 'u',
-                    modifiers: vec!["Control".to_string()],
-                },
-                KeyMatcherConfig::CharWithMod {
-                    code: 'b',
-                    modifiers: vec!["Control".to_string()],
-                },
-            ],
-            go_first: vec![KeyMatcherConfig::DoubleChar('g')],
-            go_last: vec![KeyMatcherConfig::CharWithMod {
-                code: 'G',
-                modifiers: vec!["Shift".to_string()],
-            }],
-            connect: vec![
-                KeyMatcherConfig::Char('c'),
-                KeyMatcherConfig::CharWithMod {
-                    code: 'c',
-                    modifiers: vec!["Control".to_string()],
-                },
-            ],
-            disconnect: vec![KeyMatcherConfig::Char('d')],
-            refresh: vec![KeyMatcherConfig::Char('r')],
-            random_connect: vec![KeyMatcherConfig::Char('x')],
-            pane_next: vec![
-                KeyMatcherConfig::Char('l'),
-                KeyMatcherConfig::Arrow("Right".to_string()),
-                KeyMatcherConfig::CharWithMod {
-                    code: 'l',
-                    modifiers: vec!["Control".to_string()],
-                },
-            ],
-            pane_prev: vec![
-                KeyMatcherConfig::Char('h'),
-                KeyMatcherConfig::Arrow("Left".to_string()),
-                KeyMatcherConfig::CharWithMod {
-                    code: 'h',
-                    modifiers: vec!["Control".to_string()],
-                },
-            ],
-            sort_by_code: vec![KeyMatcherConfig::Char('1')],
-            sort_by_country: vec![KeyMatcherConfig::Char('2')],
-            connect_fastest: vec![KeyMatcherConfig::Char('f')],
-            connect_p2p: vec![KeyMatcherConfig::Char('p')],
-            connect_tor: vec![KeyMatcherConfig::Char('t')],
-            securecore: vec![KeyMatcherConfig::Char('s')],
-            search: vec![KeyMatcherConfig::Char('/')],
-            cancel: vec![
-                KeyMatcherConfig::CharWithMod {
-                    code: '[',
-                    modifiers: vec!["Control".to_string()],
-                },
-                KeyMatcherConfig::CharWithMod {
-                    code: 'c',
-                    modifiers: vec!["Control".to_string()],
-                },
-                KeyMatcherConfig::Char('q'),
-            ],
-            help: vec![KeyMatcherConfig::Char('?')],
-            quit: vec![KeyMatcherConfig::Char('q')],
-            next_setting: vec![
-                KeyMatcherConfig::Char('j'),
-                KeyMatcherConfig::Arrow("Down".to_string()),
-            ],
-            prev_setting: vec![
-                KeyMatcherConfig::Char('k'),
-                KeyMatcherConfig::Arrow("Up".to_string()),
-            ],
-            toggle_setting: vec![
-                KeyMatcherConfig::Char(' '),
-                KeyMatcherConfig::Char('\n'),
-                KeyMatcherConfig::CharWithMod {
-                    code: 'm',
-                    modifiers: vec!["Control".to_string()],
-                },
-            ],
-            select_city: vec![
-                KeyMatcherConfig::Char('\n'),
-                KeyMatcherConfig::CharWithMod {
-                    code: 'o',
-                    modifiers: vec!["Control".to_string()],
-                },
-            ],
-            refresh_cities: vec![KeyMatcherConfig::CharWithMod {
-                code: 'r',
-                modifiers: vec!["Control".to_string()],
-            }],
+            navigation_down: km
+                .down
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            navigation_up: km
+                .up
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            page_down: km
+                .page_down
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            page_up: km
+                .page_up
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            go_first: km
+                .go_first
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            go_last: km
+                .go_last
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            connect: km
+                .connect
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            disconnect: km
+                .disconnect
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            refresh: km
+                .refresh
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            random_connect: km
+                .random_connect
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            pane_next: km
+                .pane_next
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            pane_prev: km
+                .pane_prev
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            sort_by_code: km
+                .sort_by_code
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            sort_by_country: km
+                .sort_by_country
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            connect_fastest: km
+                .connect_fastest
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            connect_p2p: km
+                .connect_p2p
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            connect_tor: km
+                .connect_tor
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            securecore: km
+                .securecore
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            search: km
+                .search
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            cancel: km
+                .cancel
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            help: km
+                .help
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            quit: km
+                .quit
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            next_setting: km
+                .next_setting
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            prev_setting: km
+                .prev_setting
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            toggle_setting: km
+                .toggle_setting
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            select_city: km
+                .select_city
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            refresh_cities: km
+                .refresh_cities
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            toggle_favorite: km
+                .toggle_favorite
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
         }
     }
 }
@@ -330,6 +391,7 @@ impl From<KeyBindingsConfig> for KeyBindings {
             connect_p2p: first_to_binding(cfg.connect_p2p),
             connect_tor: first_to_binding(cfg.connect_tor),
             securecore: first_to_binding(cfg.securecore),
+            toggle_favorite: first_to_binding(cfg.toggle_favorite),
         }
     }
 }
@@ -367,6 +429,7 @@ impl From<KeyBindingsConfig> for KeyMap {
             toggle_setting: to_matchers(cfg.toggle_setting),
             select_city: to_matchers(cfg.select_city),
             refresh_cities: to_matchers(cfg.refresh_cities),
+            toggle_favorite: to_matchers(cfg.toggle_favorite),
         }
     }
 }
@@ -446,14 +509,24 @@ impl UserConfig {
 
         let save_theme = !self.ui.theme.is_empty();
         let save_footer = self.ui.footer != defaults.ui.footer;
+        let save_favorites = !self.ui.favorites.is_empty();
 
-        if save_theme || save_footer {
+        if save_theme || save_footer || save_favorites {
             toml_string.push_str("[ui]\n");
             if save_theme {
                 toml_string.push_str(&format!("theme = \"{}\"\n", self.ui.theme));
             }
             if save_footer {
                 toml_string.push_str(&format!("footer = {}\n", self.ui.footer));
+            }
+            if save_favorites {
+                let favs: Vec<String> = self
+                    .ui
+                    .favorites
+                    .iter()
+                    .map(|s| format!("\"{}\"", s))
+                    .collect();
+                toml_string.push_str(&format!("favorites = [{}]\n", favs.join(", ")));
             }
         }
 

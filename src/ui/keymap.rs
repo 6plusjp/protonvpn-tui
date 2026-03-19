@@ -3,7 +3,11 @@
 //! This module centralizes keybinding definitions to improve extensibility and maintainability.
 //! Instead of scattering navigation keys across multiple handlers, all keybindings are defined
 //! in a single [`KeyMap`] structure.
+//!
+//! **Single Source of Truth**: Default keybindings are defined here and imported by
+//! `config/settings.rs` and `config/user_config.rs` to avoid duplication.
 
+use crate::config::{KeyBinding, KeyBindings, KeyModifier};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 /// Arrow key direction
@@ -88,6 +92,7 @@ pub enum KeyAction {
     ToggleSetting,
     SelectCity,
     RefreshCities,
+    ToggleFavorite,
 }
 
 /// Action-centric keymap - maps actions to their possible keybindings
@@ -120,6 +125,7 @@ pub struct KeyMap {
     pub toggle_setting: Vec<KeyMatcher>,
     pub select_city: Vec<KeyMatcher>,
     pub refresh_cities: Vec<KeyMatcher>,
+    pub toggle_favorite: Vec<KeyMatcher>,
 }
 
 impl Default for KeyMap {
@@ -136,14 +142,8 @@ impl Default for KeyMap {
                 KeyMatcher::Arrow(KeyArrow::Up),
                 KeyMatcher::CharWithMod('p', KeyModifiers::CONTROL),
             ],
-            page_down: vec![
-                KeyMatcher::CharWithMod('d', KeyModifiers::CONTROL),
-                KeyMatcher::CharWithMod('f', KeyModifiers::CONTROL),
-            ],
-            page_up: vec![
-                KeyMatcher::CharWithMod('u', KeyModifiers::CONTROL),
-                KeyMatcher::CharWithMod('b', KeyModifiers::CONTROL),
-            ],
+            page_down: vec![KeyMatcher::CharWithMod('d', KeyModifiers::CONTROL)],
+            page_up: vec![KeyMatcher::CharWithMod('u', KeyModifiers::CONTROL)],
             go_first: vec![KeyMatcher::DoubleChar('g')],
             go_last: vec![KeyMatcher::CharWithMod('G', KeyModifiers::SHIFT)],
             // Connection actions
@@ -195,6 +195,7 @@ impl Default for KeyMap {
                 KeyMatcher::CharWithMod('o', KeyModifiers::CONTROL),
             ],
             refresh_cities: vec![KeyMatcher::CharWithMod('r', KeyModifiers::CONTROL)],
+            toggle_favorite: vec![KeyMatcher::CharWithMod('f', KeyModifiers::CONTROL)],
         }
     }
 }
@@ -229,8 +230,33 @@ impl KeyMap {
             KeyAction::ToggleSetting => &self.toggle_setting,
             KeyAction::SelectCity => &self.select_city,
             KeyAction::RefreshCities => &self.refresh_cities,
+            KeyAction::ToggleFavorite => &self.toggle_favorite,
         };
         matchers.iter().any(|m| m.matches(event, pending))
+    }
+}
+
+pub fn default_keybindings() -> KeyBindings {
+    KeyBindings {
+        navigation_down: KeyBinding::new('j', KeyModifier::None),
+        navigation_up: KeyBinding::new('k', KeyModifier::None),
+        page_down: KeyBinding::new('d', KeyModifier::Control),
+        page_up: KeyBinding::new('u', KeyModifier::Control),
+        go_first: KeyBinding::new('g', KeyModifier::None),
+        go_last: KeyBinding::new('G', KeyModifier::Shift),
+        connect: KeyBinding::new('c', KeyModifier::None),
+        disconnect: KeyBinding::new('d', KeyModifier::None),
+        refresh: KeyBinding::new('r', KeyModifier::None),
+        random_connect: KeyBinding::new('x', KeyModifier::None),
+        pane_next: KeyBinding::new('l', KeyModifier::None),
+        pane_prev: KeyBinding::new('h', KeyModifier::None),
+        sort_by_code: KeyBinding::new('1', KeyModifier::None),
+        sort_by_country: KeyBinding::new('2', KeyModifier::None),
+        connect_fastest: KeyBinding::new('f', KeyModifier::None),
+        connect_p2p: KeyBinding::new('p', KeyModifier::None),
+        connect_tor: KeyBinding::new('t', KeyModifier::None),
+        securecore: KeyBinding::new('s', KeyModifier::None),
+        toggle_favorite: KeyBinding::new('f', KeyModifier::Control),
     }
 }
 

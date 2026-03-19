@@ -7,11 +7,11 @@ use crate::state::AsyncResult;
 use crate::state::ConfigState;
 use crate::state::ConnectionManager;
 use crate::state::ConnectionState;
+use crate::state::FilteredServerCache;
 use crate::state::InputMode;
 use crate::state::NotificationState;
 use crate::state::NotificationType;
 use crate::state::Pane;
-use crate::state::ServerCache;
 use crate::state::ServerDataState;
 use crate::state::ServerFilter;
 use crate::state::ServerSort;
@@ -108,7 +108,7 @@ pub struct AppState {
 
     // === Server Data ===
     pub(crate) servers: Vec<Server>,
-    server_cache: ServerCache,
+    server_cache: FilteredServerCache,
     #[allow(dead_code)]
     is_initialized: bool,
     pub current_cities: Vec<crate::vpn::City>,
@@ -161,7 +161,7 @@ impl AppState {
             notification_state: NotificationState::new(),
             config_state: ConfigState::new(),
             proton_settings_cache: ProtonSettings::load(),
-            server_cache: ServerCache::new(),
+            server_cache: FilteredServerCache::new(),
             is_initialized: false,
             key_bindings: key_bindings.clone(),
             user_config,

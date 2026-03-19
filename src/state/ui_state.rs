@@ -163,12 +163,12 @@ impl fmt::Debug for SearchQuery {
     }
 }
 
-pub struct ServerCache {
+pub struct FilteredServerCache {
     cache: RwLock<Option<(Vec<Server>, u64)>>,
     version: u64,
 }
 
-impl ServerCache {
+impl FilteredServerCache {
     pub fn new() -> Self {
         Self {
             cache: RwLock::new(None),
@@ -203,7 +203,7 @@ impl ServerCache {
     }
 }
 
-impl Default for ServerCache {
+impl Default for FilteredServerCache {
     fn default() -> Self {
         Self::new()
     }

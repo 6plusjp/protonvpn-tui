@@ -32,3 +32,10 @@ pub use connection_manager::*;
 
 mod config_state;
 pub use config_state::*;
+
+// Extracted modules from app_state.rs
+mod app_state_impl;
+mod event_handler;
+mod navigation;
+mod server_ops;
+mod settings_ops;

@@ -9,9 +9,14 @@ The `state/` module manages all application state including UI state, VPN connec
 ```
 src/state/
 ├── mod.rs              # Module root - re-exports public APIs
-├── app_state.rs        # Main application state (AppState struct)
+├── app_state.rs        # AppState container + Navigatable trait + tests
+├── app_state_impl.rs  # VPN connect/disconnect operations
 ├── connection_manager.rs       # Async operations + event handling
 ├── connection_state.rs # VPN connection state enum
+├── navigation.rs       # Selection & pane navigation methods
+├── server_ops.rs       # Server filtering, sorting, favorites
+├── settings_ops.rs     # Settings management operations
+├── event_handler.rs    # Async event processing logic
 ├── notifications.rs    # Toast notifications + notification log
 ├── ui_state.rs         # UI state (selection, scroll, filters)
 ├── app_view.rs        # Current view (servers, connect, settings, logs)
@@ -25,17 +30,27 @@ src/state/
 
 ### AppState (app_state.rs)
 
-The central state container that holds all sub-states:
+The central state container that holds all sub-states. **Methods are distributed across modules:**
+
+| Module | Responsibility |
+|--------|----------------|
+| `app_state.rs` | Struct definition, Navigatable trait, constructors |
+| `app_state_impl.rs` | VPN connect/disconnect operations |
+| `navigation.rs` | Selection & pane navigation |
+| `server_ops.rs` | Server filtering, sorting, favorites |
+| `settings_ops.rs` | Settings management |
+| `event_handler.rs` | Async event processing |
 
 ```rust
 pub struct AppState {
-    pub ui_state: UIState,
+    pub vpn_state: Arc<VpnClient>,
     pub connection_manager: ConnectionManager,
+    pub servers: Vec<Server>,
+    pub current_cities: Vec<City>,
+    pub ui_state: UiState,
     pub notification_state: NotificationState,
     pub config_state: ConfigState,
     pub is_initialized: bool,
-    pub servers: Vec<Server>,
-    pub current_cities: Vec<City>,
     // ...
 }
 ```
@@ -93,8 +108,13 @@ Each file has one clear purpose:
 
 | File | Responsibility |
 |------|----------------|
-| `app_state.rs` | Central state container, main business logic |
-| `connection_manager.rs` | Async task management, event handling |
+| `app_state.rs` | Container + Navigatable trait + constructors |
+| `app_state_impl.rs` | VPN connect/disconnect operations |
+| `navigation.rs` | Selection & pane navigation methods |
+| `server_ops.rs` | Server filtering, sorting, favorites |
+| `settings_ops.rs` | Settings management operations |
+| `event_handler.rs` | Async event processing |
+| `connection_manager.rs` | Async task management, event channels |
 | `notifications.rs` | Toast + log notification management |
 | `ui_state.rs` | Selection, scroll, filter state |
 | `server_filter.rs` | Filter logic (by country, city, features) |
@@ -199,12 +219,25 @@ pub enum AsyncEvent {
 ## Testing
 
 - **State tests**: In `app_state.rs` (search for `#[cfg(test)]` module)
-- **Notification tests**: In `notifications.rs` (search for `#[cfg(test)]` module)
+- **Notification tests**: In `app_state.rs` (notification_tests module)
 
 Run tests:
 ```bash
 cargo test --lib
 ```
+
+## Adding New Methods
+
+When adding methods to AppState, consider which module it belongs to:
+
+| Method Type | Module |
+|-------------|--------|
+| Selection/navigation | `navigation.rs` |
+| Server filtering/sorting/favorites | `server_ops.rs` |
+| Settings toggle/apply | `settings_ops.rs` |
+| Async event handling | `event_handler.rs` |
+| VPN connect/disconnect | `app_state_impl.rs` |
+| State accessors/mutations | `app_state.rs` |
 
 ## Anti-Patterns
 

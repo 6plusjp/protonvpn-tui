@@ -1,0 +1,265 @@
+//! Server filtering, sorting, and related operations
+
+use crate::state::{NotificationType, ServerFilter, ServerSort, SortDirection};
+use crate::vpn::async_tasks::create_channel;
+use crate::vpn::Server;
+
+impl crate::state::AppState {
+    pub const MAX_PENDING_CITY_FETCHES: usize = 5;
+
+    /// Get filtered and sorted server list
+    pub fn filtered_servers(&self) -> Vec<Server> {
+        if let Some(cached) = self.server_cache.get_cached() {
+            return cached;
+        }
+
+        let result = self.compute_filtered_servers();
+        self.server_cache.set_cached(result.clone());
+        result
+    }
+
+    pub(crate) fn compute_filtered_servers(&self) -> Vec<Server> {
+        let query = &self.ui_state.search_query.query_lower;
+
+        let servers = self.vpn_state.servers();
+
+        let fuzzy_variants = if query.is_empty() {
+            vec![]
+        } else {
+            Self::compute_fuzzy_variants(&servers, query)
+        };
+
+        let result: Vec<Server> = if query.is_empty() {
+            servers.clone()
+        } else {
+            let query_len = query.len();
+            let skip_city = query_len <= 2;
+
+            servers
+                .iter()
+                .filter(|server| {
+                    let q = query.as_str();
+                    let matches_code = server.code_lower.contains(q);
+                    let matches_country = server.country_lower.contains(q);
+                    let matches_fuzzy =
+                        Self::fuzzy_match_with_variants(&server.country, q, &fuzzy_variants);
+
+                    if skip_city {
+                        match self.ui_state.filter {
+                            ServerFilter::Code => matches_code || matches_fuzzy,
+                            ServerFilter::Country => matches_country || matches_fuzzy,
+                            ServerFilter::City => false,
+                        }
+                    } else {
+                        let matches_city = server
+                            .cities
+                            .iter()
+                            .any(|c| c.name.to_lowercase().contains(q));
+
+                        match self.ui_state.filter {
+                            ServerFilter::Code => matches_code || matches_fuzzy,
+                            ServerFilter::Country => matches_country || matches_fuzzy,
+                            ServerFilter::City => matches_city || matches_fuzzy,
+                        }
+                    }
+                })
+                .cloned()
+                .collect()
+        };
+
+        let mut favorites: Vec<Server> = Vec::new();
+        let mut non_favorites: Vec<Server> = Vec::new();
+
+        for server in result {
+            if self.ui_state.favorite_countries.contains(&server.code) {
+                favorites.push(server);
+            } else {
+                non_favorites.push(server);
+            }
+        }
+
+        let favorites_sorted =
+            Self::sort_servers(favorites, self.ui_state.sort, self.ui_state.sort_direction);
+        let non_favorites_sorted = Self::sort_servers(
+            non_favorites,
+            self.ui_state.sort,
+            self.ui_state.sort_direction,
+        );
+
+        favorites_sorted
+            .into_iter()
+            .chain(non_favorites_sorted)
+            .collect()
+    }
+
+    fn sort_servers(
+        servers: Vec<Server>,
+        sort: ServerSort,
+        direction: SortDirection,
+    ) -> Vec<Server> {
+        let mut result = servers;
+        match (sort, direction) {
+            (ServerSort::Code, SortDirection::Asc) => {
+                result.sort_by(|a, b| a.code_lower.cmp(&b.code_lower))
+            }
+            (ServerSort::Code, SortDirection::Desc) => {
+                result.sort_by(|a, b| b.code_lower.cmp(&a.code_lower))
+            }
+            (ServerSort::Country, SortDirection::Asc) => {
+                result.sort_by(|a, b| a.country_lower.cmp(&b.country_lower))
+            }
+            (ServerSort::Country, SortDirection::Desc) => {
+                result.sort_by(|a, b| b.country_lower.cmp(&a.country_lower))
+            }
+        }
+        result
+    }
+
+    fn fuzzy_match_with_variants(text: &str, query: &str, variants: &[String]) -> bool {
+        let text_lower = text.to_lowercase();
+
+        if text_lower.starts_with(query) {
+            return true;
+        }
+
+        variants.iter().any(|v| text_lower.contains(v))
+    }
+
+    fn compute_fuzzy_variants(servers: &[Server], query: &str) -> Vec<String> {
+        let mut variants = vec![query.to_string()];
+
+        let no_vowels: String = query
+            .chars()
+            .filter(|c| !matches!(c, 'a' | 'e' | 'i' | 'o' | 'u'))
+            .collect();
+        if !no_vowels.is_empty() && no_vowels != query {
+            variants.push(no_vowels);
+        }
+
+        for server in servers {
+            if server.code.to_lowercase() == query {
+                variants.push(server.country.to_lowercase());
+                break;
+            }
+        }
+
+        variants
+    }
+
+    pub fn cycle_filter(&mut self) {
+        self.ui_state.filter = self.ui_state.filter.next();
+        self.server_cache.invalidate();
+    }
+
+    pub fn cycle_sort(&mut self) {
+        self.ui_state.sort_direction = self.ui_state.sort_direction.toggle();
+        self.server_cache.invalidate();
+    }
+
+    pub fn cycle_sort_field(&mut self) {
+        self.ui_state.sort = self.ui_state.sort.next();
+        self.server_cache.invalidate();
+    }
+
+    pub fn toggle_favorite(&mut self, country_code: &str) {
+        self.server_cache.invalidate();
+
+        if self.ui_state.favorite_countries.contains(country_code) {
+            self.ui_state.favorite_countries.remove(country_code);
+            self.show_notification(
+                format!("Removed {} from favorites", country_code),
+                NotificationType::Info,
+                None,
+            );
+        } else {
+            self.ui_state
+                .favorite_countries
+                .insert(country_code.to_string());
+            self.show_notification(
+                format!("Added {} to favorites", country_code),
+                NotificationType::Success,
+                None,
+            );
+        }
+        self.save_favorites();
+    }
+
+    pub fn is_favorite(&self, country_code: &str) -> bool {
+        self.ui_state.favorite_countries.contains(country_code)
+    }
+
+    pub fn set_sort_by_code(&mut self) {
+        self.ui_state.sort = ServerSort::Code;
+        self.server_cache.invalidate();
+        self.switch_cities_to_selected();
+    }
+
+    pub fn set_sort_by_country(&mut self) {
+        self.ui_state.sort = ServerSort::Country;
+        self.server_cache.invalidate();
+        self.switch_cities_to_selected();
+    }
+
+    pub fn toggle_sort_direction(&mut self) {
+        self.ui_state.sort_direction = self.ui_state.sort_direction.toggle();
+        self.server_cache.invalidate();
+        self.switch_cities_to_selected();
+    }
+
+    pub(crate) fn fetch_cities(&mut self, country_code: &str, force: bool) {
+        let country_code = country_code.to_string();
+
+        if let Some(cities) = self.vpn_state.cached_cities(&country_code) {
+            self.current_cities = cities;
+            return;
+        }
+
+        let already_pending = self
+            .connection_manager
+            .pending_cities
+            .contains_key(&country_code);
+
+        if already_pending {
+            if force {
+                self.connection_manager.pending_cities.remove(&country_code);
+            } else {
+                return;
+            }
+        }
+
+        if !force
+            && !already_pending
+            && self.connection_manager.pending_cities.len() >= Self::MAX_PENDING_CITY_FETCHES
+        {
+            return;
+        }
+
+        self.show_notification(
+            format!("Loading cities for {}...", country_code),
+            NotificationType::Info,
+            Some(format!("cities:{}", country_code)),
+        );
+
+        let (tx, rx) = create_channel();
+        self.connection_manager
+            .pending_cities
+            .insert(country_code.clone(), rx);
+        self.connection_manager.async_manager.spawn_cities(
+            self.vpn_state.clone(),
+            country_code,
+            tx,
+        );
+    }
+
+    pub fn reload_cities(&mut self) {
+        if let Some(country_code) = self.current_country_code.clone() {
+            self.current_cities.clear();
+
+            if let Err(e) = self.vpn_state.clear_cities_cache(&country_code) {
+                tracing::warn!("Failed to clear cities cache: {}", e);
+            }
+
+            self.fetch_cities(&country_code, true);
+        }
+    }
+}

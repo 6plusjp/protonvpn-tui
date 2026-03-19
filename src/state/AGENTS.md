@@ -15,7 +15,6 @@ src/state/
 ├── notifications.rs    # Toast notifications + notification log
 ├── ui_state.rs         # UI state (selection, scroll, filters)
 ├── app_view.rs        # Current view (servers, connect, settings, logs)
-├── server_data.rs     # Server list data + initialization
 ├── server_filter.rs   # Server filtering logic
 ├── server_sort.rs     # Server sorting logic
 ├── config_state.rs    # User configuration state
@@ -33,8 +32,10 @@ pub struct AppState {
     pub ui_state: UIState,
     pub connection_manager: ConnectionManager,
     pub notification_state: NotificationState,
-    pub server_data: ServerData,
     pub config_state: ConfigState,
+    pub is_initialized: bool,
+    pub servers: Vec<Server>,
+    pub current_cities: Vec<City>,
     // ...
 }
 ```
@@ -96,7 +97,6 @@ Each file has one clear purpose:
 | `connection.rs` | Async task management, event handling |
 | `notifications.rs` | Toast + log notification management |
 | `ui_state.rs` | Selection, scroll, filter state |
-| `server_data.rs` | Server list data |
 | `server_filter.rs` | Filter logic (by country, city, features) |
 | `server_sort.rs` | Sort logic (by name, load, country) |
 

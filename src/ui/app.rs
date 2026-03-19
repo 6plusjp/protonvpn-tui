@@ -357,17 +357,8 @@ impl TuiApp {
     fn handle_servers_key(&mut self, key_event: crossterm::event::KeyEvent) -> Option<AppAction> {
         let bindings = &self.state.key_bindings;
 
-        let is_connect = bindings
-            .connect
-            .matches(key_event.code, key_event.modifiers);
-        let is_disconnect = bindings
-            .disconnect
-            .matches(key_event.code, key_event.modifiers);
         let is_refresh = bindings
             .refresh
-            .matches(key_event.code, key_event.modifiers);
-        let is_random_connect = bindings
-            .random_connect
             .matches(key_event.code, key_event.modifiers);
         let is_pane_next = bindings
             .pane_next
@@ -381,41 +372,6 @@ impl TuiApp {
         let is_sort_by_country = bindings
             .sort_by_country
             .matches(key_event.code, key_event.modifiers);
-        let is_connect_fastest = bindings
-            .connect_fastest
-            .matches(key_event.code, key_event.modifiers);
-        let is_connect_p2p = bindings
-            .connect_p2p
-            .matches(key_event.code, key_event.modifiers);
-        let is_connect_tor = bindings
-            .connect_tor
-            .matches(key_event.code, key_event.modifiers);
-        let is_securecore = bindings
-            .securecore
-            .matches(key_event.code, key_event.modifiers);
-
-        if is_connect {
-            match self.state.connection_manager.connection {
-                crate::state::ConnectionState::Connecting => {
-                    self.state.show_notification(
-                        "Connection in progress...".to_string(),
-                        crate::state::NotificationType::Warning,
-                        Some("connect".to_string()),
-                    );
-                }
-                crate::state::ConnectionState::Disconnecting => {
-                    self.state.show_notification(
-                        "Disconnecting...".to_string(),
-                        crate::state::NotificationType::Warning,
-                        Some("disconnect".to_string()),
-                    );
-                }
-                _ => {
-                    self.handle_connect();
-                }
-            }
-            return None;
-        }
 
         match key_event.code {
             _ if is_pane_next => {
@@ -443,28 +399,6 @@ impl TuiApp {
                 None
             }
             _ if self.handle_common_navigation(key_event) => None,
-            _ if is_disconnect => {
-                match self.state.connection_manager.connection {
-                    crate::state::ConnectionState::Disconnected => {
-                        self.state.show_notification(
-                            "Not connected".to_string(),
-                            crate::state::NotificationType::Info,
-                            None,
-                        );
-                    }
-                    crate::state::ConnectionState::Disconnecting => {
-                        self.state.show_notification(
-                            "Already disconnecting...".to_string(),
-                            crate::state::NotificationType::Warning,
-                            None,
-                        );
-                    }
-                    _ => {
-                        self.handle_disconnect();
-                    }
-                }
-                None
-            }
             _ if is_refresh => {
                 match self.state.ui_state.pane_focus {
                     Pane::Cities => {
@@ -509,116 +443,6 @@ impl TuiApp {
             }
             KeyCode::Right => {
                 self.state.toggle_sort_direction();
-                None
-            }
-            _ if is_random_connect => {
-                match self.state.connection_manager.connection {
-                    crate::state::ConnectionState::Connecting => {
-                        self.state.show_notification(
-                            "Connection in progress...".to_string(),
-                            crate::state::NotificationType::Warning,
-                            Some("connect".to_string()),
-                        );
-                    }
-                    crate::state::ConnectionState::Disconnecting => {
-                        self.state.show_notification(
-                            "Disconnecting...".to_string(),
-                            crate::state::NotificationType::Warning,
-                            Some("disconnect".to_string()),
-                        );
-                    }
-                    _ => {
-                        self.handle_connect_random();
-                    }
-                }
-                None
-            }
-            _ if is_connect_fastest => {
-                match self.state.connection_manager.connection {
-                    crate::state::ConnectionState::Connecting => {
-                        self.state.show_notification(
-                            "Connection in progress...".to_string(),
-                            crate::state::NotificationType::Warning,
-                            Some("connect".to_string()),
-                        );
-                    }
-                    crate::state::ConnectionState::Disconnecting => {
-                        self.state.show_notification(
-                            "Disconnecting...".to_string(),
-                            crate::state::NotificationType::Warning,
-                            Some("disconnect".to_string()),
-                        );
-                    }
-                    _ => {
-                        self.handle_connect_fastest();
-                    }
-                }
-                None
-            }
-            _ if is_connect_p2p => {
-                match self.state.connection_manager.connection {
-                    crate::state::ConnectionState::Connecting => {
-                        self.state.show_notification(
-                            "Connection in progress...".to_string(),
-                            crate::state::NotificationType::Warning,
-                            Some("connect".to_string()),
-                        );
-                    }
-                    crate::state::ConnectionState::Disconnecting => {
-                        self.state.show_notification(
-                            "Disconnecting...".to_string(),
-                            crate::state::NotificationType::Warning,
-                            Some("disconnect".to_string()),
-                        );
-                    }
-                    _ => {
-                        self.handle_connect_p2p();
-                    }
-                }
-                None
-            }
-            _ if is_connect_tor => {
-                match self.state.connection_manager.connection {
-                    crate::state::ConnectionState::Connecting => {
-                        self.state.show_notification(
-                            "Connection in progress...".to_string(),
-                            crate::state::NotificationType::Warning,
-                            Some("connect".to_string()),
-                        );
-                    }
-                    crate::state::ConnectionState::Disconnecting => {
-                        self.state.show_notification(
-                            "Disconnecting...".to_string(),
-                            crate::state::NotificationType::Warning,
-                            Some("disconnect".to_string()),
-                        );
-                    }
-                    _ => {
-                        self.handle_connect_tor();
-                    }
-                }
-                None
-            }
-            _ if is_securecore => {
-                match self.state.connection_manager.connection {
-                    crate::state::ConnectionState::Connecting => {
-                        self.state.show_notification(
-                            "Connection in progress...".to_string(),
-                            crate::state::NotificationType::Warning,
-                            Some("connect".to_string()),
-                        );
-                    }
-                    crate::state::ConnectionState::Disconnecting => {
-                        self.state.show_notification(
-                            "Disconnecting...".to_string(),
-                            crate::state::NotificationType::Warning,
-                            Some("disconnect".to_string()),
-                        );
-                    }
-                    _ => {
-                        self.handle_connect_securecore();
-                    }
-                }
                 None
             }
             _ => None,

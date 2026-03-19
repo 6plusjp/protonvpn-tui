@@ -77,7 +77,7 @@ impl TuiApp {
             let notifications_expired = self.state.notification_state.tick();
 
             // Always redraw on first iteration to show loading screen
-            let is_first_render = self.state.server_data.is_initialized;
+            let is_first_render = self.state.is_initialized;
             if !is_first_render || async_processed || notification_shown || notifications_expired {
                 terminal.draw(|f| self.render(f))?;
             }

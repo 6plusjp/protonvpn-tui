@@ -177,7 +177,7 @@ impl crate::state::AppState {
                 .insert(country_code.to_string());
             self.show_notification(
                 format!("Added {} to favorites", country_code),
-                NotificationType::Success,
+                NotificationType::Info,
                 None,
             );
         }

@@ -15,8 +15,7 @@ src/ui/
 ├── components/     # Reusable widgets
 │   ├── block.rs
 │   ├── list.rs
-│   ├── pane_table.rs
-│   └── styles.rs
+│   └── pane_table.rs
 └── views/          # Full screen views
     ├── help_view.rs
     ├── logs_view.rs

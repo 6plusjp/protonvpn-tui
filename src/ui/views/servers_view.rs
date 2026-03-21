@@ -91,8 +91,8 @@ fn render_countries_pane(
 
             let is_loading_this = state
                 .connection_manager
-                .pending_cities
-                .contains_key(&server.code);
+                .loading_cities
+                .contains(&server.code);
 
             let cities_str = if is_loading_this {
                 "◐".to_string()
@@ -177,8 +177,8 @@ fn render_cities_pane(
 
     let is_loading = state
         .connection_manager
-        .pending_cities
-        .contains_key(state.current_country_code.as_deref().unwrap_or(""));
+        .loading_cities
+        .contains(state.current_country_code.as_deref().unwrap_or(""));
 
     let title = match (
         &state.current_country_code,

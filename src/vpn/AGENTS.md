@@ -127,7 +127,7 @@ pub use types::{City, Server, ServerFeatures};
 pub use cache::countries_to_servers;
 
 // Re-exported from async_tasks.rs
-pub use async_tasks::{AsyncTaskManager, AsyncResult, create_channel};
+pub use async_tasks::{AsyncTaskManager};
 ```
 
 ## Testing

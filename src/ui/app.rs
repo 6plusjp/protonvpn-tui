@@ -66,19 +66,15 @@ impl TuiApp {
         let mut terminal = Terminal::new(backend)?;
 
         loop {
-            // Wait for async events with timeout (event-driven, max 10ms delay)
             let async_processed = self
                 .state
                 .wait_for_async_events(std::time::Duration::from_millis(10));
-
-            // Check remaining pending async events
-            let notification_shown = self.state.check_pending_async_events();
 
             let notifications_expired = self.state.notification_state.tick();
 
             // Always redraw on first iteration to show loading screen
             let is_first_render = self.state.is_initialized;
-            if !is_first_render || async_processed || notification_shown || notifications_expired {
+            if !is_first_render || async_processed || notifications_expired {
                 terminal.draw(|f| self.render(f))?;
             }
 
@@ -404,27 +400,8 @@ impl TuiApp {
                     Pane::Cities => {
                         self.state.reload_cities();
                     }
-                    Pane::Countries => {
-                        if !self.state.connection_manager.pending_refresh.is_empty() {
-                            self.state.show_notification(
-                                "Refresh in progress...".to_string(),
-                                crate::state::NotificationType::Warning,
-                                Some("servers".to_string()),
-                            );
-                        } else {
-                            self.handle_refresh();
-                        }
-                    }
-                    Pane::Settings | Pane::Logs => {
-                        if !self.state.connection_manager.pending_refresh.is_empty() {
-                            self.state.show_notification(
-                                "Refresh in progress...".to_string(),
-                                crate::state::NotificationType::Warning,
-                                Some("servers".to_string()),
-                            );
-                        } else {
-                            self.handle_refresh();
-                        }
+                    Pane::Countries | Pane::Settings | Pane::Logs => {
+                        self.handle_refresh();
                     }
                 }
                 None

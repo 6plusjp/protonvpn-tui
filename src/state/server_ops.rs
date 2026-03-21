@@ -1,7 +1,6 @@
 //! Server filtering, sorting, and related operations
 
 use crate::state::{NotificationType, ServerFilter, ServerSort, SortDirection};
-use crate::vpn::async_tasks::create_channel;
 use crate::vpn::Server;
 
 impl crate::state::AppState {
@@ -214,22 +213,18 @@ impl crate::state::AppState {
             return;
         }
 
-        let already_pending = self
+        let already_loading = self
             .connection_manager
-            .pending_cities
-            .contains_key(&country_code);
+            .loading_cities
+            .contains(&country_code);
 
-        if already_pending {
-            if force {
-                self.connection_manager.pending_cities.remove(&country_code);
-            } else {
-                return;
-            }
+        if already_loading && !force {
+            return;
         }
 
         if !force
-            && !already_pending
-            && self.connection_manager.pending_cities.len() >= Self::MAX_PENDING_CITY_FETCHES
+            && !already_loading
+            && self.connection_manager.loading_cities.len() >= Self::MAX_PENDING_CITY_FETCHES
         {
             return;
         }
@@ -240,14 +235,13 @@ impl crate::state::AppState {
             Some(format!("cities:{}", country_code)),
         );
 
-        let (tx, rx) = create_channel();
         self.connection_manager
-            .pending_cities
-            .insert(country_code.clone(), rx);
+            .loading_cities
+            .insert(country_code.clone());
         self.connection_manager.async_manager.spawn_cities(
             self.vpn_state.clone(),
             country_code,
-            tx,
+            self.connection_manager.async_notifier.clone(),
         );
     }
 

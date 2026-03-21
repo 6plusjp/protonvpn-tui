@@ -1,11 +1,7 @@
 //! VPN connect/disconnect and refresh operations
 
-use crate::state::AsyncResult;
 use crate::state::ConnectionState;
 use crate::state::NotificationType;
-use crate::vpn::async_tasks::create_channel;
-use crate::vpn::ConnectResult;
-use std::sync::mpsc;
 
 impl crate::state::AppState {
     pub fn refresh_servers(&mut self) {
@@ -21,11 +17,10 @@ impl crate::state::AppState {
             Some("servers".to_string()),
         );
 
-        let (tx, rx) = create_channel();
-        self.connection_manager.pending_refresh.insert((), rx);
-        self.connection_manager
-            .async_manager
-            .spawn_refresh_servers(self.vpn_state.clone(), tx);
+        self.connection_manager.async_manager.spawn_refresh_servers(
+            self.vpn_state.clone(),
+            self.connection_manager.async_notifier.clone(),
+        );
     }
 
     pub fn connect(&mut self) {
@@ -71,14 +66,11 @@ impl crate::state::AppState {
             Some("connect".to_string()),
         );
 
-        let (tx, rx): (
-            mpsc::Sender<AsyncResult<ConnectResult>>,
-            mpsc::Receiver<AsyncResult<ConnectResult>>,
-        ) = create_channel();
-        self.connection_manager.pending_connect.insert((), rx);
-        self.connection_manager
-            .async_manager
-            .spawn_connect(self.vpn_state.clone(), server_id, tx);
+        self.connection_manager.async_manager.spawn_connect(
+            self.vpn_state.clone(),
+            server_id,
+            self.connection_manager.async_notifier.clone(),
+        );
     }
 
     pub fn connect_random(&mut self) {
@@ -92,14 +84,10 @@ impl crate::state::AppState {
             Some("connect".to_string()),
         );
 
-        let (tx, rx): (
-            mpsc::Sender<AsyncResult<ConnectResult>>,
-            mpsc::Receiver<AsyncResult<ConnectResult>>,
-        ) = create_channel();
-        self.connection_manager.pending_connect.insert((), rx);
-        self.connection_manager
-            .async_manager
-            .spawn_connect_random(self.vpn_state.clone(), tx);
+        self.connection_manager.async_manager.spawn_connect_random(
+            self.vpn_state.clone(),
+            self.connection_manager.async_notifier.clone(),
+        );
     }
 
     pub fn connect_fastest(&mut self) {
@@ -113,14 +101,10 @@ impl crate::state::AppState {
             Some("connect".to_string()),
         );
 
-        let (tx, rx): (
-            mpsc::Sender<AsyncResult<ConnectResult>>,
-            mpsc::Receiver<AsyncResult<ConnectResult>>,
-        ) = create_channel();
-        self.connection_manager.pending_connect.insert((), rx);
-        self.connection_manager
-            .async_manager
-            .spawn_connect_fastest(self.vpn_state.clone(), tx);
+        self.connection_manager.async_manager.spawn_connect_fastest(
+            self.vpn_state.clone(),
+            self.connection_manager.async_notifier.clone(),
+        );
     }
 
     pub fn connect_p2p(&mut self) {
@@ -134,14 +118,10 @@ impl crate::state::AppState {
             Some("connect".to_string()),
         );
 
-        let (tx, rx): (
-            mpsc::Sender<AsyncResult<ConnectResult>>,
-            mpsc::Receiver<AsyncResult<ConnectResult>>,
-        ) = create_channel();
-        self.connection_manager.pending_connect.insert((), rx);
-        self.connection_manager
-            .async_manager
-            .spawn_connect_p2p(self.vpn_state.clone(), tx);
+        self.connection_manager.async_manager.spawn_connect_p2p(
+            self.vpn_state.clone(),
+            self.connection_manager.async_notifier.clone(),
+        );
     }
 
     pub fn connect_tor(&mut self) {
@@ -155,14 +135,10 @@ impl crate::state::AppState {
             Some("connect".to_string()),
         );
 
-        let (tx, rx): (
-            mpsc::Sender<AsyncResult<ConnectResult>>,
-            mpsc::Receiver<AsyncResult<ConnectResult>>,
-        ) = create_channel();
-        self.connection_manager.pending_connect.insert((), rx);
-        self.connection_manager
-            .async_manager
-            .spawn_connect_tor(self.vpn_state.clone(), tx);
+        self.connection_manager.async_manager.spawn_connect_tor(
+            self.vpn_state.clone(),
+            self.connection_manager.async_notifier.clone(),
+        );
     }
 
     pub fn connect_securecore(&mut self) {
@@ -176,14 +152,12 @@ impl crate::state::AppState {
             Some("connect".to_string()),
         );
 
-        let (tx, rx): (
-            mpsc::Sender<AsyncResult<ConnectResult>>,
-            mpsc::Receiver<AsyncResult<ConnectResult>>,
-        ) = create_channel();
-        self.connection_manager.pending_connect.insert((), rx);
         self.connection_manager
             .async_manager
-            .spawn_connect_securecore(self.vpn_state.clone(), tx);
+            .spawn_connect_securecore(
+                self.vpn_state.clone(),
+                self.connection_manager.async_notifier.clone(),
+            );
     }
 
     pub fn disconnect(&mut self) {
@@ -206,11 +180,10 @@ impl crate::state::AppState {
             Some("disconnect".to_string()),
         );
 
-        let (tx, rx) = create_channel();
-        self.connection_manager.pending_disconnect.insert((), rx);
-        self.connection_manager
-            .async_manager
-            .spawn_disconnect(self.vpn_state.clone(), tx);
+        self.connection_manager.async_manager.spawn_disconnect(
+            self.vpn_state.clone(),
+            self.connection_manager.async_notifier.clone(),
+        );
     }
 
     pub fn connect_city(&mut self, city: &str) {
@@ -233,24 +206,19 @@ impl crate::state::AppState {
             Some("connect:city".to_string()),
         );
 
-        let (tx, rx): (
-            mpsc::Sender<AsyncResult<ConnectResult>>,
-            mpsc::Receiver<AsyncResult<ConnectResult>>,
-        ) = create_channel();
-        self.connection_manager.pending_connect_city.insert((), rx);
-        self.connection_manager
-            .async_manager
-            .spawn_connect_city(self.vpn_state.clone(), city, tx);
+        self.connection_manager.async_manager.spawn_connect_city(
+            self.vpn_state.clone(),
+            city,
+            self.connection_manager.async_notifier.clone(),
+        );
     }
 
     pub fn spawn_config_set(&mut self, key: String, value: String) {
-        let (tx, rx) = create_channel();
-        self.connection_manager.pending_config_set.insert((), rx);
         self.connection_manager.async_manager.spawn_config_set(
             self.vpn_state.clone(),
             key,
             value,
-            tx,
+            self.connection_manager.async_notifier.clone(),
         );
     }
 }

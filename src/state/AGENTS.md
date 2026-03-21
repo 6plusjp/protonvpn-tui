@@ -61,11 +61,11 @@ Manages async VPN operations and event-driven notifications:
 
 ```rust
 pub struct ConnectionManager {
+    pub connection: ConnectionState,
+    pub previous_connection: Option<ConnectionState>,
     pub async_manager: AsyncTaskManager,
-    pub async_notifier: AsyncNotifier,
-    pub pending_connect: HashMap<(), ConnectReceiver>,
-    pub pending_cities: HashMap<String, CitiesReceiver>,
-    // ...
+    pub async_notifier: Arc<AsyncNotifier>,
+    pub loading_cities: HashSet<String>,
 }
 ```
 
@@ -138,17 +138,15 @@ app_state.current_cities = Vec::new();
 Long-running operations (VPN connect, server refresh) use async tasks:
 
 ```rust
-// Spawn async operation
+// Spawn async operation with notifier
 self.connection_manager.async_manager.spawn_connect(
     self.vpn_state.clone(),
     server_id,
-    tx,
+    self.connection_manager.async_notifier.clone(),
 );
 
-// Handle result in check_pending_async_events()
-if let Ok(result) = rx.try_recv() {
-    // Show notification, update state
-}
+// Result is automatically sent to AsyncNotifier
+// Process in process_async_events() or wait_for_async_events()
 ```
 
 ### 4. Notifications Always Have Keys

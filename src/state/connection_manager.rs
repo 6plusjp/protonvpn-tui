@@ -2,7 +2,7 @@
 
 use crate::vpn::ConnectResult;
 use crate::vpn::Server;
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::Condvar;
 use std::sync::Mutex;
@@ -20,8 +20,11 @@ pub enum AsyncEvent {
     Disconnected,
     DisconnectFailed(String),
     CitiesLoaded(String, Vec<crate::vpn::City>),
+    CitiesLoadFailed(String, String),
     ConnectCityResult(ConnectResult),
     ConnectCityFailed(String),
+    ConfigSetResult(String),
+    ConfigSetFailed(String),
 }
 
 /// Notifier for async task completion (event-driven wakeup)
@@ -62,26 +65,13 @@ impl Default for AsyncNotifier {
     }
 }
 
-/// Receiver types for async operations
-pub type ConnectReceiver = std::sync::mpsc::Receiver<crate::state::AsyncResult<ConnectResult>>;
-pub type ServerReceiver = std::sync::mpsc::Receiver<crate::state::AsyncResult<Vec<Server>>>;
-pub type DisconnectReceiver = std::sync::mpsc::Receiver<crate::state::AsyncResult<()>>;
-pub type CitiesReceiver =
-    std::sync::mpsc::Receiver<crate::state::AsyncResult<Vec<crate::vpn::City>>>;
-pub type ConfigReceiver = std::sync::mpsc::Receiver<crate::state::AsyncResult<String>>;
-
 /// Connection manager - handles VPN connection state and async operations
 pub struct ConnectionManager {
     pub connection: ConnectionState,
     pub previous_connection: Option<ConnectionState>,
     pub async_manager: AsyncTaskManager,
     pub async_notifier: Arc<AsyncNotifier>,
-    pub pending_refresh: HashMap<(), ServerReceiver>,
-    pub pending_connect: HashMap<(), ConnectReceiver>,
-    pub pending_disconnect: HashMap<(), DisconnectReceiver>,
-    pub pending_cities: HashMap<String, CitiesReceiver>,
-    pub pending_connect_city: HashMap<(), ConnectReceiver>,
-    pub pending_config_set: HashMap<(), ConfigReceiver>,
+    pub loading_cities: HashSet<String>,
 }
 
 impl Default for ConnectionManager {
@@ -97,21 +87,11 @@ impl ConnectionManager {
             previous_connection: None,
             async_manager: AsyncTaskManager::new(),
             async_notifier: Arc::new(AsyncNotifier::new()),
-            pending_refresh: HashMap::new(),
-            pending_connect: HashMap::new(),
-            pending_disconnect: HashMap::new(),
-            pending_cities: HashMap::new(),
-            pending_connect_city: HashMap::new(),
-            pending_config_set: HashMap::new(),
+            loading_cities: HashSet::new(),
         }
     }
 
     pub fn is_idle(&self) -> bool {
-        self.pending_refresh.is_empty()
-            && self.pending_connect.is_empty()
-            && self.pending_disconnect.is_empty()
-            && self.pending_cities.is_empty()
-            && self.pending_connect_city.is_empty()
-            && self.pending_config_set.is_empty()
+        self.connection.is_disconnected() && self.loading_cities.is_empty()
     }
 }

@@ -3,9 +3,6 @@
 mod app_state;
 pub use app_state::*;
 
-// Re-export from vpn module for backward compatibility
-pub use crate::vpn::AsyncResult;
-
 mod connection_state;
 pub use connection_state::*;
 

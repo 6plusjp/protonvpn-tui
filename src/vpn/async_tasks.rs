@@ -3,75 +3,64 @@
 //! Uses a fixed-size thread pool to avoid spawning a new thread for every operation.
 //! This significantly reduces overhead for frequent VPN operations.
 
-use crate::error::AppError;
-use crate::vpn::ConnectResult;
-use crate::vpn::{City, VpnClient};
+use crate::state::AsyncEvent;
+use crate::state::AsyncNotifier;
+use crate::vpn::VpnClient;
 use std::collections::VecDeque;
-use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Condvar;
 use std::sync::Mutex;
 use std::thread::{self, JoinHandle};
 
-pub type AsyncResult<T> = Result<T, AppError>;
-
-#[derive(Debug)]
-pub enum AsyncOperation {
-    RefreshComplete(Result<Vec<crate::vpn::Server>, AppError>),
-    ConnectComplete(Result<ConnectResult, AppError>),
-    DisconnectComplete(Result<(), AppError>),
-    CitiesComplete(Result<Vec<City>, AppError>),
-}
-
 enum Job {
     RefreshServers {
         vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<Vec<crate::vpn::Server>>>,
+        notifier: Arc<AsyncNotifier>,
     },
     Connect {
         vpn_state: Arc<VpnClient>,
         server_id: String,
-        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+        notifier: Arc<AsyncNotifier>,
     },
     Disconnect {
         vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<()>>,
+        notifier: Arc<AsyncNotifier>,
     },
     ConnectRandom {
         vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+        notifier: Arc<AsyncNotifier>,
     },
     Cities {
         vpn_state: Arc<VpnClient>,
         country_code: String,
-        sender: mpsc::Sender<AsyncResult<Vec<City>>>,
+        notifier: Arc<AsyncNotifier>,
     },
     ConnectCity {
         vpn_state: Arc<VpnClient>,
         city: String,
-        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+        notifier: Arc<AsyncNotifier>,
     },
     ConfigSet {
         vpn_state: Arc<VpnClient>,
         key: String,
         value: String,
-        sender: mpsc::Sender<AsyncResult<String>>,
+        notifier: Arc<AsyncNotifier>,
     },
     ConnectFastest {
         vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+        notifier: Arc<AsyncNotifier>,
     },
     ConnectP2P {
         vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+        notifier: Arc<AsyncNotifier>,
     },
     ConnectTor {
         vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+        notifier: Arc<AsyncNotifier>,
     },
     ConnectSecureCore {
         vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+        notifier: Arc<AsyncNotifier>,
     },
 }
 
@@ -130,70 +119,123 @@ impl ThreadPool {
     /// Execute a job
     fn execute_job(job: Job) {
         match job {
-            Job::RefreshServers { vpn_state, sender } => {
-                Self::send_result(vpn_state.refresh_servers(), &sender, "refresh");
+            Job::RefreshServers {
+                vpn_state,
+                notifier,
+            } => {
+                let result = vpn_state.refresh_servers();
+                match result {
+                    Ok(servers) => notifier.notify(AsyncEvent::ServersRefreshed(servers)),
+                    Err(e) => notifier.notify(AsyncEvent::ServersRefreshFailed(e.to_string())),
+                }
             }
             Job::Connect {
                 vpn_state,
                 server_id,
-                sender,
+                notifier,
             } => {
-                Self::send_result(vpn_state.connect_country(&server_id), &sender, "connect");
+                let result = vpn_state.connect_country(&server_id);
+                match result {
+                    Ok(conn_result) => notifier.notify(AsyncEvent::Connected(conn_result)),
+                    Err(e) => notifier.notify(AsyncEvent::ConnectFailed(e.to_string())),
+                }
             }
-            Job::Disconnect { vpn_state, sender } => {
-                Self::send_result(vpn_state.disconnect(), &sender, "disconnect");
+            Job::Disconnect {
+                vpn_state,
+                notifier,
+            } => {
+                let result = vpn_state.disconnect();
+                match result {
+                    Ok(()) => notifier.notify(AsyncEvent::Disconnected),
+                    Err(e) => notifier.notify(AsyncEvent::DisconnectFailed(e.to_string())),
+                }
             }
-            Job::ConnectRandom { vpn_state, sender } => {
-                Self::send_result(vpn_state.connect_random(), &sender, "connect_random");
+            Job::ConnectRandom {
+                vpn_state,
+                notifier,
+            } => {
+                let result = vpn_state.connect_random();
+                match result {
+                    Ok(conn_result) => notifier.notify(AsyncEvent::Connected(conn_result)),
+                    Err(e) => notifier.notify(AsyncEvent::ConnectFailed(e.to_string())),
+                }
             }
             Job::Cities {
                 vpn_state,
                 country_code,
-                sender,
+                notifier,
             } => {
-                Self::send_result(
-                    vpn_state.list_cities_with_features(&country_code),
-                    &sender,
-                    "cities",
-                );
+                let result = vpn_state.list_cities_with_features(&country_code);
+                match result {
+                    Ok(cities) => notifier.notify(AsyncEvent::CitiesLoaded(country_code, cities)),
+                    Err(e) => {
+                        notifier.notify(AsyncEvent::CitiesLoadFailed(country_code, e.to_string()))
+                    }
+                }
             }
             Job::ConnectCity {
                 vpn_state,
                 city,
-                sender,
+                notifier,
             } => {
-                Self::send_result(vpn_state.connect_city(&city), &sender, "connect_city");
+                let result = vpn_state.connect_city(&city);
+                match result {
+                    Ok(conn_result) => notifier.notify(AsyncEvent::ConnectCityResult(conn_result)),
+                    Err(e) => notifier.notify(AsyncEvent::ConnectCityFailed(e.to_string())),
+                }
             }
             Job::ConfigSet {
                 vpn_state,
                 key,
                 value,
-                sender,
+                notifier,
             } => {
-                Self::send_result(vpn_state.set_config(&key, &value), &sender, "config_set");
+                let result = vpn_state.set_config(&key, &value);
+                match result {
+                    Ok(msg) => notifier.notify(AsyncEvent::ConfigSetResult(msg)),
+                    Err(e) => notifier.notify(AsyncEvent::ConfigSetFailed(e.to_string())),
+                }
             }
-            Job::ConnectFastest { vpn_state, sender } => {
-                Self::send_result(vpn_state.connect_fastest(), &sender, "connect_fastest");
+            Job::ConnectFastest {
+                vpn_state,
+                notifier,
+            } => {
+                let result = vpn_state.connect_fastest();
+                match result {
+                    Ok(conn_result) => notifier.notify(AsyncEvent::Connected(conn_result)),
+                    Err(e) => notifier.notify(AsyncEvent::ConnectFailed(e.to_string())),
+                }
             }
-            Job::ConnectP2P { vpn_state, sender } => {
-                Self::send_result(vpn_state.connect_p2p(), &sender, "connect_p2p");
+            Job::ConnectP2P {
+                vpn_state,
+                notifier,
+            } => {
+                let result = vpn_state.connect_p2p();
+                match result {
+                    Ok(conn_result) => notifier.notify(AsyncEvent::Connected(conn_result)),
+                    Err(e) => notifier.notify(AsyncEvent::ConnectFailed(e.to_string())),
+                }
             }
-            Job::ConnectTor { vpn_state, sender } => {
-                Self::send_result(vpn_state.connect_tor(), &sender, "connect_tor");
+            Job::ConnectTor {
+                vpn_state,
+                notifier,
+            } => {
+                let result = vpn_state.connect_tor();
+                match result {
+                    Ok(conn_result) => notifier.notify(AsyncEvent::Connected(conn_result)),
+                    Err(e) => notifier.notify(AsyncEvent::ConnectFailed(e.to_string())),
+                }
             }
-            Job::ConnectSecureCore { vpn_state, sender } => {
-                Self::send_result(
-                    vpn_state.connect_securecore(),
-                    &sender,
-                    "connect_securecore",
-                );
+            Job::ConnectSecureCore {
+                vpn_state,
+                notifier,
+            } => {
+                let result = vpn_state.connect_securecore();
+                match result {
+                    Ok(conn_result) => notifier.notify(AsyncEvent::Connected(conn_result)),
+                    Err(e) => notifier.notify(AsyncEvent::ConnectFailed(e.to_string())),
+                }
             }
-        }
-    }
-
-    fn send_result<T>(result: T, sender: &mpsc::Sender<T>, operation: &str) {
-        if sender.send(result).is_err() {
-            tracing::warn!("Failed to send {} result - receiver dropped", operation);
         }
     }
 
@@ -239,53 +281,50 @@ impl AsyncTaskManager {
         }
     }
 
-    pub fn spawn_refresh_servers(
-        &self,
-        vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<Vec<crate::vpn::Server>>>,
-    ) {
-        self.pool.submit(Job::RefreshServers { vpn_state, sender });
+    pub fn spawn_refresh_servers(&self, vpn_state: Arc<VpnClient>, notifier: Arc<AsyncNotifier>) {
+        self.pool.submit(Job::RefreshServers {
+            vpn_state,
+            notifier,
+        });
     }
 
     pub fn spawn_connect(
         &self,
         vpn_state: Arc<VpnClient>,
         server_id: String,
-        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+        notifier: Arc<AsyncNotifier>,
     ) {
         self.pool.submit(Job::Connect {
             vpn_state,
             server_id,
-            sender,
+            notifier,
         });
     }
 
-    pub fn spawn_disconnect(
-        &self,
-        vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<()>>,
-    ) {
-        self.pool.submit(Job::Disconnect { vpn_state, sender });
+    pub fn spawn_disconnect(&self, vpn_state: Arc<VpnClient>, notifier: Arc<AsyncNotifier>) {
+        self.pool.submit(Job::Disconnect {
+            vpn_state,
+            notifier,
+        });
     }
 
-    pub fn spawn_connect_random(
-        &self,
-        vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
-    ) {
-        self.pool.submit(Job::ConnectRandom { vpn_state, sender });
+    pub fn spawn_connect_random(&self, vpn_state: Arc<VpnClient>, notifier: Arc<AsyncNotifier>) {
+        self.pool.submit(Job::ConnectRandom {
+            vpn_state,
+            notifier,
+        });
     }
 
     pub fn spawn_cities(
         &self,
         vpn_state: Arc<VpnClient>,
         country_code: String,
-        sender: mpsc::Sender<AsyncResult<Vec<City>>>,
+        notifier: Arc<AsyncNotifier>,
     ) {
         self.pool.submit(Job::Cities {
             vpn_state,
             country_code,
-            sender,
+            notifier,
         });
     }
 
@@ -293,12 +332,12 @@ impl AsyncTaskManager {
         &self,
         vpn_state: Arc<VpnClient>,
         city: String,
-        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+        notifier: Arc<AsyncNotifier>,
     ) {
         self.pool.submit(Job::ConnectCity {
             vpn_state,
             city,
-            sender,
+            notifier,
         });
     }
 
@@ -307,47 +346,46 @@ impl AsyncTaskManager {
         vpn_state: Arc<VpnClient>,
         key: String,
         value: String,
-        sender: mpsc::Sender<AsyncResult<String>>,
+        notifier: Arc<AsyncNotifier>,
     ) {
         self.pool.submit(Job::ConfigSet {
             vpn_state,
             key,
             value,
-            sender,
+            notifier,
         });
     }
 
-    pub fn spawn_connect_fastest(
-        &self,
-        vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
-    ) {
-        self.pool.submit(Job::ConnectFastest { vpn_state, sender });
+    pub fn spawn_connect_fastest(&self, vpn_state: Arc<VpnClient>, notifier: Arc<AsyncNotifier>) {
+        self.pool.submit(Job::ConnectFastest {
+            vpn_state,
+            notifier,
+        });
     }
 
-    pub fn spawn_connect_p2p(
-        &self,
-        vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
-    ) {
-        self.pool.submit(Job::ConnectP2P { vpn_state, sender });
+    pub fn spawn_connect_p2p(&self, vpn_state: Arc<VpnClient>, notifier: Arc<AsyncNotifier>) {
+        self.pool.submit(Job::ConnectP2P {
+            vpn_state,
+            notifier,
+        });
     }
 
-    pub fn spawn_connect_tor(
-        &self,
-        vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
-    ) {
-        self.pool.submit(Job::ConnectTor { vpn_state, sender });
+    pub fn spawn_connect_tor(&self, vpn_state: Arc<VpnClient>, notifier: Arc<AsyncNotifier>) {
+        self.pool.submit(Job::ConnectTor {
+            vpn_state,
+            notifier,
+        });
     }
 
     pub fn spawn_connect_securecore(
         &self,
         vpn_state: Arc<VpnClient>,
-        sender: mpsc::Sender<AsyncResult<ConnectResult>>,
+        notifier: Arc<AsyncNotifier>,
     ) {
-        self.pool
-            .submit(Job::ConnectSecureCore { vpn_state, sender });
+        self.pool.submit(Job::ConnectSecureCore {
+            vpn_state,
+            notifier,
+        });
     }
 }
 
@@ -355,8 +393,4 @@ impl Default for AsyncTaskManager {
     fn default() -> Self {
         Self::new_with_workers(4)
     }
-}
-
-pub fn create_channel<T>() -> (mpsc::Sender<T>, mpsc::Receiver<T>) {
-    mpsc::channel()
 }

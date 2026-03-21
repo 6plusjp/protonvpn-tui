@@ -1,4 +1,9 @@
-//! ProtonVPN TUI - Library root
+//! ProtonVPN TUI library
+//!
+//! Terminal UI for Proton VPN built with [ratatui](https://ratatui.rs/) and [crossterm](https://docs.rs/crossterm).
+//!
+//! This crate provides the core functionality for the ProtonVPN TUI application,
+//! including VPN connection management, server browsing, and terminal rendering.
 
 pub mod config;
 pub mod constants;

@@ -2,10 +2,25 @@
 name = "protonvpn-tui"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.70"
 authors = ["6plus <6plusjp@gmail.com>"]
-description = "Proton VPN TUI - Terminal UI for Proton VPN"
+description = "Terminal UI for Proton VPN - browse servers, manage connections, and configure settings"
 license = "MIT"
-repository = "https://github.com/yourusername/protonvpn-tui"
+readme = "README.md"
+homepage = "https://github.com/6plusjp/protonvpn-tui"
+repository = "https://github.com/6plusjp/protonvpn-tui"
+documentation = "https://docs.rs/protonvpn-tui"
+keywords = ["vpn", "tui", "cli", "protonvpn", "terminal"]
+categories = ["command-line-utilities", "network-programming"]
+
+exclude = [
+    "docs/",
+    "AGENTS.md",
+    "src/*/AGENTS.md",
+    ".github/",
+    ".pre-commit-config.yaml",
+    "clippy.toml",
+]
 
 [dependencies]
 clap = { version = "=4.5", features = ["derive"] }

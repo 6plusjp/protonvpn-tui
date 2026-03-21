@@ -421,6 +421,12 @@ impl VpnClient {
         Ok(format!("{} {}", stdout, stderr).trim().to_string())
     }
 
+    /// Toggle a boolean setting (off <-> on)
+    fn toggle_bool_setting(&self, setting: &str, current: Option<bool>) -> AppResult<String> {
+        let new_value = if current == Some(true) { "off" } else { "on" };
+        self.set_config(setting, new_value)
+    }
+
     /// Toggle kill switch (off <-> standard)
     pub fn toggle_killswitch(&self, current: Option<i32>) -> AppResult<String> {
         let new_value = if current == Some(1) {
@@ -433,32 +439,27 @@ impl VpnClient {
 
     /// Toggle IPv6 (off <-> on)
     pub fn toggle_ipv6(&self, current: Option<bool>) -> AppResult<String> {
-        let new_value = if current == Some(true) { "off" } else { "on" };
-        self.set_config("ipv6", new_value)
+        self.toggle_bool_setting("ipv6", current)
     }
 
     /// Toggle moderate NAT (off <-> on)
     pub fn toggle_moderate_nat(&self, current: Option<bool>) -> AppResult<String> {
-        let new_value = if current == Some(true) { "off" } else { "on" };
-        self.set_config("moderate-nat", new_value)
+        self.toggle_bool_setting("moderate-nat", current)
     }
 
     /// Toggle VPN accelerator (off <-> on)
     pub fn toggle_vpn_accelerator(&self, current: Option<bool>) -> AppResult<String> {
-        let new_value = if current == Some(true) { "off" } else { "on" };
-        self.set_config("vpn-accelerator", new_value)
+        self.toggle_bool_setting("vpn-accelerator", current)
     }
 
     /// Toggle port forwarding (off <-> on)
     pub fn toggle_port_forwarding(&self, current: Option<bool>) -> AppResult<String> {
-        let new_value = if current == Some(true) { "off" } else { "on" };
-        self.set_config("port-forwarding", new_value)
+        self.toggle_bool_setting("port-forwarding", current)
     }
 
     /// Toggle anonymous crash reports (off <-> on)
     pub fn toggle_anonymous_crash_reports(&self, current: Option<bool>) -> AppResult<String> {
-        let new_value = if current == Some(true) { "off" } else { "on" };
-        self.set_config("anonymous-crash-reports", new_value)
+        self.toggle_bool_setting("anonymous-crash-reports", current)
     }
 
     /// Set NetShield mode (off -> malware-only -> malware-ads-trackers -> off)

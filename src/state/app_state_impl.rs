@@ -73,91 +73,77 @@ impl crate::state::AppState {
         );
     }
 
-    pub fn connect_random(&mut self) {
-        tracing::info!("Connecting to random server");
+    /// Connect to a special server type (random, fastest, p2p, tor, securecore)
+    fn connect_special<F>(&mut self, log_msg: &str, notification_msg: &str, spawn_fn: F)
+    where
+        F: FnOnce(
+            &crate::vpn::AsyncTaskManager,
+            std::sync::Arc<crate::vpn::VpnClient>,
+            std::sync::Arc<crate::state::AsyncNotifier>,
+        ),
+    {
+        if self.connection_manager.connection.is_connecting() {
+            self.show_notification(
+                "Still connecting, please wait...".to_string(),
+                NotificationType::Info,
+                None,
+            );
+            return;
+        }
+
+        tracing::info!("{}", log_msg);
         self.connection_manager.previous_connection =
             Some(self.connection_manager.connection.clone());
         self.connection_manager.connection = ConnectionState::Connecting;
         self.show_notification(
-            "Connecting to random server...".to_string(),
+            notification_msg.to_string(),
             NotificationType::Info,
             Some("connect".to_string()),
         );
 
-        self.connection_manager.async_manager.spawn_connect_random(
-            self.vpn_state.clone(),
-            self.connection_manager.async_notifier.clone(),
+        let vpn_state = self.vpn_state.clone();
+        let notifier = self.connection_manager.async_notifier.clone();
+        spawn_fn(&self.connection_manager.async_manager, vpn_state, notifier);
+    }
+
+    pub fn connect_random(&mut self) {
+        self.connect_special(
+            "Connecting to random server",
+            "Connecting to random server...",
+            |am, vpn, n| am.spawn_connect_random(vpn, n),
         );
     }
 
     pub fn connect_fastest(&mut self) {
-        tracing::info!("Connecting to fastest server");
-        self.connection_manager.previous_connection =
-            Some(self.connection_manager.connection.clone());
-        self.connection_manager.connection = ConnectionState::Connecting;
-        self.show_notification(
-            "Connecting to fastest server...".to_string(),
-            NotificationType::Info,
-            Some("connect".to_string()),
-        );
-
-        self.connection_manager.async_manager.spawn_connect_fastest(
-            self.vpn_state.clone(),
-            self.connection_manager.async_notifier.clone(),
+        self.connect_special(
+            "Connecting to fastest server",
+            "Connecting to fastest server...",
+            |am, vpn, n| am.spawn_connect_fastest(vpn, n),
         );
     }
 
     pub fn connect_p2p(&mut self) {
-        tracing::info!("Connecting to P2P server");
-        self.connection_manager.previous_connection =
-            Some(self.connection_manager.connection.clone());
-        self.connection_manager.connection = ConnectionState::Connecting;
-        self.show_notification(
-            "Connecting to P2P server...".to_string(),
-            NotificationType::Info,
-            Some("connect".to_string()),
-        );
-
-        self.connection_manager.async_manager.spawn_connect_p2p(
-            self.vpn_state.clone(),
-            self.connection_manager.async_notifier.clone(),
+        self.connect_special(
+            "Connecting to P2P server",
+            "Connecting to P2P server...",
+            |am, vpn, n| am.spawn_connect_p2p(vpn, n),
         );
     }
 
     pub fn connect_tor(&mut self) {
-        tracing::info!("Connecting to Tor server");
-        self.connection_manager.previous_connection =
-            Some(self.connection_manager.connection.clone());
-        self.connection_manager.connection = ConnectionState::Connecting;
-        self.show_notification(
-            "Connecting to Tor server...".to_string(),
-            NotificationType::Info,
-            Some("connect".to_string()),
-        );
-
-        self.connection_manager.async_manager.spawn_connect_tor(
-            self.vpn_state.clone(),
-            self.connection_manager.async_notifier.clone(),
+        self.connect_special(
+            "Connecting to Tor server",
+            "Connecting to Tor server...",
+            |am, vpn, n| am.spawn_connect_tor(vpn, n),
         );
     }
 
     pub fn connect_securecore(&mut self) {
-        tracing::info!("Connecting to SecureCore server");
-        self.connection_manager.previous_connection =
-            Some(self.connection_manager.connection.clone());
-        self.connection_manager.connection = ConnectionState::Connecting;
-        self.show_notification(
-            "Connecting to SecureCore server...".to_string(),
-            NotificationType::Info,
-            Some("connect".to_string()),
+        self.connect_special(
+            "Connecting to SecureCore server",
+            "Connecting to SecureCore server...",
+            |am, vpn, n| am.spawn_connect_securecore(vpn, n),
         );
-
-        self.connection_manager
-            .async_manager
-            .spawn_connect_securecore(
-                self.vpn_state.clone(),
-                self.connection_manager.async_notifier.clone(),
-            );
     }
 
     pub fn disconnect(&mut self) {

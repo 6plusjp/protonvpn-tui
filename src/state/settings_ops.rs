@@ -97,6 +97,7 @@ impl crate::state::AppState {
             }
             SettingKey::Theme => unreachable!(),
             SettingKey::Footer => unreachable!(),
+            SettingKey::MaskIp => unreachable!(),
         };
 
         match result {

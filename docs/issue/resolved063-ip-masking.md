@@ -1,4 +1,4 @@
-# issue063: Feature - Header IP masking for security
+# issue063: Feature - Header IP masking for security [RESOLVED]
 
 ## Summary
 
@@ -61,10 +61,21 @@ Masked:   JP#374  ip: ***.**.***.***  loc: Tokyo,Japan
 2. In `render_header`, replace IP with `***.**.***.***` when `mask_ip` is `true`
 3. Optionally expose as toggle in Settings view (Tools → Settings)
 
+## Resolution
+
+Implemented in commit on 2026-03-21. Changes:
+
+- `src/config/user_config.rs`: Added `mask_ip: bool` to `UiConfig` struct with `Default` implementation
+- `src/state/ui_state.rs`: Added `mask_ip` field to `UiState` struct
+- `src/config/settings.rs`: Added `SettingKey::MaskIp` variant to `SettingKey` enum
+- `src/ui/views/settings_view.rs`: Added `MaskIp` display handling in `get_setting_value()`
+- `src/state/app_state.rs`: Added `save_mask_ip()` method to persist settings
+- `src/ui/app.rs`: Added `MaskIp` toggle handling in settings view and IP masking in `render_header()`
+
 ## Severity
 
 🟡 MEDIUM — Security concern, prevents IP exposure in screenshots/demos
 
 ## Labels
 
-`feature` `security` `ui`
+`feature` `security` `ui` `resolved`

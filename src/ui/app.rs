@@ -595,6 +595,20 @@ impl TuiApp {
                         return None;
                     }
 
+                    if key == SettingKey::MaskIp {
+                        self.state.ui_state.settings_expanded = false;
+                        let option_idx = self.state.ui_state.settings_option_selected;
+                        let new_mask_ip = option_idx == 1;
+                        self.state.save_mask_ip(new_mask_ip);
+                        let status = if new_mask_ip { "on" } else { "off" };
+                        self.state.show_notification(
+                            format!("Mask IP set to {}", status),
+                            crate::state::NotificationType::Info,
+                            None,
+                        );
+                        return None;
+                    }
+
                     let option_idx = self.state.ui_state.settings_option_selected;
                     if let Some((config_key, value)) = key.get_selectable_option_command(option_idx)
                     {
@@ -1149,7 +1163,15 @@ impl TuiApp {
                     if !ip.is_empty() {
                         spans.push(Span::styled("  ", Style::default().fg(theme.dim)));
                         spans.push(Span::styled("ip:", Style::default().fg(theme.dim)));
-                        spans.push(Span::styled(ip, Style::default().fg(theme.secondary)));
+                        let display_ip = if self.state.ui_state.mask_ip {
+                            "***.**.***.***"
+                        } else {
+                            ip.as_str()
+                        };
+                        spans.push(Span::styled(
+                            display_ip,
+                            Style::default().fg(theme.secondary),
+                        ));
                     }
 
                     let loc = match (&city, &country, &via) {

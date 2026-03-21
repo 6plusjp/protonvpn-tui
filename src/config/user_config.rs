@@ -13,6 +13,8 @@ pub struct UiConfig {
     pub footer: bool,
     #[serde(default)]
     pub favorites: Vec<String>,
+    #[serde(default)]
+    pub mask_ip: bool,
 }
 
 impl Default for UiConfig {
@@ -21,6 +23,7 @@ impl Default for UiConfig {
             theme: String::new(),
             footer: true,
             favorites: Vec::new(),
+            mask_ip: false,
         }
     }
 }
@@ -510,8 +513,9 @@ impl UserConfig {
         let save_theme = !self.ui.theme.is_empty();
         let save_footer = self.ui.footer != defaults.ui.footer;
         let save_favorites = !self.ui.favorites.is_empty();
+        let save_mask_ip = self.ui.mask_ip != defaults.ui.mask_ip;
 
-        if save_theme || save_footer || save_favorites {
+        if save_theme || save_footer || save_favorites || save_mask_ip {
             toml_string.push_str("[ui]\n");
             if save_theme {
                 toml_string.push_str(&format!("theme = \"{}\"\n", self.ui.theme));
@@ -527,6 +531,9 @@ impl UserConfig {
                     .map(|s| format!("\"{}\"", s))
                     .collect();
                 toml_string.push_str(&format!("favorites = [{}]\n", favs.join(", ")));
+            }
+            if save_mask_ip {
+                toml_string.push_str(&format!("mask_ip = {}\n", self.ui.mask_ip));
             }
         }
 
@@ -634,6 +641,18 @@ footer = false
             toml::from_str(toml_content).expect("test TOML is valid and should parse");
         assert_eq!(config.ui.theme, "Nord");
         assert_eq!(config.ui.footer, false);
+        assert_eq!(config.ui.mask_ip, false);
+    }
+
+    #[test]
+    fn test_config_parsing_mask_ip() {
+        let toml_content = r#"
+[ui]
+mask_ip = true
+"#;
+        let config: UserConfig =
+            toml::from_str(toml_content).expect("test TOML is valid and should parse");
+        assert_eq!(config.ui.mask_ip, true);
     }
 
     #[test]

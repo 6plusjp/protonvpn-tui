@@ -1,20 +1,17 @@
 //! Server filtering cache
 
 use crate::vpn::Server;
-use std::sync::RwLock;
+use std::cell::RefCell;
 
-/// Cache for filtered server lists
-///
-/// Invalidates when filter/sort/favorite settings change.
 pub struct FilteredServerCache {
-    cache: RwLock<Option<(Vec<Server>, u64)>>,
+    cache: RefCell<Option<(Vec<Server>, u64)>>,
     version: u64,
 }
 
 impl FilteredServerCache {
     pub fn new() -> Self {
         Self {
-            cache: RwLock::new(None),
+            cache: RefCell::new(None),
             version: 0,
         }
     }
@@ -24,25 +21,17 @@ impl FilteredServerCache {
     }
 
     pub fn get_cached(&self) -> Option<Vec<Server>> {
-        match self.cache.read() {
-            Ok(c) => c
-                .as_ref()
-                .map(|(servers, v)| {
-                    if *v == self.version {
-                        Some(servers.clone())
-                    } else {
-                        None
-                    }
-                })
-                .unwrap_or(None),
-            Err(_) => None,
-        }
+        self.cache.borrow().as_ref().and_then(|(servers, v)| {
+            if *v == self.version {
+                Some(servers.clone())
+            } else {
+                None
+            }
+        })
     }
 
     pub fn set_cached(&self, servers: Vec<Server>) {
-        if let Ok(mut cache) = self.cache.write() {
-            *cache = Some((servers, self.version));
-        }
+        *self.cache.borrow_mut() = Some((servers, self.version));
     }
 }
 

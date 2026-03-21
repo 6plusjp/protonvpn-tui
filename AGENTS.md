@@ -32,9 +32,26 @@ protonvpn-tui/
 │   │   └── types.rs
 │   ├── ui/               # TUI components
 │   │   ├── mod.rs
-│   │   ├── app.rs        # Main TUI application
-│   │   ├── render.rs     # Render logic
+│   │   ├── app.rs        # Main TUI application (event loop + orchestrator)
+│   │   ├── render.rs     # View rendering logic
 │   │   ├── styles.rs     # Theme and styling
+│   │   ├── keymap.rs     # Key binding definitions
+│   │   ├── input/        # Key handling (extracted from app.rs)
+│   │   │   ├── mod.rs
+│   │   │   ├── app_action.rs
+│   │   │   ├── input_state.rs
+│   │   │   ├── handler.rs
+│   │   │   ├── common.rs
+│   │   │   ├── servers.rs
+│   │   │   ├── tools.rs
+│   │   │   ├── help.rs
+│   │   │   └── filter.rs
+│   │   ├── renderers/    # Rendering functions (extracted from app.rs)
+│   │   │   ├── mod.rs
+│   │   │   ├── header.rs
+│   │   │   ├── footer.rs
+│   │   │   ├── notification.rs
+│   │   │   └── input.rs
 │   │   ├── components/   # Reusable widgets
 │   │   │   ├── block.rs
 │   │   │   ├── list.rs

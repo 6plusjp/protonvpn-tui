@@ -122,6 +122,11 @@ fn render_countries_pane(
                         .bg(theme.accent)
                         .add_modifier(Modifier::BOLD);
                     (s, s, s, s, s)
+                } else if is_selected && is_connected {
+                    let s = Style::default()
+                        .fg(theme.success)
+                        .add_modifier(Modifier::BOLD);
+                    (s, s, s, s, s)
                 } else if is_selected {
                     let s = Style::default().fg(theme.foreground);
                     (s, s, s, s, s)

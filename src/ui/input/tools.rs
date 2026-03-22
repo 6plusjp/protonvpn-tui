@@ -157,20 +157,6 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
                     return None;
                 }
 
-                if key == SettingKey::MaskIp {
-                    input.state.ui_state.settings_expanded = false;
-                    let option_idx = input.state.ui_state.settings_option_selected;
-                    let new_mask_ip = option_idx == 1;
-                    input.state.save_mask_ip(new_mask_ip);
-                    let status = if new_mask_ip { "on" } else { "off" };
-                    input.state.show_notification(
-                        format!("Mask IP set to {}", status),
-                        crate::state::NotificationType::Info,
-                        None,
-                    );
-                    return None;
-                }
-
                 let option_idx = input.state.ui_state.settings_option_selected;
                 if let Some((config_key, value)) = key.get_selectable_option_command(option_idx) {
                     input.state.spawn_config_set(config_key, value);

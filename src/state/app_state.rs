@@ -125,7 +125,7 @@ impl AppState {
     pub fn from_config(key_bindings: &KeyBindings, ui_config: &UiConfig) -> Self {
         let vpn_state = Arc::new(crate::vpn::VpnClient::new());
         let servers = vpn_state.servers();
-        let ui_state = UiState::from_config(&ui_config.theme, ui_config.footer, ui_config.mask_ip);
+        let ui_state = UiState::from_config(&ui_config.theme, ui_config.footer);
         let user_config = UserConfig::load();
 
         let mut state = Self {
@@ -172,12 +172,6 @@ impl AppState {
     pub fn save_footer(&mut self, show_footer: bool) {
         self.ui_state.show_footer = show_footer;
         self.user_config.ui.footer = show_footer;
-        self.user_config.save();
-    }
-
-    pub fn save_mask_ip(&mut self, mask_ip: bool) {
-        self.ui_state.mask_ip = mask_ip;
-        self.user_config.ui.mask_ip = mask_ip;
         self.user_config.save();
     }
 

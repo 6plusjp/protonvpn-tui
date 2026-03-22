@@ -53,13 +53,8 @@ pub fn render_header(state: &AppState, f: &mut Frame<'_>, area: Rect) {
                 if !ip.is_empty() {
                     spans.push(Span::styled("  ", Style::default().fg(theme.dim)));
                     spans.push(Span::styled("ip:", Style::default().fg(theme.dim)));
-                    let display_ip = if state.ui_state.mask_ip {
-                        "***.**.***.***"
-                    } else {
-                        ip.as_str()
-                    };
                     spans.push(Span::styled(
-                        display_ip,
+                        ip.as_str(),
                         Style::default().fg(theme.secondary),
                     ));
                 }

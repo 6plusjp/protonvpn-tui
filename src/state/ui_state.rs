@@ -33,7 +33,6 @@ pub struct UiState {
     pub sort_direction: SortDirection,
     pub theme_mode: ThemeMode,
     pub show_footer: bool,
-    pub mask_ip: bool,
     pub input_mode: InputMode,
     pub dns_input: String,
     pub favorite_countries: HashSet<String>,
@@ -58,7 +57,6 @@ impl Default for UiState {
             sort_direction: SortDirection::default(),
             theme_mode: ThemeMode::default(),
             show_footer: true,
-            mask_ip: false,
             input_mode: InputMode::Normal,
             dns_input: String::new(),
             favorite_countries: HashSet::new(),
@@ -67,7 +65,7 @@ impl Default for UiState {
 }
 
 impl UiState {
-    pub fn from_config(theme: &str, show_footer: bool, mask_ip: bool) -> Self {
+    pub fn from_config(theme: &str, show_footer: bool) -> Self {
         let theme_mode = match theme {
             "CatppuccinMocha" => ThemeMode::CatppuccinMocha,
             "CatppuccinLatte" => ThemeMode::CatppuccinLatte,
@@ -94,7 +92,6 @@ impl UiState {
             sort_direction: SortDirection::default(),
             theme_mode,
             show_footer,
-            mask_ip,
             input_mode: InputMode::Normal,
             dns_input: String::new(),
             favorite_countries: HashSet::new(),

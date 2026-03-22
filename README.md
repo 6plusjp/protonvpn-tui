@@ -75,7 +75,6 @@ rm -f /tmp/protonvpn-tui.log
 - Port Forwarding
 - NetShield (malware/ads/trackers blocking)
 - Custom DNS servers
-- Mask IP (hide IP address in header)
 
 ### Logs
 

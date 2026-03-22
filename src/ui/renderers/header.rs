@@ -1,4 +1,5 @@
 use crate::state::{AppState, ConnectionState};
+use chrono::Utc;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -109,6 +110,26 @@ pub fn render_header(state: &AppState, f: &mut Frame<'_>, area: Rect) {
         status_spans.push(Span::styled("  ", Style::default().fg(theme.dim)));
         status_spans.push(Span::styled("protocol:", Style::default().fg(theme.dim)));
         status_spans.push(Span::styled(proto, Style::default().fg(theme.secondary)));
+    }
+
+    if let ConnectionState::Connected { .. } = state.connection_manager.connection {
+        if let Some(connected_at) = state.vpn_state.get_connected_at() {
+            let elapsed = Utc::now().signed_duration_since(connected_at);
+            let secs = elapsed.num_seconds();
+            let session_str = if secs < 60 {
+                format!("{}s", secs)
+            } else if secs < 3600 {
+                format!("{}m {}s", secs / 60, secs % 60)
+            } else {
+                format!("{}h {}m", secs / 3600, (secs % 3600) / 60)
+            };
+            status_spans.push(Span::styled("  ", Style::default().fg(theme.dim)));
+            status_spans.push(Span::styled("session:", Style::default().fg(theme.dim)));
+            status_spans.push(Span::styled(
+                session_str,
+                Style::default().fg(theme.secondary),
+            ));
+        }
     }
 
     let chunks = Layout::default()

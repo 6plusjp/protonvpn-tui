@@ -1,5 +1,5 @@
 use crate::config::UserConfig;
-use crate::state::{AppState, InputMode};
+use crate::state::{AppState, ConnectionState, InputMode};
 use crate::ui::input::{self as input_handler, InputState};
 use crate::ui::render::{Renderable, ServersViewState, View};
 use crate::ui::renderers::{footer, header, input as input_renderer, notification};
@@ -18,6 +18,7 @@ use ratatui::{
 };
 use std::io;
 use std::panic;
+use std::time::Instant;
 
 pub struct TuiApp {
     state: AppState,
@@ -25,6 +26,7 @@ pub struct TuiApp {
     pending_g: bool,
     filter_mode: bool,
     filter_input: String,
+    last_render_time: Instant,
 }
 
 impl TuiApp {
@@ -49,6 +51,7 @@ impl TuiApp {
             pending_g: false,
             filter_mode: false,
             filter_input: String::new(),
+            last_render_time: Instant::now(),
         })
     }
 
@@ -73,8 +76,18 @@ impl TuiApp {
 
             // Always redraw on first iteration to show loading screen
             let is_first_render = self.state.is_initialized;
-            if !is_first_render || async_processed || notifications_expired {
+            let is_connected = matches!(
+                self.state.connection_manager.connection,
+                ConnectionState::Connected { .. }
+            );
+            let elapsed = self.last_render_time.elapsed();
+            let should_update_session =
+                is_connected && elapsed >= std::time::Duration::from_secs(1);
+
+            if !is_first_render || async_processed || notifications_expired || should_update_session
+            {
                 terminal.draw(|f| self.render(f))?;
+                self.last_render_time = Instant::now();
             }
 
             // Check for keyboard input (non-blocking)

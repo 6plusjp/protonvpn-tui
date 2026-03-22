@@ -304,6 +304,10 @@ impl VpnClient {
         persistence.protocol
     }
 
+    pub fn get_connected_at(&self) -> Option<chrono::DateTime<Utc>> {
+        self.with_cache(|c| c.connected_at).ok().flatten()
+    }
+
     pub fn refresh_countries(&self) -> AppResult<HashMap<String, String>> {
         let output = self
             .run_command_with_timeout(&["countries", "list"], Duration::from_secs(60))

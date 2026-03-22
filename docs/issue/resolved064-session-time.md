@@ -95,3 +95,79 @@ if let Some(connected_at) = self.state.vpn_state.get_connected_at() {
 ## Labels
 
 `feature` `ui` `connection`
+
+---
+
+# Implementation Results
+
+## Status: ✅ COMPLETED
+
+### Changes Made
+
+#### `src/vpn/client.rs`
+
+Added `get_connected_at()` method:
+
+```rust
+pub fn get_connected_at(&self) -> Option<chrono::DateTime<Utc>> {
+    self.with_cache(|c| c.connected_at).ok().flatten()
+}
+```
+
+#### `src/ui/renderers/header.rs`
+
+Added session time display after protocol:
+
+```rust
+if let ConnectionState::Connected { .. } = state.connection_manager.connection {
+    if let Some(connected_at) = state.vpn_state.get_connected_at() {
+        let elapsed = Utc::now().signed_duration_since(connected_at);
+        let secs = elapsed.num_seconds();
+        let session_str = if secs < 60 {
+            format!("{}s", secs)
+        } else if secs < 3600 {
+            format!("{}m {}s", secs / 60, secs % 60)
+        } else {
+            format!("{}h {}m", secs / 3600, (secs % 3600) / 60)
+        };
+        // Display in header
+    }
+}
+```
+
+#### `src/ui/app.rs`
+
+Added 1-second refresh for session time display:
+
+- Added `last_render_time: Instant` field to `TuiApp`
+- Modified render condition to force re-render every second when connected
+
+```rust
+let is_connected = matches!(self.state.connection_manager.connection, ConnectionState::Connected { .. });
+let elapsed = self.last_render_time.elapsed();
+let should_update_session = is_connected && elapsed >= std::time::Duration::from_secs(1);
+
+if !is_first_render || async_processed || notifications_expired || should_update_session {
+    terminal.draw(|f| self.render(f))?;
+    self.last_render_time = Instant::now();
+}
+```
+
+### Display Example
+
+```
+● JP#374  ip: 159.26.119.143  loc: Tokyo,Japan  protocol: UDP  session: 1h 23m
+```
+
+### Behavior
+
+- **New connection**: Timer starts from connection time
+- **App restart with existing connection**: Timer continues from original connection time
+- **Server change**: Timer resets
+- **Disconnected**: Session time not displayed
+
+### Verification
+
+- ✅ `cargo check` — Compilation successful
+- ✅ `cargo test` — 56 unit tests + integration tests passed
+- ✅ `cargo clippy` — No warnings

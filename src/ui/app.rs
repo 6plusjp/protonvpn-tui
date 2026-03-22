@@ -69,6 +69,7 @@ impl TuiApp {
                 .wait_for_async_events(std::time::Duration::from_millis(10));
 
             let notifications_expired = self.state.notification_state.tick();
+            self.state.notification_state.flush_if_dirty();
 
             // Always redraw on first iteration to show loading screen
             let is_first_render = self.state.is_initialized;

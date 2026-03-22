@@ -42,19 +42,22 @@ impl AsyncNotifier {
     }
 
     pub fn notify(&self, event: AsyncEvent) {
-        let mut pending = self.pending.lock().unwrap();
+        let mut pending = self.pending.lock().expect("pending mutex poisoned");
         pending.push(event);
         self.condvar.notify_one();
     }
 
     pub fn try_recv_all(&self) -> Vec<AsyncEvent> {
-        let mut pending = self.pending.lock().unwrap();
+        let mut pending = self.pending.lock().expect("pending mutex poisoned");
         pending.drain(..).collect()
     }
 
     pub fn wait_timeout(&self, duration: std::time::Duration) -> Vec<AsyncEvent> {
-        let guard = self.pending.lock().unwrap();
-        let (mut remaining, _timeout_result) = self.condvar.wait_timeout(guard, duration).unwrap();
+        let guard = self.pending.lock().expect("pending mutex poisoned");
+        let (mut remaining, _timeout_result) = self
+            .condvar
+            .wait_timeout(guard, duration)
+            .expect("condvar wait_timeout failed");
         remaining.drain(..).collect()
     }
 }

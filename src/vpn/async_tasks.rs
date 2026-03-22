@@ -87,14 +87,14 @@ impl ThreadPool {
             let shutdown = Arc::clone(&shutdown);
 
             let worker = thread::spawn(move || loop {
-                let mut queue = job_queue.lock().unwrap();
+                let mut queue = job_queue.lock().expect("job_queue mutex poisoned");
                 while queue.is_empty() {
-                    if *shutdown.lock().unwrap() {
+                    if *shutdown.lock().expect("shutdown mutex poisoned") {
                         return;
                     }
-                    queue = not_empty.wait(queue).unwrap();
+                    queue = not_empty.wait(queue).expect("condvar wait failed");
                 }
-                if *shutdown.lock().unwrap() {
+                if *shutdown.lock().expect("shutdown mutex poisoned") {
                     return;
                 }
                 let job = queue.pop_front();

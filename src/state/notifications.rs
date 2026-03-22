@@ -30,6 +30,7 @@ pub struct ToastNotification {
 pub struct NotificationState {
     pub notifications: Vec<ToastNotification>,
     pub notification_log: Vec<Notification>,
+    log_dirty: bool,
 }
 
 impl Default for NotificationState {
@@ -43,6 +44,7 @@ impl NotificationState {
         Self {
             notifications: Vec::new(),
             notification_log: log_persistence::load_notification_log(),
+            log_dirty: false,
         }
     }
 
@@ -92,7 +94,14 @@ impl NotificationState {
             self.notification_log.remove(0);
         }
 
-        log_persistence::save_notification_log(&self.notification_log);
+        self.log_dirty = true;
+    }
+
+    pub fn flush_if_dirty(&mut self) {
+        if self.log_dirty {
+            log_persistence::save_notification_log(&self.notification_log);
+            self.log_dirty = false;
+        }
     }
 
     /// Decrements timers and returns true if any notifications were removed

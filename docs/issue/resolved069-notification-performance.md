@@ -87,3 +87,74 @@ Spawn a background thread that receives log entries via channel.
 ## Labels
 
 `performance` `ui` `optimization`
+
+---
+
+# Implementation Results
+
+## Status: ✅ COMPLETED
+
+### Changes Made
+
+#### `src/state/notifications.rs`
+
+1. Added `log_dirty: bool` field to `NotificationState`
+2. Initialized `log_dirty: false` in `new()`
+3. Replaced `log_persistence::save_notification_log()` call in `show()` with `self.log_dirty = true`
+4. Added `flush_if_dirty()` method
+
+```rust
+pub struct NotificationState {
+    pub notifications: Vec<ToastNotification>,
+    pub notification_log: Vec<Notification>,
+    log_dirty: bool,
+}
+
+impl NotificationState {
+    pub fn new() -> Self {
+        Self {
+            notifications: Vec::new(),
+            notification_log: log_persistence::load_notification_log(),
+            log_dirty: false,
+        }
+    }
+
+    pub fn show(&mut self, ...) {
+        // ... existing logic ...
+        self.log_dirty = true;  // Instead of immediate write
+    }
+
+    pub fn flush_if_dirty(&mut self) {
+        if self.log_dirty {
+            log_persistence::save_notification_log(&self.notification_log);
+            self.log_dirty = false;
+        }
+    }
+}
+```
+
+#### `src/ui/app.rs`
+
+Added `flush_if_dirty()` call in main loop after `tick()`:
+
+```rust
+loop {
+    let async_processed = self.state.wait_for_async_events(Duration::from_millis(10));
+    let notifications_expired = self.state.notification_state.tick();
+    self.state.notification_state.flush_if_dirty();  // ← Added
+    // ...
+}
+```
+
+### Performance Impact
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Disk writes per loop | 0-5 (one per notification) | 0-1 (batched) |
+| Main thread blocking | Per notification | Once per loop |
+
+### Verification
+
+- ✅ `cargo check` — Compilation successful
+- ✅ `cargo test` — 56 unit tests + integration tests passed
+- ✅ `cargo clippy` — No warnings

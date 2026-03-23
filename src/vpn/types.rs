@@ -57,28 +57,6 @@ pub struct Server {
     pub cities: Vec<City>,
 }
 
-/// Connection statistics
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ConnectionStats {
-    pub bytes_sent: u64,
-    pub bytes_received: u64,
-    pub connected_at: chrono::DateTime<chrono::Utc>,
-    pub server_ip: String,
-    pub protocol: String,
-}
-
-impl Default for ConnectionStats {
-    fn default() -> Self {
-        Self {
-            bytes_sent: 0,
-            bytes_received: 0,
-            connected_at: chrono::Utc::now(),
-            server_ip: String::new(),
-            protocol: String::from("Unknown"),
-        }
-    }
-}
-
 // ============================================================================
 // Parsing functions - moved from client.rs
 // ============================================================================

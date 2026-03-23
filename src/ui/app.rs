@@ -82,7 +82,7 @@ impl TuiApp {
             );
             let elapsed = self.last_render_time.elapsed();
             let should_update_session =
-                is_connected && elapsed >= std::time::Duration::from_secs(1);
+                is_connected && elapsed >= std::time::Duration::from_secs(5);
 
             if !is_first_render || async_processed || notifications_expired || should_update_session
             {

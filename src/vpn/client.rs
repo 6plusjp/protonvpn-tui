@@ -308,6 +308,21 @@ impl VpnClient {
         self.with_cache(|c| c.connected_at).ok().flatten()
     }
 
+    /// Get connection statistics (bytes_received, bytes_sent) from sysfs
+    ///
+    /// Returns None if proton0 interface doesn't exist or sysfs is unreadable.
+    pub fn get_connection_stats(&self) -> Option<(u64, u64)> {
+        let base = std::path::Path::new("/sys/class/net/proton0/statistics");
+        if !base.exists() {
+            return None;
+        }
+        let rx = std::fs::read_to_string(base.join("rx_bytes")).ok()?;
+        let tx = std::fs::read_to_string(base.join("tx_bytes")).ok()?;
+        let bytes_received = rx.trim().parse().ok()?;
+        let bytes_sent = tx.trim().parse().ok()?;
+        Some((bytes_received, bytes_sent))
+    }
+
     pub fn refresh_countries(&self) -> AppResult<HashMap<String, String>> {
         let output = self
             .run_command_with_timeout(&["countries", "list"], Duration::from_secs(60))

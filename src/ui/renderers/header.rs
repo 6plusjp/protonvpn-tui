@@ -110,18 +110,45 @@ pub fn render_header(state: &AppState, f: &mut Frame<'_>, area: Rect) {
     if let ConnectionState::Connected { .. } = state.connection_manager.connection {
         if let Some(connected_at) = state.vpn_state.get_connected_at() {
             let elapsed = Utc::now().signed_duration_since(connected_at);
-            let secs = elapsed.num_seconds();
-            let session_str = if secs < 60 {
-                format!("{}s", secs)
-            } else if secs < 3600 {
-                format!("{}m {}s", secs / 60, secs % 60)
+            let mins = elapsed.num_minutes();
+            let session_str = if mins < 60 {
+                format!("{}m", mins.max(1))
             } else {
-                format!("{}h {}m", secs / 3600, (secs % 3600) / 60)
+                format!("{}h {}m", mins / 60, mins % 60)
             };
             status_spans.push(Span::styled("  ", Style::default().fg(theme.dim)));
             status_spans.push(Span::styled("session:", Style::default().fg(theme.dim)));
             status_spans.push(Span::styled(
                 session_str,
+                Style::default().fg(theme.secondary),
+            ));
+        }
+
+        if let Some((bytes_received, bytes_sent)) = state.vpn_state.get_connection_stats() {
+            fn format_bytes(bytes: u64) -> String {
+                const KB: u64 = 1024;
+                const MB: u64 = KB * 1024;
+                const GB: u64 = MB * 1024;
+                if bytes >= GB {
+                    format!("{:.1}GB", bytes as f64 / GB as f64)
+                } else if bytes >= MB {
+                    format!("{:.0}MB", bytes as f64 / MB as f64)
+                } else if bytes >= KB {
+                    format!("{:.0}KB", bytes as f64 / KB as f64)
+                } else {
+                    format!("{}B", bytes)
+                }
+            }
+            status_spans.push(Span::styled("  ", Style::default().fg(theme.dim)));
+            status_spans.push(Span::styled("↓", Style::default().fg(theme.dim)));
+            status_spans.push(Span::styled(
+                format_bytes(bytes_received),
+                Style::default().fg(theme.secondary),
+            ));
+            status_spans.push(Span::styled("  ", Style::default().fg(theme.dim)));
+            status_spans.push(Span::styled("↑", Style::default().fg(theme.dim)));
+            status_spans.push(Span::styled(
+                format_bytes(bytes_sent),
                 Style::default().fg(theme.secondary),
             ));
         }

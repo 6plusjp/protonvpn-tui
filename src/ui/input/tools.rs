@@ -38,8 +38,28 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
     match (expanded, key_event.code) {
         (false, KeyCode::Enter) => {
             input.state.ui_state.settings_expanded = true;
-            input.state.ui_state.settings_option_selected = 0;
             input.state.ui_state.settings_last_key_g = false;
+
+            let selected_idx = input.state.ui_state.settings_selected.unwrap_or(0);
+            if let Some(key) = SettingKey::from_index(selected_idx) {
+                let current_index = match key {
+                    SettingKey::Theme => input.state.ui_state.theme_mode.index(),
+                    SettingKey::Footer => {
+                        if input.state.ui_state.show_footer {
+                            0
+                        } else {
+                            1
+                        }
+                    }
+                    _ => {
+                        let ps = input.state.config_state.proton_settings_cache.as_ref();
+                        get_setting_index(key, ps)
+                    }
+                };
+                input.state.ui_state.settings_option_selected = current_index;
+            } else {
+                input.state.ui_state.settings_option_selected = 0;
+            }
             None
         }
         (false, KeyCode::Char('c')) => {
@@ -126,6 +146,7 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
                         _ => ThemeMode::System,
                     };
                     input.state.save_theme(new_mode);
+                    input.state.ui_state.preview_theme_mode = None;
                     let theme_name = match new_mode {
                         ThemeMode::System => "System",
                         ThemeMode::CatppuccinMocha => "Catppuccin Mocha",
@@ -172,6 +193,7 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
         }
         (true, KeyCode::Esc) => {
             input.state.ui_state.settings_expanded = false;
+            input.state.ui_state.preview_theme_mode = None;
             None
         }
         (true, KeyCode::Char('j') | KeyCode::Down)
@@ -183,6 +205,21 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
                     input.state.ui_state.settings_option_selected =
                         (input.state.ui_state.settings_option_selected + 1)
                             .min(opt_count.saturating_sub(1));
+
+                    if key == SettingKey::Theme {
+                        let option_idx = input.state.ui_state.settings_option_selected;
+                        let preview_mode = match option_idx {
+                            0 => ThemeMode::System,
+                            1 => ThemeMode::CatppuccinMocha,
+                            2 => ThemeMode::CatppuccinLatte,
+                            3 => ThemeMode::Dracula,
+                            4 => ThemeMode::Nord,
+                            5 => ThemeMode::Gruvbox,
+                            6 => ThemeMode::TokyoNight,
+                            _ => ThemeMode::System,
+                        };
+                        input.state.ui_state.preview_theme_mode = Some(preview_mode);
+                    }
                 }
             }
             None
@@ -195,6 +232,25 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
                 .ui_state
                 .settings_option_selected
                 .saturating_sub(1);
+
+            if let Some(idx) = input.state.ui_state.settings_selected {
+                if let Some(key) = SettingKey::from_index(idx) {
+                    if key == SettingKey::Theme {
+                        let option_idx = input.state.ui_state.settings_option_selected;
+                        let preview_mode = match option_idx {
+                            0 => ThemeMode::System,
+                            1 => ThemeMode::CatppuccinMocha,
+                            2 => ThemeMode::CatppuccinLatte,
+                            3 => ThemeMode::Dracula,
+                            4 => ThemeMode::Nord,
+                            5 => ThemeMode::Gruvbox,
+                            6 => ThemeMode::TokyoNight,
+                            _ => ThemeMode::System,
+                        };
+                        input.state.ui_state.preview_theme_mode = Some(preview_mode);
+                    }
+                }
+            }
             None
         }
         (true, KeyCode::Char('n')) if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
@@ -204,6 +260,21 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
                     input.state.ui_state.settings_option_selected =
                         (input.state.ui_state.settings_option_selected + 1)
                             .min(opt_count.saturating_sub(1));
+
+                    if key == SettingKey::Theme {
+                        let option_idx = input.state.ui_state.settings_option_selected;
+                        let preview_mode = match option_idx {
+                            0 => ThemeMode::System,
+                            1 => ThemeMode::CatppuccinMocha,
+                            2 => ThemeMode::CatppuccinLatte,
+                            3 => ThemeMode::Dracula,
+                            4 => ThemeMode::Nord,
+                            5 => ThemeMode::Gruvbox,
+                            6 => ThemeMode::TokyoNight,
+                            _ => ThemeMode::System,
+                        };
+                        input.state.ui_state.preview_theme_mode = Some(preview_mode);
+                    }
                 }
             }
             None
@@ -214,9 +285,90 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
                 .ui_state
                 .settings_option_selected
                 .saturating_sub(1);
+
+            if let Some(idx) = input.state.ui_state.settings_selected {
+                if let Some(key) = SettingKey::from_index(idx) {
+                    if key == SettingKey::Theme {
+                        let option_idx = input.state.ui_state.settings_option_selected;
+                        let preview_mode = match option_idx {
+                            0 => ThemeMode::System,
+                            1 => ThemeMode::CatppuccinMocha,
+                            2 => ThemeMode::CatppuccinLatte,
+                            3 => ThemeMode::Dracula,
+                            4 => ThemeMode::Nord,
+                            5 => ThemeMode::Gruvbox,
+                            6 => ThemeMode::TokyoNight,
+                            _ => ThemeMode::System,
+                        };
+                        input.state.ui_state.preview_theme_mode = Some(preview_mode);
+                    }
+                }
+            }
             None
         }
 
         _ => None,
+    }
+}
+
+fn get_setting_index(
+    key: SettingKey,
+    proton_settings: Option<&crate::config::ProtonSettings>,
+) -> usize {
+    let ps = match proton_settings {
+        Some(p) => p,
+        None => return 0,
+    };
+
+    match key {
+        SettingKey::Killswitch => match ps.killswitch {
+            Some(0) => 0,
+            Some(1) => 1,
+            _ => 0,
+        },
+        SettingKey::Ipv6 => {
+            if ps.ipv6 == Some(true) {
+                1
+            } else {
+                0
+            }
+        }
+        SettingKey::Dns => {
+            if ps.custom_dns.enabled {
+                1
+            } else {
+                0
+            }
+        }
+        SettingKey::NetShield => match ps.features.as_ref().and_then(|f| f.netshield) {
+            Some(0) => 0,
+            Some(1) => 1,
+            Some(2) => 2,
+            _ => 0,
+        },
+        SettingKey::ModerateNat => ps
+            .features
+            .as_ref()
+            .and_then(|f| f.moderate_nat)
+            .map(|v| if v { 1 } else { 0 })
+            .unwrap_or(0),
+        SettingKey::VpnAccelerator => ps
+            .features
+            .as_ref()
+            .and_then(|f| f.vpn_accelerator)
+            .map(|v| if v { 1 } else { 0 })
+            .unwrap_or(0),
+        SettingKey::PortForwarding => ps
+            .features
+            .as_ref()
+            .and_then(|f| f.port_forwarding)
+            .map(|v| if v { 1 } else { 0 })
+            .unwrap_or(0),
+        SettingKey::AnonymousCrashReports => ps
+            .anonymous_crash_reports
+            .map(|v| if v { 1 } else { 0 })
+            .unwrap_or(0),
+        SettingKey::Theme => 0,
+        SettingKey::Footer => 0,
     }
 }

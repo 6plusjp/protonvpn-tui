@@ -93,6 +93,8 @@ Multiple themes available (toggle in Settings view):
 - Gruvbox
 - Tokyo Night
 
+**Theme Preview**: When navigating theme options, the UI updates in real-time to preview the selected theme. Press Enter to confirm, or Esc to cancel.
+
 ## Keybindings
 
 ### Navigation

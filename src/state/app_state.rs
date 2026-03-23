@@ -151,7 +151,11 @@ impl AppState {
     }
 
     pub fn theme(&self) -> Theme {
-        Theme::from_mode(self.ui_state.theme_mode)
+        let mode = self
+            .ui_state
+            .preview_theme_mode
+            .unwrap_or(self.ui_state.theme_mode);
+        Theme::from_mode(mode)
     }
 
     pub fn save_theme(&mut self, theme_mode: ThemeMode) {

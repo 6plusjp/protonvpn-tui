@@ -32,6 +32,7 @@ pub struct UiState {
     pub sort: ServerSort,
     pub sort_direction: SortDirection,
     pub theme_mode: ThemeMode,
+    pub preview_theme_mode: Option<ThemeMode>,
     pub show_footer: bool,
     pub input_mode: InputMode,
     pub dns_input: String,
@@ -56,6 +57,7 @@ impl Default for UiState {
             sort: ServerSort::default(),
             sort_direction: SortDirection::default(),
             theme_mode: ThemeMode::default(),
+            preview_theme_mode: None,
             show_footer: true,
             input_mode: InputMode::Normal,
             dns_input: String::new(),
@@ -91,6 +93,7 @@ impl UiState {
             sort: ServerSort::default(),
             sort_direction: SortDirection::default(),
             theme_mode,
+            preview_theme_mode: None,
             show_footer,
             input_mode: InputMode::Normal,
             dns_input: String::new(),
@@ -113,6 +116,7 @@ impl UiState {
     pub fn reset_settings_selection(&mut self) {
         self.settings_expanded = false;
         self.settings_option_selected = 0;
+        self.preview_theme_mode = None;
     }
 
     pub fn switch_view(&mut self) {

@@ -137,31 +137,37 @@ impl crate::state::AppState {
     pub fn settings_select_next(&mut self) {
         let count = SettingKey::ALL.len();
         self.ui_state.settings_selected.move_next(count);
+        self.ui_state.preview_theme_mode = None;
     }
 
     pub fn settings_select_prev(&mut self) {
         let count = SettingKey::ALL.len();
         self.ui_state.settings_selected.move_prev(count);
+        self.ui_state.preview_theme_mode = None;
     }
 
     pub fn settings_select_first(&mut self) {
         let count = SettingKey::ALL.len();
         self.ui_state.settings_selected.move_first(count);
+        self.ui_state.preview_theme_mode = None;
     }
 
     pub fn settings_select_last(&mut self) {
         let count = SettingKey::ALL.len();
         self.ui_state.settings_selected.move_last(count);
+        self.ui_state.preview_theme_mode = None;
     }
 
     pub fn settings_select_page_down(&mut self) {
         let count = SettingKey::ALL.len();
         self.ui_state.settings_selected.move_page_down(count);
+        self.ui_state.preview_theme_mode = None;
     }
 
     pub fn settings_select_page_up(&mut self) {
         let count = SettingKey::ALL.len();
         self.ui_state.settings_selected.move_page_up(count);
+        self.ui_state.preview_theme_mode = None;
     }
 
     // === Logs selection ===

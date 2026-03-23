@@ -4,6 +4,10 @@
 
 Add color palette preview when selecting a theme in the settings view.
 
+## Status: ✅ IMPLEMENTED
+
+**Implementation Date**: 2026-03-23
+
 ## Problem
 
 Currently, the theme selection UI shows only a text list of theme names ("Nord", "Dracula", etc.).

@@ -15,6 +15,20 @@ pub enum ThemeMode {
     TokyoNight,
 }
 
+impl ThemeMode {
+    pub fn index(&self) -> usize {
+        match self {
+            ThemeMode::System => 0,
+            ThemeMode::CatppuccinMocha => 1,
+            ThemeMode::CatppuccinLatte => 2,
+            ThemeMode::Dracula => 3,
+            ThemeMode::Nord => 4,
+            ThemeMode::Gruvbox => 5,
+            ThemeMode::TokyoNight => 6,
+        }
+    }
+}
+
 /// Application color scheme
 #[derive(Debug, Clone)]
 pub struct Theme {

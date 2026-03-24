@@ -620,7 +620,7 @@ mod tests {
     fn test_default_config() {
         let config = UserConfig::default();
         assert_eq!(config.ui.theme, "");
-        assert_eq!(config.ui.footer, true);
+        assert!(config.ui.footer);
     }
 
     #[test]
@@ -633,7 +633,7 @@ footer = false
         let config: UserConfig =
             toml::from_str(toml_content).expect("test TOML is valid and should parse");
         assert_eq!(config.ui.theme, "Nord");
-        assert_eq!(config.ui.footer, false);
+        assert!(!config.ui.footer);
     }
 
     #[test]

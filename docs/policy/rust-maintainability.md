@@ -221,8 +221,10 @@ Use `proptest` for randomized testing of properties.
 
 | Project Type | Strategy |
 |--------------|----------|
-| Application | Pin exact version: `=1.0.164` |
+| Application | Semver range: `1.0.164` (allows compatible updates) |
 | Library | Range: `>=1.0.150, <2.0.0` |
+
+**Note**: Avoid exact pinning (`=1.0.164`) for applications as it prevents security updates. Use semver ranges to allow compatible version updates while maintaining stability.
 
 ### Minimization
 

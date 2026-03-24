@@ -3,8 +3,7 @@
 ## Documentation
 
 - All documentation lives in `docs/` and is the source of truth
-- All `docs/` content (except `docs/ja/`) is written in English
-- `docs/ja/` contains Japanese translations with `.ja.md` suffix
+- All `docs/` content is written in English
 - `docs/reference/` is user-managed only — never create or edit files there
 
 ## Workflow
@@ -13,12 +12,11 @@
 - Issue files are numbered sequentially: issue001.md, issue002.md, ...
 - Do not begin implementation before an issue document exists
 - Update documentation in the same commit as the code change
-- When an issue is resolved: rename with `resolved_` prefix AND delete original (e.g., `issue002.md` → `resolved_issue002.md`, then delete `issue002.md`)
+- When an issue is resolved: rename to `resolved{number}.md` and delete original (e.g., `issue002-description.md` → `resolved002.md`, then delete `issue002-description.md`)
 
 ## Policy Updates
 
 - Changes to policy files must be discussed with the user first
-- Policy changes require updating both the English and Japanese versions
 
 ## Related Policy Files
 

@@ -4,8 +4,7 @@ use crate::state::FilteredServerCache;
 use crate::state::NotificationState;
 use crate::state::NotificationType;
 use crate::state::UiState;
-use crate::ui::keymap::KeyMap;
-use crate::ui::styles::{Theme, ThemeMode};
+use crate::ui::{KeyMap, Theme, ThemeMode};
 use crate::vpn::Server;
 use std::sync::Arc;
 

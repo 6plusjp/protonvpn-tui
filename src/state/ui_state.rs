@@ -3,7 +3,7 @@ use crate::state::Pane;
 use crate::state::ServerFilter;
 use crate::state::ServerSort;
 use crate::state::SortDirection;
-use crate::ui::styles::ThemeMode;
+use crate::ui::ThemeMode;
 use std::collections::HashSet;
 use std::fmt;
 

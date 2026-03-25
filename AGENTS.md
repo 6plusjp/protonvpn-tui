@@ -155,6 +155,29 @@ Follow `docs/policy/coding-standards.md` for all coding standards.
 
 ---
 
+## Module visibility conventions
+
+Public API types are re-exported from module roots. Implementation modules stay private.
+
+| Module | Public | Private |
+|--------|--------|---------|
+| `state/` | `AppState`, `ConnectionState`, `AppView`, etc. (via `pub use`) | `app_state_impl`, `navigation`, `server_ops`, `settings_ops`, `event_handler` |
+| `ui/` | `app`, `views`, `Theme`, `ThemeMode`, `KeyMap`, `KeyArrow`, `KeyMatcher` | `components`, `input`, `keymap`, `render`, `renderers`, `styles` |
+
+When importing from `state` or `ui`, use the re-exported path:
+
+```rust
+// Correct
+use crate::ui::{Theme, ThemeMode, KeyMap};
+use crate::state::{AppState, ConnectionState};
+
+// Wrong — private module access
+use crate::ui::styles::Theme;
+use crate::state::app_state_impl::AppState;
+```
+
+---
+
 ## Testing instructions
 
 ```bash

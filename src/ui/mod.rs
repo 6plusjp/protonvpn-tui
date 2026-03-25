@@ -1,10 +1,14 @@
 //! TUI components
 
 pub mod app;
-pub mod components;
-pub mod input;
-pub mod keymap;
-pub mod render;
-pub mod renderers;
-pub mod styles;
 pub mod views;
+
+mod components;
+mod input;
+mod keymap;
+mod render;
+mod renderers;
+mod styles;
+
+pub use keymap::{default_keybindings, KeyArrow, KeyMap, KeyMatcher};
+pub use styles::{Theme, ThemeMode};

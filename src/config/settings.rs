@@ -282,7 +282,7 @@ pub struct KeyBindings {
 
 impl Default for KeyBindings {
     fn default() -> Self {
-        crate::ui::keymap::default_keybindings()
+        crate::ui::default_keybindings()
     }
 }
 

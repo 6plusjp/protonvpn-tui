@@ -2,7 +2,7 @@
 
 use crate::config::SettingKey;
 use crate::state::InputMode;
-use crate::ui::styles::ThemeMode;
+use crate::ui::ThemeMode;
 
 impl crate::state::AppState {
     pub fn toggle_settings(&mut self, index: usize) {

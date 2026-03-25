@@ -1,6 +1,6 @@
 use crate::config::{KeyBinding, KeyBindings, KeyModifier};
 use crate::paths;
-use crate::ui::keymap::{KeyArrow, KeyMap, KeyMatcher};
+use crate::ui::{KeyArrow, KeyMap, KeyMatcher};
 use crossterm::event::KeyModifiers;
 use serde::{Deserialize, Serialize};
 

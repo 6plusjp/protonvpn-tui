@@ -42,6 +42,27 @@ src/ui/
     └── tools_view.rs
 ```
 
+## Module Visibility
+
+Following the same pattern as `state/`:
+
+| Visibility | Modules |
+|------------|---------|
+| Public | `app`, `views` |
+| Private (re-exported) | `styles` → `Theme`, `ThemeMode`; `keymap` → `KeyMap`, `KeyArrow`, `KeyMatcher`, `default_keybindings` |
+| Private (internal) | `components`, `input`, `render`, `renderers` |
+
+When importing from other modules, use the re-exported path:
+
+```rust
+// Correct
+use crate::ui::{Theme, ThemeMode};
+use crate::ui::KeyMap;
+
+// Wrong — private module
+use crate::ui::styles::Theme;
+```
+
 ## Theme
 
 Themes are defined in `styles.rs` using the `Theme` struct:

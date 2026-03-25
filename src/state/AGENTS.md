@@ -15,6 +15,7 @@ src/state/
 ├── connection_state.rs # VPN connection state enum
 ├── navigation.rs       # Selection & pane navigation methods
 ├── server_ops.rs       # Server filtering, sorting, favorites
+├── server_cache.rs     # Server cache state
 ├── settings_ops.rs     # Settings management operations
 ├── event_handler.rs    # Async event processing logic
 ├── notifications.rs    # Toast notifications + notification log

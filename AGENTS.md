@@ -23,7 +23,6 @@ protonvpn-tui/
 │   ├── error.rs          # Error types (AppError, VpnError)
 │   ├── constants.rs      # Application constants
 │   ├── paths.rs          # Path utilities (config, cache, logs)
-│   ├── commands/         # CLI command handlers (placeholder)
 │   ├── vpn/              # VPN backend (protonvpn wrapper)
 │   │   ├── mod.rs
 │   │   ├── async_tasks.rs
@@ -53,10 +52,10 @@ protonvpn-tui/
 │   │   │   ├── notification.rs
 │   │   │   └── input.rs
 │   │   ├── components/   # Reusable widgets
+│   │   │   ├── mod.rs
 │   │   │   ├── block.rs
 │   │   │   ├── list.rs
-│   │   │   ├── pane_table.rs
-│   │   │   └── styles.rs
+│   │   │   └── pane_table.rs
 │   │   └── views/        # Full views
 │   │       ├── help_view.rs
 │   │       ├── logs_view.rs
@@ -66,15 +65,20 @@ protonvpn-tui/
 │   ├── state/            # Application state
 │   │   ├── mod.rs
 │   │   ├── app_state.rs  # Main application state
+│   │   ├── app_state_impl.rs # VPN operations
 │   │   ├── app_view.rs   # View enum
 │   │   ├── config_state.rs
-│   │   ├── connection.rs
+│   │   ├── connection_manager.rs # Async management
 │   │   ├── connection_state.rs
+│   │   ├── event_handler.rs # Async event processing
 │   │   ├── log_persistence.rs
+│   │   ├── navigation.rs # Selection/pane navigation
 │   │   ├── notifications.rs
-│   │   ├── server_data.rs
+│   │   ├── server_cache.rs
 │   │   ├── server_filter.rs
+│   │   ├── server_ops.rs # Server filtering/sorting
 │   │   ├── server_sort.rs
+│   │   ├── settings_ops.rs # Settings management
 │   │   └── ui_state.rs
 │   └── config/           # Configuration
 │       ├── mod.rs

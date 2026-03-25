@@ -8,11 +8,29 @@ The `ui/` module contains all TUI (Terminal User Interface) components using rat
 
 ```
 src/ui/
-├── mod.rs          # Module root - re-exports public APIs
-├── app.rs          # Main TUI application (App struct, run loop)
+├── mod.rs          # Module root
+├── app.rs          # Main TUI application (TuiApp struct, run loop)
 ├── render.rs       # Render helpers
 ├── styles.rs       # Theme definitions and colors
+├── keymap.rs       # Key binding definitions
+├── input/          # Key handling (extracted from app.rs)
+│   ├── mod.rs
+│   ├── app_action.rs
+│   ├── input_state.rs
+│   ├── handler.rs
+│   ├── common.rs
+│   ├── servers.rs
+│   ├── tools.rs
+│   ├── help.rs
+│   └── filter.rs
+├── renderers/      # Rendering functions (extracted from app.rs)
+│   ├── mod.rs
+│   ├── header.rs
+│   ├── footer.rs
+│   ├── notification.rs
+│   └── input.rs
 ├── components/     # Reusable widgets
+│   ├── mod.rs
 │   ├── block.rs
 │   ├── list.rs
 │   └── pane_table.rs
@@ -37,7 +55,7 @@ pub struct Theme {
 }
 ```
 
-### 3. Views
+## Views
 
 Each view is a separate module that renders a full screen:
 
@@ -47,9 +65,17 @@ Each view is a separate module that renders a full screen:
 - **LogsView**: Connection history
 - **HelpView**: Keybinding reference
 
-## Public API (from mod.rs)
+## Keymap
 
-```rust
-pub use app::App;
-pub use styles::Theme;
-```
+Key bindings are defined in `keymap.rs` and dispatched through `input/handler.rs`.
+
+## Renderers
+
+Rendering is split into focused modules under `renderers/`:
+
+| Module | Responsibility |
+|--------|----------------|
+| `header.rs` | Top bar (connection status, server info) |
+| `footer.rs` | Bottom bar (key hints) |
+| `notification.rs` | Toast notifications |
+| `input.rs` | Search/filter input overlay |

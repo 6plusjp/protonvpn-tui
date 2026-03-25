@@ -28,7 +28,7 @@ ProtonVPN TUI provides an interactive terminal interface for Proton VPN. It wrap
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/protonvpn-tui
+git clone https://github.com/6plusjp/protonvpn-tui
 cd protonvpn-tui
 
 # Build
@@ -154,23 +154,42 @@ Logs are written to `/tmp/protonvpn-tui.log` by default, or the path specified b
 src/
 ├── main.rs           # Entry point
 ├── lib.rs            # Library root
+├── error.rs          # Error types (AppError, VpnError)
+├── constants.rs      # Application constants
+├── paths.rs          # Path utilities (config, cache, logs)
 ├── vpn/              # VPN backend (protonvpn CLI wrapper)
 │   ├── client.rs     # CLI execution
 │   ├── cache.rs      # Server cache
 │   ├── types.rs      # Data types
 │   └── async_tasks.rs # Async task management
 ├── ui/               # TUI components
-│   ├── app.rs        # Main TUI application
-│   ├── views/        # View modules
-│   │   ├── servers_view.rs
-│   │   ├── tools_view.rs
-│   │   ├── settings_view.rs
-│   │   ├── logs_view.rs
-│   │   └── help_view.rs
-│   ├── components/   # Reusable widgets
-│   └── styles.rs     # Theme
+│   ├── app.rs        # Main TUI application (TuiApp)
+│   ├── render.rs     # Render helpers
+│   ├── styles.rs     # Theme definitions
+│   ├── keymap.rs     # Key bindings
+│   ├── input/        # Key handling
+│   ├── renderers/    # Rendering functions (header, footer, notification, input)
+│   ├── components/   # Reusable widgets (block, list, pane_table)
+│   └── views/        # Full views (servers, tools, settings, logs, help)
 ├── state/            # Application state
+│   ├── app_state.rs      # Main state container
+│   ├── app_state_impl.rs # VPN operations
+│   ├── connection_manager.rs # Async management
+│   ├── connection_state.rs
+│   ├── navigation.rs     # Selection/pane navigation
+│   ├── server_ops.rs     # Server filtering/sorting
+│   ├── settings_ops.rs   # Settings management
+│   ├── event_handler.rs  # Async event processing
+│   ├── notifications.rs  # Toast + log notifications
+│   ├── ui_state.rs       # UI state (selection, scroll)
+│   ├── app_view.rs       # View enum
+│   ├── server_filter.rs  # Filter logic
+│   ├── server_sort.rs    # Sort logic
+│   ├── config_state.rs   # Config state
+│   └── log_persistence.rs # Log persistence
 └── config/           # User configuration
+    ├── settings.rs
+    └── user_config.rs
 ```
 
 ## CLI Commands Used

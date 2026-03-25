@@ -228,3 +228,99 @@ fn is_valid_ip(ip: &str) -> bool {
         .iter()
         .all(|p| p.chars().all(|c| c.is_ascii_digit()) && p.parse::<u8>().is_ok())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state::log_persistence;
+    use crate::state::AppState;
+    use crate::state::NotificationType;
+    use crate::vpn::{City, Server, VpnClient};
+
+    fn setup() {
+        log_persistence::set_test_mode(true);
+    }
+
+    fn make_servers() -> Vec<Server> {
+        vec![
+            Server {
+                code: "JP".to_string(),
+                code_lower: "jp".to_string(),
+                country: "Japan".to_string(),
+                country_lower: "japan".to_string(),
+                cities: vec![
+                    City::new("Tokyo".to_string()),
+                    City::new("Osaka".to_string()),
+                ],
+            },
+            Server {
+                code: "US".to_string(),
+                code_lower: "us".to_string(),
+                country: "United States".to_string(),
+                country_lower: "united states".to_string(),
+                cities: vec![City::new("New York".to_string())],
+            },
+        ]
+    }
+
+    #[test]
+    fn test_is_valid_ip_valid() {
+        assert!(is_valid_ip("1.1.1.1"));
+        assert!(is_valid_ip("255.255.255.255"));
+        assert!(is_valid_ip("192.168.0.1"));
+    }
+
+    #[test]
+    fn test_is_valid_ip_invalid() {
+        assert!(!is_valid_ip(""));
+        assert!(!is_valid_ip("1.2.3"));
+        assert!(!is_valid_ip("1.2.3.4.5"));
+        assert!(!is_valid_ip("a.b.c.d"));
+        assert!(!is_valid_ip("256.0.0.1"));
+        assert!(!is_valid_ip("1.2.3.4."));
+        assert!(!is_valid_ip("1.2.3.4.5"));
+    }
+
+    #[test]
+    fn test_apply_dns_setting_empty() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        state.apply_dns_setting("");
+        let last = state.notification_state.notifications.last().unwrap();
+        assert_eq!(last.notification_type, NotificationType::Error);
+        assert!(last.message.contains("No DNS IPs provided"));
+    }
+
+    #[test]
+    fn test_apply_dns_setting_invalid_ip() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        state.apply_dns_setting("invalid");
+        let last = state.notification_state.notifications.last().unwrap();
+        assert_eq!(last.notification_type, NotificationType::Error);
+        assert!(last.message.contains("Invalid IP address"));
+    }
+
+    #[test]
+    fn test_apply_dns_setting_valid_ip_but_command_fails() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        state.apply_dns_setting("1.1.1.1");
+        let last = state.notification_state.notifications.last().unwrap();
+        assert!(!last.message.contains("Invalid IP address"));
+    }
+
+    #[test]
+    fn test_toggle_settings_invalid_index() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        state.toggle_settings(999);
+        let last = state.notification_state.notifications.last().unwrap();
+        assert_eq!(last.notification_type, NotificationType::Error);
+        assert!(last.message.contains("Invalid setting selection"));
+    }
+}

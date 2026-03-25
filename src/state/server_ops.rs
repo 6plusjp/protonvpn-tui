@@ -257,3 +257,152 @@ impl crate::state::AppState {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state::log_persistence;
+    use crate::state::AppState;
+    use crate::vpn::{City, Server, VpnClient};
+
+    fn setup() {
+        log_persistence::set_test_mode(true);
+    }
+
+    fn make_servers() -> Vec<Server> {
+        vec![
+            Server {
+                code: "JP".to_string(),
+                code_lower: "jp".to_string(),
+                country: "Japan".to_string(),
+                country_lower: "japan".to_string(),
+                cities: vec![
+                    City::new("Tokyo".to_string()),
+                    City::new("Osaka".to_string()),
+                ],
+            },
+            Server {
+                code: "US".to_string(),
+                code_lower: "us".to_string(),
+                country: "United States".to_string(),
+                country_lower: "united states".to_string(),
+                cities: vec![City::new("New York".to_string())],
+            },
+            Server {
+                code: "DE".to_string(),
+                code_lower: "de".to_string(),
+                country: "Germany".to_string(),
+                country_lower: "germany".to_string(),
+                cities: vec![City::new("Berlin".to_string())],
+            },
+            Server {
+                code: "GB".to_string(),
+                code_lower: "gb".to_string(),
+                country: "United Kingdom".to_string(),
+                country_lower: "united kingdom".to_string(),
+                cities: vec![City::new("London".to_string())],
+            },
+            Server {
+                code: "FR".to_string(),
+                code_lower: "fr".to_string(),
+                country: "France".to_string(),
+                country_lower: "france".to_string(),
+                cities: vec![City::new("Paris".to_string())],
+            },
+        ]
+    }
+
+    #[test]
+    fn test_cycle_filter() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        assert_eq!(state.ui_state.filter, ServerFilter::Code);
+        state.cycle_filter();
+        assert_eq!(state.ui_state.filter, ServerFilter::Country);
+        state.cycle_filter();
+        assert_eq!(state.ui_state.filter, ServerFilter::City);
+        state.cycle_filter();
+        assert_eq!(state.ui_state.filter, ServerFilter::Code);
+    }
+
+    #[test]
+    fn test_cycle_sort() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        assert_eq!(state.ui_state.sort_direction, SortDirection::Asc);
+        state.cycle_sort();
+        assert_eq!(state.ui_state.sort_direction, SortDirection::Desc);
+        state.cycle_sort();
+        assert_eq!(state.ui_state.sort_direction, SortDirection::Asc);
+    }
+
+    #[test]
+    fn test_cycle_sort_field() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        assert_eq!(state.ui_state.sort, ServerSort::Code);
+        state.cycle_sort_field();
+        assert_eq!(state.ui_state.sort, ServerSort::Country);
+        state.cycle_sort_field();
+        assert_eq!(state.ui_state.sort, ServerSort::Code);
+    }
+
+    #[test]
+    fn test_toggle_favorite_add_and_remove() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        state.ui_state.favorite_countries.clear();
+        assert!(!state.is_favorite("JP"));
+        state.toggle_favorite("JP");
+        assert!(state.is_favorite("JP"));
+        state.toggle_favorite("JP");
+        assert!(!state.is_favorite("JP"));
+    }
+
+    #[test]
+    fn test_is_favorite() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        state.ui_state.favorite_countries.clear();
+        state.ui_state.favorite_countries.insert("US".to_string());
+        assert!(state.is_favorite("US"));
+        assert!(!state.is_favorite("JP"));
+    }
+
+    #[test]
+    fn test_set_sort_by_code() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        state.ui_state.sort = ServerSort::Country;
+        state.set_sort_by_code();
+        assert_eq!(state.ui_state.sort, ServerSort::Code);
+    }
+
+    #[test]
+    fn test_set_sort_by_country() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        state.ui_state.sort = ServerSort::Code;
+        state.set_sort_by_country();
+        assert_eq!(state.ui_state.sort, ServerSort::Country);
+    }
+
+    #[test]
+    fn test_toggle_sort_direction() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        assert_eq!(state.ui_state.sort_direction, SortDirection::Asc);
+        state.toggle_sort_direction();
+        assert_eq!(state.ui_state.sort_direction, SortDirection::Desc);
+        state.toggle_sort_direction();
+        assert_eq!(state.ui_state.sort_direction, SortDirection::Asc);
+    }
+}

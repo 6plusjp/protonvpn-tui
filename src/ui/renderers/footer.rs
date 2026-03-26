@@ -1,4 +1,5 @@
 use crate::state::{AppState, AppView, Pane};
+use crate::ui::styles::Theme;
 use ratatui::{
     layout::Rect,
     style::Style,
@@ -7,47 +8,49 @@ use ratatui::{
     Frame,
 };
 
+fn hint_bracket_open(theme: &Theme) -> Span<'static> {
+    Span::styled("[", Style::default().fg(theme.dim))
+}
+
+fn hint_bracket_close(theme: &Theme) -> Span<'static> {
+    Span::styled("]", Style::default().fg(theme.dim))
+}
+
+fn hint_key<'a>(theme: &Theme, key: &'a str) -> Span<'a> {
+    Span::styled(key, Style::default().fg(theme.warning))
+}
+
+fn hint_action<'a>(theme: &Theme, action: &'a str) -> Span<'a> {
+    Span::styled(action, Style::default().fg(theme.foreground))
+}
+
+fn hint_spacer() -> Span<'static> {
+    Span::styled("  ", Style::default())
+}
+
+fn hint<'a>(theme: &Theme, key: &'a str, action: &'a str) -> Vec<Span<'a>> {
+    vec![
+        hint_bracket_open(theme),
+        hint_key(theme, key),
+        hint_bracket_close(theme),
+        hint_action(theme, action),
+    ]
+}
+
+fn hint_with_spacer<'a>(theme: &Theme, key: &'a str, action: &'a str) -> Vec<Span<'a>> {
+    let mut spans = vec![hint_spacer()];
+    spans.extend(hint(theme, key, action));
+    spans
+}
+
 pub fn render_footer(state: &AppState, f: &mut Frame<'_>, area: Rect) {
     let theme = state.theme();
-
     let action_spans = get_footer_action_hints(state);
-
     let mut text = Line::from(action_spans);
-
-    let is_help_view = state.ui_state.current_view == AppView::Help;
-
-    if is_help_view {
-        text.spans.push(Span::raw("  "));
-        text.spans.extend(vec![
-            Span::styled("[", Style::default().fg(theme.dim)),
-            Span::styled("Tab", Style::default().fg(theme.warning)),
-            Span::styled("]", Style::default().fg(theme.dim)),
-            Span::styled("switch view", Style::default().fg(theme.foreground)),
-            Span::styled("  ", Style::default().fg(theme.dim)),
-            Span::styled("[", Style::default().fg(theme.dim)),
-            Span::styled("q", Style::default().fg(theme.warning)),
-            Span::styled("]", Style::default().fg(theme.dim)),
-            Span::styled("quit", Style::default().fg(theme.foreground)),
-        ]);
-    } else {
-        text.spans.push(Span::raw("  "));
-        text.spans.extend(vec![
-            Span::styled("[", Style::default().fg(theme.dim)),
-            Span::styled("Tab", Style::default().fg(theme.warning)),
-            Span::styled("]", Style::default().fg(theme.dim)),
-            Span::styled("switch view", Style::default().fg(theme.foreground)),
-            Span::styled("  ", Style::default().fg(theme.dim)),
-            Span::styled("[", Style::default().fg(theme.dim)),
-            Span::styled("?", Style::default().fg(theme.warning)),
-            Span::styled("]", Style::default().fg(theme.dim)),
-            Span::styled("help", Style::default().fg(theme.foreground)),
-            Span::styled("  ", Style::default().fg(theme.dim)),
-            Span::styled("[", Style::default().fg(theme.dim)),
-            Span::styled("q", Style::default().fg(theme.warning)),
-            Span::styled("]", Style::default().fg(theme.dim)),
-            Span::styled("quit", Style::default().fg(theme.foreground)),
-        ]);
-    }
+    text.spans.push(Span::raw("  "));
+    text.spans.extend(hint(&theme, "Tab", "switch view"));
+    text.spans.extend(hint_with_spacer(&theme, "?", "help"));
+    text.spans.extend(hint_with_spacer(&theme, "q", "quit"));
 
     f.render_widget(Paragraph::new(text), area);
 }
@@ -58,158 +61,58 @@ fn get_footer_action_hints(state: &AppState) -> Vec<Span<'_>> {
 
     match (state.ui_state.current_view, state.ui_state.pane_focus) {
         (AppView::Servers, Pane::Countries) => {
-            let mut hints = vec![
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("j/k", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("navigate", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("l", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("cities", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("c", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("connect", Style::default().fg(theme.foreground)),
-            ];
+            let mut hints = vec![];
+            hints.extend(hint(&theme, "j/k", "navigate"));
+            hints.extend(hint_with_spacer(&theme, "l", "cities"));
+            hints.extend(hint_with_spacer(&theme, "c", "connect"));
             if !is_disconnected {
-                hints.extend([
-                    Span::styled("  ", Style::default().fg(theme.dim)),
-                    Span::styled("[", Style::default().fg(theme.dim)),
-                    Span::styled("d", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.dim)),
-                    Span::styled("disconnect", Style::default().fg(theme.foreground)),
-                ]);
+                hints.extend(hint_with_spacer(&theme, "d", "disconnect"));
             }
-            hints.extend([
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("r", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("refresh", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("f", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("fastest", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("p", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("p2p", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("t", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("tor", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("s", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("securecore", Style::default().fg(theme.foreground)),
-            ]);
+            hints.extend(hint_with_spacer(&theme, "r", "refresh"));
+            hints.extend(hint_with_spacer(&theme, "f", "fastest"));
+            hints.extend(hint_with_spacer(&theme, "p", "p2p"));
+            hints.extend(hint_with_spacer(&theme, "t", "tor"));
+            hints.extend(hint_with_spacer(&theme, "s", "securecore"));
             hints
         }
         (AppView::Servers, Pane::Cities) => {
-            let mut hints = vec![
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("j/k", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("navigate", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("h", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("countries", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("c", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("connect", Style::default().fg(theme.foreground)),
-            ];
+            let mut hints = vec![];
+            hints.extend(hint(&theme, "j/k", "navigate"));
+            hints.extend(hint_with_spacer(&theme, "h", "countries"));
+            hints.extend(hint_with_spacer(&theme, "c", "connect"));
             if !is_disconnected {
-                hints.extend([
-                    Span::styled("  ", Style::default().fg(theme.dim)),
-                    Span::styled("[", Style::default().fg(theme.dim)),
-                    Span::styled("d", Style::default().fg(theme.warning)),
-                    Span::styled("]", Style::default().fg(theme.dim)),
-                    Span::styled("disconnect", Style::default().fg(theme.foreground)),
-                ]);
+                hints.extend(hint_with_spacer(&theme, "d", "disconnect"));
             }
-            hints.extend([
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("r", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("refresh", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("f", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("fastest", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("p", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("p2p", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("t", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("tor", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("s", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("secure core", Style::default().fg(theme.foreground)),
-            ]);
+            hints.extend(hint_with_spacer(&theme, "r", "refresh"));
+            hints.extend(hint_with_spacer(&theme, "f", "fastest"));
+            hints.extend(hint_with_spacer(&theme, "p", "p2p"));
+            hints.extend(hint_with_spacer(&theme, "t", "tor"));
+            hints.extend(hint_with_spacer(&theme, "s", "secure core"));
             hints
         }
         (AppView::Tools, Pane::Settings) => {
-            let mut hints = vec![
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("j/k", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("navigate", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("l", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("logs", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("Enter", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("toggle expand", Style::default().fg(theme.foreground)),
-            ];
+            let mut hints = vec![];
+            hints.extend(hint(&theme, "j/k", "navigate"));
+            hints.extend(hint_with_spacer(&theme, "l", "logs"));
+            hints.extend(hint_with_spacer(&theme, "Enter", "toggle expand"));
             hints.extend(get_global_connect_hints(state, is_disconnected));
             hints
         }
         (AppView::Tools, Pane::Logs) => {
-            let mut hints = vec![
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("j/k", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("navigate", Style::default().fg(theme.foreground)),
-                Span::styled("  ", Style::default().fg(theme.dim)),
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("h", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("settings", Style::default().fg(theme.foreground)),
-            ];
+            let mut hints = vec![];
+            hints.extend(hint(&theme, "j/k", "navigate"));
+            hints.extend(hint_with_spacer(&theme, "h", "settings"));
             hints.extend(get_global_connect_hints(state, is_disconnected));
             hints
         }
         (AppView::Help, _) => {
             let mut hints = vec![
-                Span::styled("[", Style::default().fg(theme.dim)),
-                Span::styled("Esc", Style::default().fg(theme.warning)),
+                hint_bracket_open(&theme),
+                hint_key(&theme, "Esc"),
                 Span::styled("/", Style::default().fg(theme.dim)),
-                Span::styled("?", Style::default().fg(theme.warning)),
-                Span::styled("]", Style::default().fg(theme.dim)),
-                Span::styled("return", Style::default().fg(theme.foreground)),
+                hint_key(&theme, "?"),
+                hint_bracket_close(&theme),
+                hint_action(&theme, "return"),
             ];
             hints.extend(get_global_connect_hints(state, is_disconnected));
             hints
@@ -222,40 +125,12 @@ fn get_global_connect_hints(state: &AppState, is_disconnected: bool) -> Vec<Span
     let theme = state.theme();
     let mut hints = vec![];
     if !is_disconnected {
-        hints.extend([
-            Span::styled("  ", Style::default().fg(theme.dim)),
-            Span::styled("[", Style::default().fg(theme.dim)),
-            Span::styled("d", Style::default().fg(theme.warning)),
-            Span::styled("]", Style::default().fg(theme.dim)),
-            Span::styled("disconnect", Style::default().fg(theme.foreground)),
-        ]);
+        hints.extend(hint_with_spacer(&theme, "d", "disconnect"));
     }
-    hints.extend([
-        Span::styled("  ", Style::default().fg(theme.dim)),
-        Span::styled("[", Style::default().fg(theme.dim)),
-        Span::styled("f", Style::default().fg(theme.warning)),
-        Span::styled("]", Style::default().fg(theme.dim)),
-        Span::styled("fastest", Style::default().fg(theme.foreground)),
-        Span::styled("  ", Style::default().fg(theme.dim)),
-        Span::styled("[", Style::default().fg(theme.dim)),
-        Span::styled("p", Style::default().fg(theme.warning)),
-        Span::styled("]", Style::default().fg(theme.dim)),
-        Span::styled("p2p", Style::default().fg(theme.foreground)),
-        Span::styled("  ", Style::default().fg(theme.dim)),
-        Span::styled("[", Style::default().fg(theme.dim)),
-        Span::styled("t", Style::default().fg(theme.warning)),
-        Span::styled("]", Style::default().fg(theme.dim)),
-        Span::styled("tor", Style::default().fg(theme.foreground)),
-        Span::styled("  ", Style::default().fg(theme.dim)),
-        Span::styled("[", Style::default().fg(theme.dim)),
-        Span::styled("s", Style::default().fg(theme.warning)),
-        Span::styled("]", Style::default().fg(theme.dim)),
-        Span::styled("securecore", Style::default().fg(theme.foreground)),
-        Span::styled("  ", Style::default().fg(theme.dim)),
-        Span::styled("[", Style::default().fg(theme.dim)),
-        Span::styled("r", Style::default().fg(theme.warning)),
-        Span::styled("]", Style::default().fg(theme.dim)),
-        Span::styled("random", Style::default().fg(theme.foreground)),
-    ]);
+    hints.extend(hint_with_spacer(&theme, "f", "fastest"));
+    hints.extend(hint_with_spacer(&theme, "p", "p2p"));
+    hints.extend(hint_with_spacer(&theme, "t", "tor"));
+    hints.extend(hint_with_spacer(&theme, "s", "securecore"));
+    hints.extend(hint_with_spacer(&theme, "r", "random"));
     hints
 }

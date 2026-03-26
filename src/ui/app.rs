@@ -121,7 +121,6 @@ impl TuiApp {
                                     );
                                     input_handler::sync_view(&mut input_ctx);
                                 }
-                                input_handler::AppAction::None => {}
                             }
                         }
                     }

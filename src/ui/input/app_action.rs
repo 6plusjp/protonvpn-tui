@@ -2,5 +2,4 @@
 pub enum AppAction {
     Quit,
     SwitchView,
-    None,
 }

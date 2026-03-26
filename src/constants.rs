@@ -34,6 +34,14 @@ pub mod state {
 }
 
 pub mod vpn {
+    use std::time::Duration;
+
     pub const DISCONNECT_RETRY_COUNT: usize = 10;
     pub const DISCONNECT_RETRY_DELAY_MS: u64 = 500;
+
+    pub const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
+    pub const DISCONNECT_TIMEOUT: Duration = Duration::from_secs(15);
+    pub const COUNTRIES_LIST_TIMEOUT: Duration = Duration::from_secs(60);
+    pub const CITIES_LIST_TIMEOUT: Duration = Duration::from_secs(20);
+    pub const CONFIG_SET_TIMEOUT: Duration = Duration::from_secs(20);
 }

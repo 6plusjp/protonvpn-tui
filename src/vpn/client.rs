@@ -25,6 +25,7 @@ use super::types::{
     parse_cities_with_features, parse_connect_output, parse_countries, City, ConnectResult, Server,
 };
 
+use crate::constants::vpn::*;
 use crate::error::{categorize_error, AppError, AppResult};
 use crate::paths;
 
@@ -160,7 +161,7 @@ impl VpnClient {
         }
         cmd_args.extend(args.iter().copied());
         let output = self
-            .run_command_with_timeout(&cmd_args, Duration::from_secs(30))
+            .run_command_with_timeout(&cmd_args, CONNECT_TIMEOUT)
             .map_err(|e| AppError::CommandFailed(categorize_error(&e).to_string()))?;
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -211,7 +212,7 @@ impl VpnClient {
     /// Disconnect from VPN
     pub fn disconnect(&self) -> AppResult<()> {
         let output = self
-            .run_command_with_timeout(&["disconnect"], Duration::from_secs(15))
+            .run_command_with_timeout(&["disconnect"], DISCONNECT_TIMEOUT)
             .map_err(|e| {
                 tracing::warn!("Failed to execute disconnect command: {}", e);
                 AppError::ConnectionFailed(format!("Failed to execute disconnect: {}", e))
@@ -325,7 +326,7 @@ impl VpnClient {
 
     pub fn refresh_countries(&self) -> AppResult<HashMap<String, String>> {
         let output = self
-            .run_command_with_timeout(&["countries", "list"], Duration::from_secs(60))
+            .run_command_with_timeout(&["countries", "list"], COUNTRIES_LIST_TIMEOUT)
             .map_err(|e| AppError::CommandFailed(categorize_error(&e).to_string()))?;
 
         if !output.status.success() {
@@ -375,7 +376,7 @@ impl VpnClient {
         }
 
         let output = self
-            .run_command_with_timeout(&["cities", "list", country_code], Duration::from_secs(20))
+            .run_command_with_timeout(&["cities", "list", country_code], CITIES_LIST_TIMEOUT)
             .map_err(|e| AppError::CommandFailed(categorize_error(&e).to_string()))?;
 
         if !output.status.success() {
@@ -429,7 +430,7 @@ impl VpnClient {
     /// Set a configuration option via `protonvpn config set <setting> <value>`
     pub fn set_config(&self, setting: &str, value: &str) -> AppResult<String> {
         let output = self
-            .run_command_with_timeout(&["config", "set", setting, value], Duration::from_secs(20))
+            .run_command_with_timeout(&["config", "set", setting, value], CONFIG_SET_TIMEOUT)
             .map_err(|e| AppError::CommandFailed(categorize_error(&e).to_string()))?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -446,6 +447,15 @@ impl VpnClient {
         self.set_config(setting, new_value)
     }
 
+    /// Toggle setting by key (for boolean settings)
+    pub fn toggle_setting(
+        &self,
+        key: crate::config::SettingKey,
+        current: Option<bool>,
+    ) -> AppResult<String> {
+        self.toggle_bool_setting(key.config_key(), current)
+    }
+
     /// Toggle kill switch (off <-> standard)
     pub fn toggle_killswitch(&self, current: Option<i32>) -> AppResult<String> {
         let new_value = if current == Some(1) {
@@ -454,31 +464,6 @@ impl VpnClient {
             "standard"
         };
         self.set_config("kill-switch", new_value)
-    }
-
-    /// Toggle IPv6 (off <-> on)
-    pub fn toggle_ipv6(&self, current: Option<bool>) -> AppResult<String> {
-        self.toggle_bool_setting("ipv6", current)
-    }
-
-    /// Toggle moderate NAT (off <-> on)
-    pub fn toggle_moderate_nat(&self, current: Option<bool>) -> AppResult<String> {
-        self.toggle_bool_setting("moderate-nat", current)
-    }
-
-    /// Toggle VPN accelerator (off <-> on)
-    pub fn toggle_vpn_accelerator(&self, current: Option<bool>) -> AppResult<String> {
-        self.toggle_bool_setting("vpn-accelerator", current)
-    }
-
-    /// Toggle port forwarding (off <-> on)
-    pub fn toggle_port_forwarding(&self, current: Option<bool>) -> AppResult<String> {
-        self.toggle_bool_setting("port-forwarding", current)
-    }
-
-    /// Toggle anonymous crash reports (off <-> on)
-    pub fn toggle_anonymous_crash_reports(&self, current: Option<bool>) -> AppResult<String> {
-        self.toggle_bool_setting("anonymous-crash-reports", current)
     }
 
     /// Set NetShield mode (off -> malware-only -> malware-ads-trackers -> off)
@@ -496,7 +481,7 @@ impl VpnClient {
         let output = self
             .run_command_with_timeout(
                 &["config", "set", "custom-dns", "on", "--dns", dns_list],
-                Duration::from_secs(20),
+                CONFIG_SET_TIMEOUT,
             )
             .map_err(|e| AppError::CommandFailed(categorize_error(&e).to_string()))?;
 
@@ -511,10 +496,7 @@ impl VpnClient {
     /// Disable custom DNS
     pub fn disable_custom_dns(&self) -> AppResult<String> {
         let output = self
-            .run_command_with_timeout(
-                &["config", "set", "custom-dns", "off"],
-                Duration::from_secs(20),
-            )
+            .run_command_with_timeout(&["config", "set", "custom-dns", "off"], CONFIG_SET_TIMEOUT)
             .map_err(|e| AppError::CommandFailed(categorize_error(&e).to_string()))?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);

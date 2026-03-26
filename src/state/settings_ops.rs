@@ -59,7 +59,7 @@ impl crate::state::AppState {
             }
             SettingKey::Ipv6 => {
                 let current = ps.and_then(|p| p.ipv6);
-                self.vpn_state.toggle_ipv6(current)
+                self.vpn_state.toggle_setting(key, current)
             }
             SettingKey::Dns => unreachable!(),
             SettingKey::NetShield => {
@@ -73,19 +73,19 @@ impl crate::state::AppState {
                 let current = ps
                     .and_then(|p| p.features.as_ref())
                     .and_then(|f| f.moderate_nat);
-                self.vpn_state.toggle_moderate_nat(current)
+                self.vpn_state.toggle_setting(key, current)
             }
             SettingKey::VpnAccelerator => {
                 let current = ps
                     .and_then(|p| p.features.as_ref())
                     .and_then(|f| f.vpn_accelerator);
-                self.vpn_state.toggle_vpn_accelerator(current)
+                self.vpn_state.toggle_setting(key, current)
             }
             SettingKey::PortForwarding => {
                 let current = ps
                     .and_then(|p| p.features.as_ref())
                     .and_then(|f| f.port_forwarding);
-                self.vpn_state.toggle_port_forwarding(current)
+                self.vpn_state.toggle_setting(key, current)
             }
             SettingKey::AnonymousCrashReports => {
                 let current = self
@@ -93,7 +93,7 @@ impl crate::state::AppState {
                     .proton_settings_cache
                     .as_ref()
                     .and_then(|p| p.anonymous_crash_reports);
-                self.vpn_state.toggle_anonymous_crash_reports(current)
+                self.vpn_state.toggle_setting(key, current)
             }
             SettingKey::Theme => unreachable!(),
             SettingKey::Footer => unreachable!(),
@@ -107,7 +107,7 @@ impl crate::state::AppState {
                     crate::state::NotificationType::Success,
                     None,
                 );
-                self.config_state.proton_settings_cache = None;
+                self.config_state.clear_cache();
             }
             Err(e) => {
                 tracing::warn!("Failed to update setting: {}", e);
@@ -137,7 +137,7 @@ impl crate::state::AppState {
                             crate::state::NotificationType::Success,
                             None,
                         );
-                        self.config_state.proton_settings_cache = None;
+                        self.config_state.clear_cache();
                     }
                     Err(e) => {
                         self.show_notification(
@@ -196,7 +196,7 @@ impl crate::state::AppState {
                     crate::state::NotificationType::Success,
                     None,
                 );
-                self.config_state.proton_settings_cache = None;
+                self.config_state.clear_cache();
             }
             Err(e) => {
                 self.show_notification(

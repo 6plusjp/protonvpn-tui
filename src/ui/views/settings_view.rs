@@ -135,8 +135,16 @@ fn get_setting_value(
             }
         }
         SettingKey::Dns => {
-            if ps.custom_dns.enabled {
-                let ips: Vec<String> = ps.custom_dns.ip_list.iter().map(|d| d.ip.clone()).collect();
+            let has_custom_dns =
+                ps.custom_dns.enabled && ps.custom_dns.ip_list.iter().any(|d| d.enabled);
+            if has_custom_dns {
+                let ips: Vec<String> = ps
+                    .custom_dns
+                    .ip_list
+                    .iter()
+                    .filter(|d| d.enabled)
+                    .map(|d| d.ip.clone())
+                    .collect();
                 format!("custom ({})", ips.join(", "))
             } else {
                 "default".to_string()

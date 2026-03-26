@@ -121,14 +121,19 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
                 };
 
                 if key == SettingKey::Dns {
+                    let option_idx = input.state.ui_state.settings_option_selected;
                     input.state.ui_state.settings_expanded = false;
-                    input.state.ui_state.input_mode = InputMode::DnsInput;
-                    input.state.ui_state.dns_input = String::new();
-                    input.state.show_notification(
-                        "Enter DNS IPs (e.g., 1.1.1.1,9.9.9.9)".to_string(),
-                        crate::state::NotificationType::Info,
-                        None,
-                    );
+                    if option_idx == 0 {
+                        input.state.toggle_settings_off(idx);
+                    } else {
+                        input.state.ui_state.input_mode = InputMode::DnsInput;
+                        input.state.ui_state.dns_input = String::new();
+                        input.state.show_notification(
+                            "Enter DNS IPs (e.g., 1.1.1.1,9.9.9.9)".to_string(),
+                            crate::state::NotificationType::Info,
+                            None,
+                        );
+                    }
                     return None;
                 }
 

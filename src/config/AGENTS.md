@@ -36,3 +36,15 @@ user_config.save()
 pub use settings::{SettingKey, ProtonSettings};
 pub use user_config::UserConfig;
 ```
+
+## Important: Read-Only File
+
+**`~/.config/Proton/VPN/settings.json` is READ-ONLY for this TUI.**
+
+- This file is owned and managed by the `protonvpn` CLI
+- **NEVER** write to this file directly from the TUI
+- All setting changes **MUST** go through `protonvpn config set` commands (see `src/vpn/client.rs`)
+- `ProtonSettings::load()` is the only valid access pattern — read-only deserialization
+- If you need to modify VPN settings, use `VpnClient::set_config()`, `set_custom_dns()`, `disable_custom_dns()`, etc.
+
+**Why**: Direct file writes could corrupt state, conflict with CLI operations, or break during concurrent access.

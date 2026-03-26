@@ -135,16 +135,7 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
                 if key == SettingKey::Theme {
                     input.state.ui_state.settings_expanded = false;
                     let option_idx = input.state.ui_state.settings_option_selected;
-                    let new_mode = match option_idx {
-                        0 => ThemeMode::System,
-                        1 => ThemeMode::CatppuccinMocha,
-                        2 => ThemeMode::CatppuccinLatte,
-                        3 => ThemeMode::Dracula,
-                        4 => ThemeMode::Nord,
-                        5 => ThemeMode::Gruvbox,
-                        6 => ThemeMode::TokyoNight,
-                        _ => ThemeMode::System,
-                    };
+                    let new_mode = ThemeMode::from_index(option_idx).unwrap_or(ThemeMode::System);
                     input.state.save_theme(new_mode);
                     input.state.ui_state.preview_theme_mode = None;
                     let theme_name = match new_mode {
@@ -208,16 +199,8 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
 
                     if key == SettingKey::Theme {
                         let option_idx = input.state.ui_state.settings_option_selected;
-                        let preview_mode = match option_idx {
-                            0 => ThemeMode::System,
-                            1 => ThemeMode::CatppuccinMocha,
-                            2 => ThemeMode::CatppuccinLatte,
-                            3 => ThemeMode::Dracula,
-                            4 => ThemeMode::Nord,
-                            5 => ThemeMode::Gruvbox,
-                            6 => ThemeMode::TokyoNight,
-                            _ => ThemeMode::System,
-                        };
+                        let preview_mode =
+                            ThemeMode::from_index(option_idx).unwrap_or(ThemeMode::System);
                         input.state.ui_state.preview_theme_mode = Some(preview_mode);
                     }
                 }
@@ -237,16 +220,8 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
                 if let Some(key) = SettingKey::from_index(idx) {
                     if key == SettingKey::Theme {
                         let option_idx = input.state.ui_state.settings_option_selected;
-                        let preview_mode = match option_idx {
-                            0 => ThemeMode::System,
-                            1 => ThemeMode::CatppuccinMocha,
-                            2 => ThemeMode::CatppuccinLatte,
-                            3 => ThemeMode::Dracula,
-                            4 => ThemeMode::Nord,
-                            5 => ThemeMode::Gruvbox,
-                            6 => ThemeMode::TokyoNight,
-                            _ => ThemeMode::System,
-                        };
+                        let preview_mode =
+                            ThemeMode::from_index(option_idx).unwrap_or(ThemeMode::System);
                         input.state.ui_state.preview_theme_mode = Some(preview_mode);
                     }
                 }
@@ -263,16 +238,8 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
 
                     if key == SettingKey::Theme {
                         let option_idx = input.state.ui_state.settings_option_selected;
-                        let preview_mode = match option_idx {
-                            0 => ThemeMode::System,
-                            1 => ThemeMode::CatppuccinMocha,
-                            2 => ThemeMode::CatppuccinLatte,
-                            3 => ThemeMode::Dracula,
-                            4 => ThemeMode::Nord,
-                            5 => ThemeMode::Gruvbox,
-                            6 => ThemeMode::TokyoNight,
-                            _ => ThemeMode::System,
-                        };
+                        let preview_mode =
+                            ThemeMode::from_index(option_idx).unwrap_or(ThemeMode::System);
                         input.state.ui_state.preview_theme_mode = Some(preview_mode);
                     }
                 }
@@ -290,16 +257,8 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
                 if let Some(key) = SettingKey::from_index(idx) {
                     if key == SettingKey::Theme {
                         let option_idx = input.state.ui_state.settings_option_selected;
-                        let preview_mode = match option_idx {
-                            0 => ThemeMode::System,
-                            1 => ThemeMode::CatppuccinMocha,
-                            2 => ThemeMode::CatppuccinLatte,
-                            3 => ThemeMode::Dracula,
-                            4 => ThemeMode::Nord,
-                            5 => ThemeMode::Gruvbox,
-                            6 => ThemeMode::TokyoNight,
-                            _ => ThemeMode::System,
-                        };
+                        let preview_mode =
+                            ThemeMode::from_index(option_idx).unwrap_or(ThemeMode::System);
                         input.state.ui_state.preview_theme_mode = Some(preview_mode);
                     }
                 }

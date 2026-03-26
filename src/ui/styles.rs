@@ -27,6 +27,19 @@ impl ThemeMode {
             ThemeMode::TokyoNight => 6,
         }
     }
+
+    pub fn from_index(index: usize) -> Option<Self> {
+        match index {
+            0 => Some(Self::System),
+            1 => Some(Self::CatppuccinMocha),
+            2 => Some(Self::CatppuccinLatte),
+            3 => Some(Self::Dracula),
+            4 => Some(Self::Nord),
+            5 => Some(Self::Gruvbox),
+            6 => Some(Self::TokyoNight),
+            _ => None,
+        }
+    }
 }
 
 /// Application color scheme

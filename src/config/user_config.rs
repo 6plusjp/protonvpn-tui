@@ -512,8 +512,9 @@ impl UserConfig {
 
         let save_theme = !self.ui.theme.is_empty();
         let save_footer = self.ui.footer != defaults.ui.footer;
+        let has_ui_settings = save_theme || save_footer || !self.ui.favorites.is_empty();
 
-        if save_theme || save_footer {
+        if has_ui_settings {
             toml_string.push_str("[ui]\n");
             if save_theme {
                 toml_string.push_str(&format!("theme = \"{}\"\n", self.ui.theme));
@@ -521,14 +522,6 @@ impl UserConfig {
             if save_footer {
                 toml_string.push_str(&format!("footer = {}\n", self.ui.footer));
             }
-            let favs: Vec<String> = self
-                .ui
-                .favorites
-                .iter()
-                .map(|s| format!("\"{}\"", s))
-                .collect();
-            toml_string.push_str(&format!("favorites = [{}]\n", favs.join(", ")));
-        } else {
             let favs: Vec<String> = self
                 .ui
                 .favorites

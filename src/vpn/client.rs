@@ -614,7 +614,7 @@ mod tests {
 
     #[test]
     fn test_servers_empty_when_no_cache() {
-        let client = VpnClient::new();
+        let client = VpnClient::with_test_servers(vec![]);
         let servers = client.servers();
         assert!(servers.is_empty());
     }

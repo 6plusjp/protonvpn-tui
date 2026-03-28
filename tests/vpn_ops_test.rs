@@ -91,6 +91,7 @@ mod server_cache {
 
         let city = City {
             name: "Tokyo".to_string(),
+            name_lower: "tokyo".to_string(),
             features: vec!["P2P".to_string(), "Secure Core".to_string()],
         };
 

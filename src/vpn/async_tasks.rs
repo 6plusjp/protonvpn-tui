@@ -428,3 +428,23 @@ impl Default for AsyncTaskManager {
         Self::new_with_workers(4)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_async_task_manager_new() {
+        let _manager = AsyncTaskManager::new();
+    }
+
+    #[test]
+    fn test_async_task_manager_with_workers() {
+        let _manager = AsyncTaskManager::new_with_workers(2);
+    }
+
+    #[test]
+    fn test_async_task_manager_default() {
+        let _manager = AsyncTaskManager::default();
+    }
+}

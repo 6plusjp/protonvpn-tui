@@ -98,3 +98,56 @@ impl ConnectionManager {
         self.connection.is_disconnected() && self.loading_cities.is_empty()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_async_notifier_new() {
+        let notifier = AsyncNotifier::new();
+        let events = notifier.try_recv_all();
+        assert!(events.is_empty());
+    }
+
+    #[test]
+    fn test_async_notifier_notify_and_recv() {
+        let notifier = AsyncNotifier::new();
+        notifier.notify(AsyncEvent::Disconnected);
+
+        let events = notifier.try_recv_all();
+        assert_eq!(events.len(), 1);
+        assert!(matches!(events[0], AsyncEvent::Disconnected));
+    }
+
+    #[test]
+    fn test_async_notifier_multiple_events() {
+        let notifier = AsyncNotifier::new();
+        notifier.notify(AsyncEvent::Disconnected);
+        notifier.notify(AsyncEvent::ServersRefreshed(vec![]));
+
+        let events = notifier.try_recv_all();
+        assert_eq!(events.len(), 2);
+    }
+
+    #[test]
+    fn test_connection_manager_new() {
+        let manager = ConnectionManager::new();
+        assert!(manager.connection.is_disconnected());
+        assert!(manager.previous_connection.is_none());
+        assert!(manager.loading_cities.is_empty());
+    }
+
+    #[test]
+    fn test_connection_manager_is_idle_when_disconnected() {
+        let manager = ConnectionManager::new();
+        assert!(manager.is_idle());
+    }
+
+    #[test]
+    fn test_connection_manager_is_not_idle_when_connecting() {
+        let mut manager = ConnectionManager::new();
+        manager.connection = ConnectionState::Connecting;
+        assert!(!manager.is_idle());
+    }
+}

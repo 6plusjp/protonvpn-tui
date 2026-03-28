@@ -552,12 +552,99 @@ impl VpnClient {
         }
 
         let client = Self::new();
-        // Use match for cleaner error handling in test code
         if let Ok(mut cache) = client.cache.lock() {
             cache.countries = countries;
             cache.cities = cities_map;
         }
 
         client
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_test_servers() -> Vec<Server> {
+        vec![
+            Server {
+                code: "JP".into(),
+                code_lower: "jp".into(),
+                country: "Japan".into(),
+                country_lower: "japan".into(),
+                cities: vec![City::new("Tokyo".into())],
+            },
+            Server {
+                code: "US".into(),
+                code_lower: "us".into(),
+                country: "United States".into(),
+                country_lower: "united states".into(),
+                cities: vec![
+                    City::new("New York".into()),
+                    City::new("Los Angeles".into()),
+                ],
+            },
+        ]
+    }
+
+    #[test]
+    fn test_vpn_client_new() {
+        let client = VpnClient::new();
+        assert_eq!(client.cli_path, "protonvpn");
+    }
+
+    #[test]
+    fn test_vpn_client_with_path() {
+        let client = VpnClient::with_path("/custom/path/protonvpn");
+        assert_eq!(client.cli_path, "/custom/path/protonvpn");
+    }
+
+    #[test]
+    fn test_vpn_client_with_test_servers() {
+        let servers = make_test_servers();
+        let client = VpnClient::with_test_servers(servers.clone());
+
+        let cached = client.servers();
+        assert_eq!(cached.len(), 2);
+
+        let jp = cached.iter().find(|s| s.code == "JP").unwrap();
+        assert_eq!(jp.country, "Japan");
+        assert_eq!(jp.cities.len(), 1);
+    }
+
+    #[test]
+    fn test_servers_empty_when_no_cache() {
+        let client = VpnClient::new();
+        let servers = client.servers();
+        assert!(servers.is_empty());
+    }
+
+    #[test]
+    fn test_matches_ip_false_when_not_connected() {
+        let servers = make_test_servers();
+        let client = VpnClient::with_test_servers(servers);
+
+        assert!(!client.matches_ip("1.2.3.4"));
+    }
+
+    #[test]
+    fn test_cached_cities_returns_none_when_not_cached() {
+        let servers = make_test_servers();
+        let client = VpnClient::with_test_servers(servers);
+
+        let cities = client.cached_cities("DE");
+        assert!(cities.is_none());
+    }
+
+    #[test]
+    fn test_cached_cities_returns_cities_when_cached() {
+        let servers = make_test_servers();
+        let client = VpnClient::with_test_servers(servers);
+
+        let cities = client.cached_cities("JP");
+        assert!(cities.is_some());
+        let cities = cities.unwrap();
+        assert_eq!(cities.len(), 1);
+        assert_eq!(cities[0].name, "Tokyo");
     }
 }

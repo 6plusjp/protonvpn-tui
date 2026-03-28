@@ -437,7 +437,6 @@ impl From<KeyBindingsConfig> for KeyMap {
     }
 }
 
-/// User configuration loaded from config.toml
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UserConfig {
     #[serde(default)]
@@ -513,9 +512,8 @@ impl UserConfig {
 
         let save_theme = !self.ui.theme.is_empty();
         let save_footer = self.ui.footer != defaults.ui.footer;
-        let save_favorites = !self.ui.favorites.is_empty();
 
-        if save_theme || save_footer || save_favorites {
+        if save_theme || save_footer {
             toml_string.push_str("[ui]\n");
             if save_theme {
                 toml_string.push_str(&format!("theme = \"{}\"\n", self.ui.theme));
@@ -523,15 +521,21 @@ impl UserConfig {
             if save_footer {
                 toml_string.push_str(&format!("footer = {}\n", self.ui.footer));
             }
-            if save_favorites {
-                let favs: Vec<String> = self
-                    .ui
-                    .favorites
-                    .iter()
-                    .map(|s| format!("\"{}\"", s))
-                    .collect();
-                toml_string.push_str(&format!("favorites = [{}]\n", favs.join(", ")));
-            }
+            let favs: Vec<String> = self
+                .ui
+                .favorites
+                .iter()
+                .map(|s| format!("\"{}\"", s))
+                .collect();
+            toml_string.push_str(&format!("favorites = [{}]\n", favs.join(", ")));
+        } else {
+            let favs: Vec<String> = self
+                .ui
+                .favorites
+                .iter()
+                .map(|s| format!("\"{}\"", s))
+                .collect();
+            toml_string.push_str(&format!("favorites = [{}]\n", favs.join(", ")));
         }
 
         // Save keybindings if different from defaults

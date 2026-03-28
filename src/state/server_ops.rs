@@ -41,7 +41,7 @@ impl crate::state::AppState {
                     let matches_code = server.code_lower.contains(q);
                     let matches_country = server.country_lower.contains(q);
                     let matches_fuzzy =
-                        Self::fuzzy_match_with_variants(&server.country, q, &fuzzy_variants);
+                        Self::fuzzy_match_with_variants(&server.country_lower, q, &fuzzy_variants);
 
                     if skip_city {
                         match self.ui_state.filter {
@@ -50,10 +50,14 @@ impl crate::state::AppState {
                             ServerFilter::City => false,
                         }
                     } else {
-                        let matches_city = server
-                            .cities
-                            .iter()
-                            .any(|c| c.name.to_lowercase().contains(q));
+                        let matches_city = server.cities.iter().any(|c| {
+                            let search = if c.name_lower.is_empty() {
+                                c.name.to_lowercase()
+                            } else {
+                                c.name_lower.clone()
+                            };
+                            search.contains(q)
+                        });
 
                         match self.ui_state.filter {
                             ServerFilter::Code => matches_code || matches_fuzzy,
@@ -114,9 +118,7 @@ impl crate::state::AppState {
         result
     }
 
-    fn fuzzy_match_with_variants(text: &str, query: &str, variants: &[String]) -> bool {
-        let text_lower = text.to_lowercase();
-
+    fn fuzzy_match_with_variants(text_lower: &str, query: &str, variants: &[String]) -> bool {
         if text_lower.starts_with(query) {
             return true;
         }
@@ -136,8 +138,8 @@ impl crate::state::AppState {
         }
 
         for server in servers {
-            if server.code.to_lowercase() == query {
-                variants.push(server.country.to_lowercase());
+            if server.code_lower == query {
+                variants.push(server.country_lower.clone());
                 break;
             }
         }

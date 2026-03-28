@@ -31,19 +31,34 @@ pub struct ServerFeatures {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct City {
     pub name: String,
+    #[serde(default)]
+    pub name_lower: String,
     pub features: Vec<String>, // e.g., ["P2P", "Secure"]
 }
 
 impl City {
     pub fn new(name: String) -> Self {
+        let name_lower = name.to_lowercase();
         Self {
             name,
+            name_lower,
             features: Vec::new(),
         }
     }
 
     pub fn with_features(name: String, features: Vec<String>) -> Self {
-        Self { name, features }
+        let name_lower = name.to_lowercase();
+        Self {
+            name,
+            name_lower,
+            features,
+        }
+    }
+
+    pub fn ensure_name_lower(&mut self) {
+        if self.name_lower.is_empty() {
+            self.name_lower = self.name.to_lowercase();
+        }
     }
 }
 

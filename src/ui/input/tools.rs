@@ -201,13 +201,7 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
                     input.state.ui_state.settings_option_selected =
                         (input.state.ui_state.settings_option_selected + 1)
                             .min(opt_count.saturating_sub(1));
-
-                    if key == SettingKey::Theme {
-                        let option_idx = input.state.ui_state.settings_option_selected;
-                        let preview_mode =
-                            ThemeMode::from_index(option_idx).unwrap_or(ThemeMode::System);
-                        input.state.ui_state.preview_theme_mode = Some(preview_mode);
-                    }
+                    update_theme_preview(input, &key);
                 }
             }
             None
@@ -223,12 +217,7 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
 
             if let Some(idx) = input.state.ui_state.settings_selected {
                 if let Some(key) = SettingKey::from_index(idx) {
-                    if key == SettingKey::Theme {
-                        let option_idx = input.state.ui_state.settings_option_selected;
-                        let preview_mode =
-                            ThemeMode::from_index(option_idx).unwrap_or(ThemeMode::System);
-                        input.state.ui_state.preview_theme_mode = Some(preview_mode);
-                    }
+                    update_theme_preview(input, &key);
                 }
             }
             None
@@ -240,13 +229,7 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
                     input.state.ui_state.settings_option_selected =
                         (input.state.ui_state.settings_option_selected + 1)
                             .min(opt_count.saturating_sub(1));
-
-                    if key == SettingKey::Theme {
-                        let option_idx = input.state.ui_state.settings_option_selected;
-                        let preview_mode =
-                            ThemeMode::from_index(option_idx).unwrap_or(ThemeMode::System);
-                        input.state.ui_state.preview_theme_mode = Some(preview_mode);
-                    }
+                    update_theme_preview(input, &key);
                 }
             }
             None
@@ -260,18 +243,21 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
 
             if let Some(idx) = input.state.ui_state.settings_selected {
                 if let Some(key) = SettingKey::from_index(idx) {
-                    if key == SettingKey::Theme {
-                        let option_idx = input.state.ui_state.settings_option_selected;
-                        let preview_mode =
-                            ThemeMode::from_index(option_idx).unwrap_or(ThemeMode::System);
-                        input.state.ui_state.preview_theme_mode = Some(preview_mode);
-                    }
+                    update_theme_preview(input, &key);
                 }
             }
             None
         }
 
         _ => None,
+    }
+}
+
+fn update_theme_preview(input: &mut InputState, key: &SettingKey) {
+    if *key == SettingKey::Theme {
+        let option_idx = input.state.ui_state.settings_option_selected;
+        let preview_mode = ThemeMode::from_index(option_idx).unwrap_or(ThemeMode::System);
+        input.state.ui_state.preview_theme_mode = Some(preview_mode);
     }
 }
 

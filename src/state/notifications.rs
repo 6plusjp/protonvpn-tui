@@ -120,10 +120,7 @@ impl NotificationState {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn setup() {
-        crate::state::log_persistence::set_test_mode(true);
-    }
+    use crate::test_helpers::test_helpers::setup;
 
     #[test]
     fn test_same_key_loading_replaces() {

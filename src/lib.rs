@@ -10,6 +10,7 @@ pub mod constants;
 pub mod error;
 pub mod paths;
 pub mod state;
+pub mod test_helpers;
 pub mod ui;
 pub mod vpn;
 

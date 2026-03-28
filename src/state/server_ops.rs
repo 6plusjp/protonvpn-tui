@@ -263,56 +263,11 @@ impl crate::state::AppState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::log_persistence;
     use crate::state::AppState;
-    use crate::vpn::{City, Server, VpnClient};
+    use crate::test_helpers::test_helpers::{self, make_servers};
+    use crate::vpn::VpnClient;
 
-    fn setup() {
-        log_persistence::set_test_mode(true);
-    }
-
-    fn make_servers() -> Vec<Server> {
-        vec![
-            Server {
-                code: "JP".to_string(),
-                code_lower: "jp".to_string(),
-                country: "Japan".to_string(),
-                country_lower: "japan".to_string(),
-                cities: vec![
-                    City::new("Tokyo".to_string()),
-                    City::new("Osaka".to_string()),
-                ],
-            },
-            Server {
-                code: "US".to_string(),
-                code_lower: "us".to_string(),
-                country: "United States".to_string(),
-                country_lower: "united states".to_string(),
-                cities: vec![City::new("New York".to_string())],
-            },
-            Server {
-                code: "DE".to_string(),
-                code_lower: "de".to_string(),
-                country: "Germany".to_string(),
-                country_lower: "germany".to_string(),
-                cities: vec![City::new("Berlin".to_string())],
-            },
-            Server {
-                code: "GB".to_string(),
-                code_lower: "gb".to_string(),
-                country: "United Kingdom".to_string(),
-                country_lower: "united kingdom".to_string(),
-                cities: vec![City::new("London".to_string())],
-            },
-            Server {
-                code: "FR".to_string(),
-                code_lower: "fr".to_string(),
-                country: "France".to_string(),
-                country_lower: "france".to_string(),
-                cities: vec![City::new("Paris".to_string())],
-            },
-        ]
-    }
+    use test_helpers::setup;
 
     #[test]
     fn test_cycle_filter() {

@@ -4,6 +4,7 @@ use crate::ui::{KeyArrow, KeyMap, KeyMatcher};
 use crossterm::event::KeyModifiers;
 use serde::{Deserialize, Serialize};
 
+/// UI configuration (theme, footer, favorites)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiConfig {
@@ -29,6 +30,7 @@ fn default_true() -> bool {
     true
 }
 
+/// Key binding configuration parsed from TOML
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyBindingConfig {
     pub code: char,
@@ -62,6 +64,7 @@ impl From<&KeyBinding> for KeyBindingConfig {
     }
 }
 
+/// Key matcher configuration (serialized from TOML)
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", content = "value")]
 pub enum KeyMatcherConfig {
@@ -434,6 +437,7 @@ impl From<KeyBindingsConfig> for KeyMap {
     }
 }
 
+/// User configuration loaded from config.toml
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UserConfig {
     #[serde(default)]

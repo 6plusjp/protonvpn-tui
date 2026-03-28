@@ -4,6 +4,7 @@ use anyhow::Result;
 
 pub type AppResult<T> = Result<T, AppError>;
 
+/// Application-wide error type
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
     #[error("VPN connection failed: {0}")]
@@ -47,6 +48,9 @@ impl From<std::io::Error> for AppError {
 }
 
 /// VPN-specific errors for reusable components
+///
+/// Used for low-level VPN operations that may be reused
+/// across different contexts (e.g., validation, connection).
 #[derive(Debug, thiserror::Error)]
 pub enum VpnError {
     #[error("Not connected")]

@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 pub const CONFIG_FILE_NAME: &str = "config.toml";
 pub const CONFIG_DISPLAY_PATH: &str = "~/.config/protonvpn-tui/config.toml";
 
+/// Modifier key for keyboard shortcuts
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum KeyModifier {
     None,
@@ -255,6 +256,7 @@ impl ProtonSettings {
     }
 }
 
+/// Collection of key bindings for the application
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyBindings {
     pub navigation_down: KeyBinding,
@@ -286,6 +288,7 @@ impl Default for KeyBindings {
     }
 }
 
+/// Key binding configuration for a single action
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct KeyBinding {
     pub code: char,

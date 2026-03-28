@@ -20,6 +20,7 @@ use std::io;
 use std::panic;
 use std::time::Instant;
 
+/// Main TUI application
 pub struct TuiApp {
     state: AppState,
     current_view: View,

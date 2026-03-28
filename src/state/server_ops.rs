@@ -405,4 +405,83 @@ mod tests {
         state.toggle_sort_direction();
         assert_eq!(state.ui_state.sort_direction, SortDirection::Asc);
     }
+
+    #[test]
+    fn test_favorites_sorted_and_come_first_by_code_asc() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        state.ui_state.favorite_countries.clear();
+        state.ui_state.sort = ServerSort::Code;
+        state.ui_state.sort_direction = SortDirection::Asc;
+
+        state.toggle_favorite("FR");
+        state.toggle_favorite("JP");
+
+        let servers = state.filtered_servers();
+
+        assert_eq!(servers[0].code, "FR");
+        assert_eq!(servers[1].code, "JP");
+        assert_eq!(servers[2].code, "DE");
+        assert_eq!(servers[3].code, "GB");
+        assert_eq!(servers[4].code, "US");
+    }
+
+    #[test]
+    fn test_favorites_sorted_and_come_first_by_country_asc() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        state.ui_state.favorite_countries.clear();
+        state.ui_state.sort = ServerSort::Country;
+        state.ui_state.sort_direction = SortDirection::Asc;
+
+        state.toggle_favorite("FR");
+        state.toggle_favorite("JP");
+
+        let servers = state.filtered_servers();
+
+        assert_eq!(servers[0].code, "FR");
+        assert_eq!(servers[1].code, "JP");
+        assert_eq!(servers[2].code, "DE");
+    }
+
+    #[test]
+    fn test_favorites_descending_order() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        state.ui_state.favorite_countries.clear();
+        state.ui_state.sort = ServerSort::Code;
+        state.ui_state.sort_direction = SortDirection::Desc;
+
+        state.toggle_favorite("FR");
+        state.toggle_favorite("JP");
+
+        let servers = state.filtered_servers();
+
+        assert_eq!(servers[0].code, "JP");
+        assert_eq!(servers[1].code, "FR");
+    }
+
+    #[test]
+    fn test_toggle_favorite_updates_position_correctly() {
+        setup();
+        let mut state = AppState::new();
+        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        state.ui_state.favorite_countries.clear();
+        state.ui_state.sort = ServerSort::Code;
+        state.ui_state.sort_direction = SortDirection::Asc;
+
+        state.ui_state.selected_server = Some(4);
+        state.toggle_favorite("FR");
+
+        let servers = state.filtered_servers();
+
+        assert_eq!(servers[0].code, "FR");
+        assert_eq!(servers[1].code, "DE");
+        assert_eq!(servers[2].code, "GB");
+        assert_eq!(servers[3].code, "JP");
+        assert_eq!(servers[4].code, "US");
+    }
 }

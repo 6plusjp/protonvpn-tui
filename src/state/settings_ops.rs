@@ -283,7 +283,10 @@ mod tests {
     fn test_apply_dns_setting_valid_ip_but_command_fails() {
         setup();
         let mut state = AppState::new();
-        state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
+        // Use a non-existent CLI path to prevent real protonvpn execution during tests.
+        // This simulates command failure without modifying system DNS settings.
+        state.vpn_state =
+            std::sync::Arc::new(VpnClient::with_path("nonexistent_protonvpn_for_testing"));
         state.apply_dns_setting("1.1.1.1");
         let last = state.notification_state.notifications.last().unwrap();
         assert!(!last.message.contains("Invalid IP address"));

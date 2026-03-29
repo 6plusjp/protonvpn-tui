@@ -169,17 +169,20 @@ impl AppState {
             ThemeMode::TokyoNight => "TokyoNight",
         };
         self.user_config.ui.theme = theme_str.to_string();
+        self.user_config.mark_ui_field_modified("theme");
         self.user_config.save();
     }
 
     pub fn save_footer(&mut self, show_footer: bool) {
         self.ui_state.show_footer = show_footer;
         self.user_config.ui.footer = show_footer;
+        self.user_config.mark_ui_field_modified("footer");
         self.user_config.save();
     }
 
     pub fn save_favorites(&mut self) {
         self.user_config.ui.favorites = self.ui_state.favorite_countries.iter().cloned().collect();
+        self.user_config.mark_ui_field_modified("favorites");
         self.user_config.save();
     }
 

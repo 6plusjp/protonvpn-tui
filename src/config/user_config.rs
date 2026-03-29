@@ -3,6 +3,7 @@ use crate::paths;
 use crate::ui::{KeyArrow, KeyMap, KeyMatcher};
 use crossterm::event::KeyModifiers;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 /// UI configuration (theme, footer, favorites)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,6 +15,8 @@ pub struct UiConfig {
     pub footer: bool,
     #[serde(default)]
     pub favorites: Vec<String>,
+    #[serde(skip)]
+    pub modified_fields: HashSet<String>,
 }
 
 impl Default for UiConfig {
@@ -22,7 +25,14 @@ impl Default for UiConfig {
             theme: String::new(),
             footer: true,
             favorites: Vec::new(),
+            modified_fields: HashSet::new(),
         }
+    }
+}
+
+impl UiConfig {
+    pub fn mark_modified(&mut self, field: &str) {
+        self.modified_fields.insert(field.to_string());
     }
 }
 
@@ -497,6 +507,10 @@ impl UserConfig {
         paths::config_dir()
     }
 
+    pub fn mark_ui_field_modified(&mut self, field: &str) {
+        self.ui.modified_fields.insert(field.to_string());
+    }
+
     pub fn save(&self) {
         let config_path = match paths::config_path() {
             Some(path) => path,
@@ -510,9 +524,12 @@ impl UserConfig {
 
         let mut toml_string = String::new();
 
-        let save_theme = !self.ui.theme.is_empty();
-        let save_footer = self.ui.footer != defaults.ui.footer;
-        let has_ui_settings = save_theme || save_footer || !self.ui.favorites.is_empty();
+        let save_theme = self.ui.modified_fields.contains("theme") || !self.ui.theme.is_empty();
+        let save_footer =
+            self.ui.modified_fields.contains("footer") || self.ui.footer != defaults.ui.footer;
+        let save_favorites =
+            self.ui.modified_fields.contains("favorites") || !self.ui.favorites.is_empty();
+        let has_ui_settings = save_theme || save_footer || save_favorites;
 
         if has_ui_settings {
             toml_string.push_str("[ui]\n");
@@ -522,13 +539,15 @@ impl UserConfig {
             if save_footer {
                 toml_string.push_str(&format!("footer = {}\n", self.ui.footer));
             }
-            let favs: Vec<String> = self
-                .ui
-                .favorites
-                .iter()
-                .map(|s| format!("\"{}\"", s))
-                .collect();
-            toml_string.push_str(&format!("favorites = [{}]\n", favs.join(", ")));
+            if save_favorites {
+                let favs: Vec<String> = self
+                    .ui
+                    .favorites
+                    .iter()
+                    .map(|s| format!("\"{}\"", s))
+                    .collect();
+                toml_string.push_str(&format!("favorites = [{}]\n", favs.join(", ")));
+            }
         }
 
         // Save keybindings if different from defaults

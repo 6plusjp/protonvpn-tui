@@ -515,32 +515,83 @@ impl UserConfig {
         let config_path = match paths::config_path() {
             Some(path) => path,
             None => {
-                tracing::warn!("Could not determine config path for saving");
+                tracing::debug!("Could not determine config path for saving");
                 return;
             }
         };
 
         let defaults = Self::default();
 
-        let mut toml_string = String::new();
+        // Read existing config file (if exists) to preserve unknown fields/sections
+        let mut existing_config = if config_path.exists() {
+            match std::fs::read_to_string(&config_path) {
+                Ok(content) => match toml::from_str::<UserConfig>(&content) {
+                    Ok(config) => config,
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to parse existing config for merge: {}, creating fresh",
+                            e
+                        );
+                        Self::default()
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!("Failed to read existing config: {}, creating fresh", e);
+                    Self::default()
+                }
+            }
+        } else {
+            Self::default()
+        };
 
         let save_theme = self.ui.modified_fields.contains("theme") || !self.ui.theme.is_empty();
         let save_footer =
             self.ui.modified_fields.contains("footer") || self.ui.footer != defaults.ui.footer;
         let save_favorites =
             self.ui.modified_fields.contains("favorites") || !self.ui.favorites.is_empty();
-        let has_ui_settings = save_theme || save_footer || save_favorites;
+
+        if save_theme {
+            existing_config.ui.theme.clone_from(&self.ui.theme);
+        }
+        if save_footer {
+            existing_config.ui.footer = self.ui.footer;
+        }
+        if save_favorites {
+            existing_config.ui.favorites.clone_from(&self.ui.favorites);
+        }
+
+        if self.keybindings.navigation_down != defaults.keybindings.navigation_down {
+            existing_config.keybindings.navigation_down = self.keybindings.navigation_down.clone();
+        }
+        if self.keybindings.navigation_up != defaults.keybindings.navigation_up {
+            existing_config.keybindings.navigation_up = self.keybindings.navigation_up.clone();
+        }
+        if self.keybindings.connect != defaults.keybindings.connect {
+            existing_config.keybindings.connect = self.keybindings.connect.clone();
+        }
+        if self.keybindings.disconnect != defaults.keybindings.disconnect {
+            existing_config.keybindings.disconnect = self.keybindings.disconnect.clone();
+        }
+
+        let mut toml_string = String::new();
+
+        let has_ui_settings = save_theme
+            || save_footer
+            || save_favorites
+            || !existing_config.ui.theme.is_empty()
+            || existing_config.ui.footer != defaults.ui.footer
+            || !existing_config.ui.favorites.is_empty();
 
         if has_ui_settings {
             toml_string.push_str("[ui]\n");
-            if save_theme {
-                toml_string.push_str(&format!("theme = \"{}\"\n", self.ui.theme));
+            if save_theme || !existing_config.ui.theme.is_empty() {
+                toml_string.push_str(&format!("theme = \"{}\"\n", existing_config.ui.theme));
             }
-            if save_footer {
-                toml_string.push_str(&format!("footer = {}\n", self.ui.footer));
+            if save_footer || existing_config.ui.footer != defaults.ui.footer {
+                toml_string.push_str(&format!("footer = {}\n", existing_config.ui.footer));
             }
-            if save_favorites {
-                let favs: Vec<String> = self
+            if save_favorites || !existing_config.ui.favorites.is_empty() {
+                let favs: Vec<String> = existing_config
                     .ui
                     .favorites
                     .iter()
@@ -551,7 +602,7 @@ impl UserConfig {
         }
 
         // Save keybindings if different from defaults
-        let keybindings_different = self.keybindings != defaults.keybindings;
+        let keybindings_different = existing_config.keybindings != defaults.keybindings;
 
         if keybindings_different {
             if !toml_string.is_empty() {
@@ -559,28 +610,28 @@ impl UserConfig {
             }
             toml_string.push_str("[keybindings]\n");
 
-            if self.keybindings.navigation_down != defaults.keybindings.navigation_down {
+            if existing_config.keybindings.navigation_down != defaults.keybindings.navigation_down {
                 toml_string.push_str(&format!(
                     "navigation_down = {}\n",
-                    format_keymatchers(&self.keybindings.navigation_down)
+                    format_keymatchers(&existing_config.keybindings.navigation_down)
                 ));
             }
-            if self.keybindings.navigation_up != defaults.keybindings.navigation_up {
+            if existing_config.keybindings.navigation_up != defaults.keybindings.navigation_up {
                 toml_string.push_str(&format!(
                     "navigation_up = {}\n",
-                    format_keymatchers(&self.keybindings.navigation_up)
+                    format_keymatchers(&existing_config.keybindings.navigation_up)
                 ));
             }
-            if self.keybindings.connect != defaults.keybindings.connect {
+            if existing_config.keybindings.connect != defaults.keybindings.connect {
                 toml_string.push_str(&format!(
                     "connect = {}\n",
-                    format_keymatchers(&self.keybindings.connect)
+                    format_keymatchers(&existing_config.keybindings.connect)
                 ));
             }
-            if self.keybindings.disconnect != defaults.keybindings.disconnect {
+            if existing_config.keybindings.disconnect != defaults.keybindings.disconnect {
                 toml_string.push_str(&format!(
                     "disconnect = {}\n",
-                    format_keymatchers(&self.keybindings.disconnect)
+                    format_keymatchers(&existing_config.keybindings.disconnect)
                 ));
             }
         }
@@ -600,7 +651,7 @@ impl UserConfig {
         if let Err(e) = std::fs::write(&config_path, toml_string) {
             tracing::warn!("Failed to write config: {}", e);
         } else {
-            tracing::debug!("Saved config to {}", config_path.display());
+            tracing::info!("Saved config to {}", config_path.display());
         }
     }
 }

@@ -43,12 +43,16 @@ impl ServerCache {
     /// Save cache to file
     pub fn save(&self, path: PathBuf) -> crate::error::AppResult<()> {
         let content = toml::to_string_pretty(self)?;
-        // Ensure parent directory exists
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
         let path_for_log = path.clone();
-        std::fs::write(path, content)?;
+        let temp_path = path.with_extension("tmp");
+        std::fs::write(&temp_path, content)?;
+        if let Err(e) = std::fs::rename(&temp_path, &path) {
+            let _ = std::fs::remove_file(&temp_path);
+            return Err(e.into());
+        }
         tracing::debug!("Server cache saved to {:?}", path_for_log);
         Ok(())
     }

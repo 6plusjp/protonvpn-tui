@@ -49,8 +49,14 @@ pub fn save_notification_log(log: &[Notification]) {
 
     match serde_json::to_string_pretty(log) {
         Ok(content) => {
-            if let Err(e) = fs::write(&path, content) {
-                tracing::warn!("Failed to write log file: {}", e);
+            let temp_path = path.with_extension("tmp");
+            if let Err(e) = fs::write(&temp_path, content) {
+                tracing::warn!("Failed to write temp log file: {}", e);
+                return;
+            }
+            if let Err(e) = fs::rename(&temp_path, &path) {
+                let _ = fs::remove_file(&temp_path);
+                tracing::warn!("Failed to rename log file: {}", e);
             }
         }
         Err(e) => {

@@ -41,9 +41,9 @@ impl TuiApp {
             let _ = disable_raw_mode();
         }));
 
-        let key_bindings = config.keybindings.into();
-        let ui_config = config.ui;
-        let mut state = AppState::from_config(&key_bindings, &ui_config);
+        let key_bindings = config.keybindings.clone().into();
+        let ui_config = config.ui.clone();
+        let mut state = AppState::from_config(&key_bindings, &ui_config, config);
         state.refresh_servers();
 
         Ok(Self {

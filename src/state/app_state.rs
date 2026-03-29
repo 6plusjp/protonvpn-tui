@@ -118,14 +118,21 @@ impl Default for AppState {
 
 impl AppState {
     pub fn new() -> Self {
-        Self::from_config(&KeyBindings::default(), &UiConfig::default())
+        Self::from_config(
+            &KeyBindings::default(),
+            &UiConfig::default(),
+            UserConfig::load(),
+        )
     }
 
-    pub fn from_config(key_bindings: &KeyBindings, ui_config: &UiConfig) -> Self {
+    pub fn from_config(
+        key_bindings: &KeyBindings,
+        ui_config: &UiConfig,
+        user_config: UserConfig,
+    ) -> Self {
         let vpn_state = Arc::new(crate::vpn::VpnClient::new());
         let servers = vpn_state.servers();
         let ui_state = UiState::from_config(&ui_config.theme, ui_config.footer);
-        let user_config = UserConfig::load();
 
         let mut state = Self {
             vpn_state,
@@ -186,6 +193,13 @@ impl AppState {
         self.user_config.save();
     }
 
+    pub fn reload_user_config(&mut self) {
+        self.user_config = UserConfig::load();
+        self.ui_state.theme_mode = theme_mode_from_str(&self.user_config.ui.theme);
+        self.ui_state.show_footer = self.user_config.ui.footer;
+        self.ui_state.favorite_countries = self.user_config.ui.favorites.iter().cloned().collect();
+    }
+
     pub fn switch_view(&mut self) {
         let new_view = self.ui_state.current_view.next();
         self.ui_state.previous_view = self.ui_state.current_view;
@@ -227,6 +241,19 @@ impl AppState {
                 self.fetch_cities(&server.code, true);
             }
         }
+    }
+}
+
+fn theme_mode_from_str(s: &str) -> ThemeMode {
+    match s {
+        "System" => ThemeMode::System,
+        "CatppuccinMocha" => ThemeMode::CatppuccinMocha,
+        "CatppuccinLatte" => ThemeMode::CatppuccinLatte,
+        "Dracula" => ThemeMode::Dracula,
+        "Nord" => ThemeMode::Nord,
+        "Gruvbox" => ThemeMode::Gruvbox,
+        "TokyoNight" => ThemeMode::TokyoNight,
+        _ => ThemeMode::System,
     }
 }
 

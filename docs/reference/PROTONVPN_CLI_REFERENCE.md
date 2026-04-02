@@ -1,6 +1,6 @@
 # ProtonVPN CLI Reference
 
-**Current Version**: 0.1.7 (March 2, 2026)
+**Current Version**: 0.1.8 (March 23, 2026) / **Stable**: 1.0.0
 
 ## Overview
 
@@ -32,6 +32,7 @@ This document provides a comprehensive reference for the official ProtonVPN CLI 
 | `protonvpn info` | Display Proton VPN account information |
 | `protonvpn connect` | Connect to VPN server |
 | `protonvpn disconnect` | Disconnect from VPN |
+| `protonvpn status` | Display connection status (v0.1.8+) |
 | `protonvpn countries list` | Discover available countries |
 | `protonvpn cities list <COUNTRY>` | Discover available cities for a country |
 | `protonvpn config` | Configure VPN settings |
@@ -109,6 +110,67 @@ Email: user@example.com
 Plan: Plus
 Status: Active
 ```
+
+---
+
+### status
+
+Display current connection status. **(Added in v0.1.8)**
+
+```bash
+protonvpn status
+```
+
+**Output Format v1 (Current CLI)**:
+```
+Status: Connected
+Server: JP#443 in Tokyo, Japan
+Load: 15%
+Protocol: wireguard
+```
+
+**Output Format v2 (Older CLI / Tests)**:
+```
+Status: Connected
+Server: JP#374
+Country: Japan
+City: Tokyo
+IP: 159.26.119.144
+Uptime: 00:15:32
+```
+
+**With server list update message**:
+```
+Server list is outdated, updating... This may take a moment.
+Status: Connected
+Server: JP#443 in Tokyo, Japan
+Load: 15%
+Protocol: wireguard
+```
+
+**Output Fields**:
+| Field | Example | Description | Format |
+|-------|---------|-------------|--------|
+| `Status` | `Connected` | Connection state | Both |
+| `Server` | `JP#443 in Tokyo, Japan` | Server ID and location | v1 |
+| `Server` | `JP#374` | Server ID only | v2 |
+| `Country` | `Japan` | Country name | v2 only |
+| `City` | `Tokyo` | City name | v2 only |
+| `IP` | `159.26.119.144` | IP address | v2 only |
+| `Load` | `15%` | Server load percentage | v1 only |
+| `Protocol` | `wireguard` | VPN protocol (lowercase) | v1 only |
+| `Uptime` | `00:15:32` | Connection time (HH:MM:SS) | v2 only |
+| `Time` | `1:23:45` | Alternative uptime field | v2 variant |
+
+**Note**: 
+- Format varies by CLI version
+- `Uptime`/`Time` fields are NOT present in current CLI versions (v0.1.8+)
+- The TUI parses `Uptime:` and `Time:` fields if present (see `parse_status_uptime()`)
+
+**Behavior**:
+- Shows connection details if connected
+- May show server list update message before status
+- Returns nothing meaningful if not connected
 
 ---
 
@@ -434,13 +496,9 @@ The CLI supports connecting to servers with specific features:
 - **CLI Logs**: `~/.cache/Proton/VPN/logs/`
 - **User Settings**: `~/.config/Proton/VPN/`
 
-## Known Issues
-
-- **Secure Core Parsing**: The TUI's parser (`parse_connect_output` in `src/vpn/types.rs`) does not correctly handle the Secure Core output format (`"City, via CC"`). The country field may incorrectly show `"via XX"` instead of the actual country. See [@docs/issue/issue042-secure-core-parsing.md](docs/issue/issue042-secure-core-parsing.md)
-
 ---
 
-## Limitations (as of v0.1.7)
+## Limitations (as of v0.1.8)
 
 - Cannot run alongside Proton VPN GUI app
 - No server list command (use connection options or `protonvpn countries list` / `protonvpn cities list` instead)
@@ -448,8 +506,22 @@ The CLI supports connecting to servers with specific features:
 
 ---
 
+## Release History
+
+| Version | Date | Notable Changes |
+|---------|------|-----------------|
+| **1.0.0** | March 23, 2026 | First stable release |
+| **0.1.8** | March 23, 2026 | Added `protonvpn status` command; improved help/error messages |
+| **0.1.7** | March 2, 2026 | Added `protonvpn config list`; settings changes don't require reconnect |
+| **0.1.5** | January 26, 2026 | Added: anonymous crash reports, custom DNS, IPv6, kill switch, NAT, NetShield, port forwarding, VPN accelerator |
+| **0.1.4** | January 19, 2026 | P2P/Secure Core/Tor server selection; country/city browsing |
+| **0.1.2** | November 14, 2025 | Initial release |
+
+---
+
 ## References
 
 - Official GitHub: https://github.com/ProtonVPN/proton-vpn-cli
 - Official Documentation: https://protonvpn.com/support/linux-cli
+- Release Notes: https://protonvpn.com/support/release-notes-linux-cli
 - Server List: https://protonvpn.com/vpn-servers

@@ -278,6 +278,31 @@ pub fn parse_connect_output(output: &str) -> ConnectResult {
     }
 }
 
+/// Parse uptime from protonvpn status output
+///
+/// Supports both "Uptime:" and "Time:" field names (varies by CLI version)
+/// Expected format: "Uptime: 00:15:32" or "Time: 00:15:32"
+/// Returns None if uptime line is missing or malformed
+pub fn parse_status_uptime(output: &str) -> Option<chrono::Duration> {
+    for line in output.lines() {
+        let time_str = line
+            .strip_prefix("Uptime:")
+            .or_else(|| line.strip_prefix("Time:"));
+        if let Some(time_str) = time_str {
+            let time_str = time_str.trim();
+            let parts: Vec<&str> = time_str.split(':').collect();
+            if parts.len() == 3 {
+                let hours: i64 = parts[0].parse().ok()?;
+                let mins: i64 = parts[1].parse().ok()?;
+                let secs: i64 = parts[2].parse().ok()?;
+                let total_seconds = hours * 3600 + mins * 60 + secs;
+                return Some(chrono::Duration::seconds(total_seconds));
+            }
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -546,5 +571,75 @@ Connected to JP#374 in Tokyo, Japan. Your new IP address is 159.26.119.144."#;
         assert_eq!(result.city, Some("Tokyo".to_string()));
         assert_eq!(result.country, None);
         assert_eq!(result.via, Some("Switzerland".to_string()));
+    }
+
+    #[test]
+    fn test_parse_status_uptime() {
+        let output = r#"Status: Connected
+Server: JP#374
+Country: Japan
+City: Tokyo
+IP: 159.26.119.144
+Uptime: 00:15:32"#;
+        let uptime = parse_status_uptime(output);
+        assert!(uptime.is_some());
+        let uptime = uptime.unwrap();
+        assert_eq!(uptime.num_seconds(), 15 * 60 + 32);
+    }
+
+    #[test]
+    fn test_parse_status_uptime_hours() {
+        let output = "Uptime: 02:30:45";
+        let uptime = parse_status_uptime(output);
+        assert!(uptime.is_some());
+        let uptime = uptime.unwrap();
+        assert_eq!(uptime.num_seconds(), 2 * 3600 + 30 * 60 + 45);
+    }
+
+    #[test]
+    fn test_parse_status_uptime_missing() {
+        let output = "Status: Connected\nServer: JP#374";
+        let uptime = parse_status_uptime(output);
+        assert!(uptime.is_none());
+    }
+
+    #[test]
+    fn test_parse_status_uptime_malformed() {
+        let output = "Uptime: invalid";
+        let uptime = parse_status_uptime(output);
+        assert!(uptime.is_none());
+    }
+
+    #[test]
+    fn test_parse_status_time_field() {
+        let output = r#"Status:       Connected
+Time:         1:23:45
+IP:           192.168.1.1
+Server:       JP#374
+Country:      Japan
+City:         Tokyo"#;
+        let uptime = parse_status_uptime(output);
+        assert!(uptime.is_some());
+        let uptime = uptime.unwrap();
+        assert_eq!(uptime.num_seconds(), 1 * 3600 + 23 * 60 + 45);
+    }
+
+    #[test]
+    fn test_parse_status_time_field_simple() {
+        let output = "Time: 00:05:30";
+        let uptime = parse_status_uptime(output);
+        assert!(uptime.is_some());
+        let uptime = uptime.unwrap();
+        assert_eq!(uptime.num_seconds(), 5 * 60 + 30);
+    }
+
+    #[test]
+    fn test_parse_status_uptime_takes_priority() {
+        let output = r#"Uptime: 01:00:00
+Time: 00:30:00"#;
+        let uptime = parse_status_uptime(output);
+        assert!(uptime.is_some());
+        let uptime = uptime.unwrap();
+        assert_eq!(uptime.num_seconds(), 1 * 3600);
     }
 }

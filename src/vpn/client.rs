@@ -62,11 +62,16 @@ impl VpnClient {
             }
         };
 
-        Self {
+        let client = Self {
             cli_path: "protonvpn".to_string(),
             cache: Mutex::new(cache),
             cache_path,
-        }
+        };
+
+        // Adjust connected_at timestamp if it survived a reboot
+        client.adjust_connected_at_on_startup();
+
+        client
     }
 
     pub fn with_path(path: impl Into<String>) -> Self {
@@ -322,6 +327,56 @@ impl VpnClient {
         let bytes_received = rx.trim().parse().ok()?;
         let bytes_sent = tx.trim().parse().ok()?;
         Some((bytes_received, bytes_sent))
+    }
+
+    /// Get uptime from protonvpn status command
+    ///
+    /// Returns None if status command fails or uptime is not available
+    pub fn get_status_uptime(&self) -> Option<chrono::Duration> {
+        let output = self
+            .run_command_with_timeout(&["status"], std::time::Duration::from_secs(5))
+            .ok()?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        super::types::parse_status_uptime(&stdout)
+    }
+
+    /// Adjust connected_at timestamp on startup
+    ///
+    /// If connected_at is persisted from before a reboot, adjust it to the correct value.
+    /// Priority:
+    /// 1. Use protonvpn status uptime (most accurate)
+    /// 2. Fall back to system boot time validation
+    fn adjust_connected_at_on_startup(&self) {
+        let is_connected = self.with_cache(|c| c.is_connected()).unwrap_or(false);
+        if !is_connected {
+            return;
+        }
+
+        // Try to get uptime from protonvpn status (Note: current CLI versions may not include this field)
+        if let Some(uptime) = self.get_status_uptime() {
+            tracing::info!(
+                "Adjusting connected_at from protonvpn status uptime: {}",
+                uptime
+            );
+            if let Err(e) = self.with_cache(|c| c.adjust_connected_at_from_uptime(uptime)) {
+                tracing::warn!("Failed to adjust connected_at from uptime: {}", e);
+            }
+            if let Err(e) = self.save_cache() {
+                tracing::warn!("Failed to save cache after uptime adjustment: {}", e);
+            }
+            return;
+        }
+
+        // Fallback: validate against boot time (uptime field not available in current CLI)
+        tracing::debug!(
+            "Uptime field not available in protonvpn status, validating against boot time"
+        );
+        if let Err(e) = self.with_cache(|c| c.validate_after_boot()) {
+            tracing::warn!("Failed to validate connected_at after boot: {}", e);
+        }
+        if let Err(e) = self.save_cache() {
+            tracing::warn!("Failed to save cache after boot validation: {}", e);
+        }
     }
 
     pub fn refresh_countries(&self) -> AppResult<HashMap<String, String>> {

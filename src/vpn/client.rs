@@ -340,6 +340,43 @@ impl VpnClient {
         super::types::parse_status_uptime(&stdout)
     }
 
+    /// Sync cache with actual connection info (e.g., after reboot with auto-connect)
+    ///
+    /// When the app detects an existing VPN connection on startup, the cache may contain
+    /// stale data from before the reboot. This method syncs the cache with the actual
+    /// connection info from connection_persistence.json.
+    pub fn sync_cache_with_connection(&self, server: &str, ip: &str) {
+        if let Ok(mut cache) = self.cache.lock() {
+            let server_changed = cache.connected_server.as_deref() != Some(server);
+            let ip_changed = cache.connected_ip.as_deref() != Some(ip);
+
+            if server_changed || ip_changed {
+                tracing::debug!(
+                    "Syncing cache: old={:?}/{:?}, new={:?}/{:?}",
+                    cache.connected_server,
+                    cache.connected_ip,
+                    server,
+                    ip
+                );
+                cache.connected_server = Some(server.to_string());
+                cache.connected_ip = Some(ip.to_string());
+                cache.connected_via = None;
+
+                // Update connected_at to boot time if it's before boot
+                if let Some(boot_time) = super::cache::system_boot_time() {
+                    if cache.connected_at.map_or(true, |t| t < boot_time) {
+                        cache.connected_at = Some(boot_time);
+                    }
+                }
+
+                // Persist sync to disk
+                if let Err(e) = self.save_cache() {
+                    tracing::warn!("Failed to persist cache sync: {}", e);
+                }
+            }
+        }
+    }
+
     /// Adjust connected_at timestamp on startup
     ///
     /// If connected_at is persisted from before a reboot, adjust it to the correct value.

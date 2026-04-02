@@ -210,6 +210,10 @@ impl crate::state::AppState {
                 .vpn_state
                 .get_connected_server_info()
                 .unwrap_or_else(|| ("Unknown".to_string(), String::new()));
+
+            // Sync cache with actual connection info (e.g., after reboot with auto-connect)
+            self.vpn_state.sync_cache_with_connection(&server, &ip);
+
             self.connection_manager.connection = ConnectionState::Connected {
                 server,
                 ip,

@@ -13,7 +13,7 @@ use super::types::{City, Server};
 /// Get system boot time from /proc/stat
 ///
 /// Returns None if /proc/stat is unavailable or malformed (non-Linux systems)
-fn system_boot_time() -> Option<DateTime<Utc>> {
+pub fn system_boot_time() -> Option<DateTime<Utc>> {
     let content = std::fs::read_to_string("/proc/stat").ok()?;
     for line in content.lines() {
         if let Some(btime_str) = line.strip_prefix("btime ") {

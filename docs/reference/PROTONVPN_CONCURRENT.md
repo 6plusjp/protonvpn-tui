@@ -84,6 +84,12 @@ impl AsyncTaskManager {
         Self::new_with_workers(10)  // Default: 10 worker threads
     }
 }
+
+impl Default for AsyncTaskManager {
+    fn default() -> Self {
+        Self::new_with_workers(4)  // Default trait: 4 worker threads
+    }
+}
 ```
 
 The thread pool uses a job queue with `Condvar` for efficient blocking:

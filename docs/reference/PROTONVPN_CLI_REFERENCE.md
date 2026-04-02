@@ -414,13 +414,15 @@ protonvpn config set kill-switch <mode>
 
 **Modes**:
 - `off` - Disabled
-- `standard` - Standard kill switch
+- `standard` - Standard kill switch (blocks internet only while VPN is active)
 
 **Usage**:
 ```bash
-protonvpn config set kill-switch on
+protonvpn config set kill-switch standard
 protonvpn config set kill-switch off
 ```
+
+**Note**: Unlike other boolean settings, kill-switch uses `standard` instead of `on`.
 
 ---
 

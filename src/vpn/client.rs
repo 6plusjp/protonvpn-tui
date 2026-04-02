@@ -340,6 +340,18 @@ impl VpnClient {
         super::types::parse_status_uptime(&stdout)
     }
 
+    /// Get full status information from protonvpn status command
+    ///
+    /// Returns None if status command fails or VPN is not connected.
+    /// This is used to restore location information (city/country) on startup.
+    pub fn get_status_info(&self) -> Option<super::types::StatusInfo> {
+        let output = self
+            .run_command_with_timeout(&["status"], std::time::Duration::from_secs(5))
+            .ok()?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        super::types::parse_status_output(&stdout)
+    }
+
     /// Sync cache with actual connection info (e.g., after reboot with auto-connect)
     ///
     /// When the app detects an existing VPN connection on startup, the cache may contain
@@ -373,6 +385,19 @@ impl VpnClient {
                 if let Err(e) = self.save_cache() {
                     tracing::warn!("Failed to persist cache sync: {}", e);
                 }
+            }
+        }
+    }
+
+    /// Adjust connected_at based on uptime duration
+    ///
+    /// Sets connected_at to (now - uptime). Used when restoring connection state
+    /// from protonvpn status output which includes uptime information.
+    pub fn adjust_connected_at_from_uptime(&self, uptime: chrono::Duration) {
+        if let Ok(mut cache) = self.cache.lock() {
+            cache.adjust_connected_at_from_uptime(uptime);
+            if let Err(e) = self.save_cache() {
+                tracing::warn!("Failed to save cache after uptime adjustment: {}", e);
             }
         }
     }

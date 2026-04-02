@@ -206,10 +206,31 @@ impl crate::state::AppState {
         if self.connection_manager.connection == ConnectionState::Disconnected
             && self.vpn_state.is_connected()
         {
-            let (server, ip) = self
-                .vpn_state
-                .get_connected_server_info()
-                .unwrap_or_else(|| ("Unknown".to_string(), String::new()));
+            let (server, ip, city, country) = match self.vpn_state.get_status_info() {
+                Some(status) => {
+                    let server = status.server.unwrap_or_else(|| "Unknown".to_string());
+                    // Get IP from persistence file (status doesn't include IP in all versions)
+                    let ip = self
+                        .vpn_state
+                        .get_connected_server_info()
+                        .map(|(_, ip)| ip)
+                        .unwrap_or_default();
+
+                    // Adjust connected_at from uptime if available
+                    if let Some(uptime) = status.uptime {
+                        self.vpn_state.adjust_connected_at_from_uptime(uptime);
+                    }
+
+                    (server, ip, status.city, status.country)
+                }
+                None => {
+                    let (server, ip) = self
+                        .vpn_state
+                        .get_connected_server_info()
+                        .unwrap_or_else(|| ("Unknown".to_string(), String::new()));
+                    (server, ip, None, None)
+                }
+            };
 
             // Sync cache with actual connection info (e.g., after reboot with auto-connect)
             self.vpn_state.sync_cache_with_connection(&server, &ip);
@@ -217,8 +238,8 @@ impl crate::state::AppState {
             self.connection_manager.connection = ConnectionState::Connected {
                 server,
                 ip,
-                city: None,
-                country: None,
+                city,
+                country,
                 via: None,
             };
             return true;

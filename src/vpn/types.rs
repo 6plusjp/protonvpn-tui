@@ -278,6 +278,123 @@ pub fn parse_connect_output(output: &str) -> ConnectResult {
     }
 }
 
+/// Status information parsed from `protonvpn status` output
+#[derive(Debug, Clone, Default)]
+pub struct StatusInfo {
+    pub server: Option<String>,
+    pub city: Option<String>,
+    pub country: Option<String>,
+    pub protocol: Option<String>,
+    pub uptime: Option<chrono::Duration>,
+}
+
+/// Parse `protonvpn status` output for location information
+///
+/// Supports multiple CLI output formats:
+/// - Format 1: `Location: Tokyo, Japan`
+/// - Format 2: `City: Tokyo` + `Country: Japan`
+/// - Format 3: `Server: JP#374` (fallback: extract country code from server ID)
+///
+/// Returns None if server line is missing (indicates not connected)
+pub fn parse_status_output(output: &str) -> Option<StatusInfo> {
+    let mut info = StatusInfo::default();
+    let mut has_server = false;
+
+    for line in output.lines() {
+        let line = line.trim();
+
+        // Parse Server field
+        if let Some(val) = line.strip_prefix("Server:") {
+            let server = val.trim().to_string();
+            if !server.is_empty() {
+                info.server = Some(server);
+                has_server = true;
+            }
+        }
+        // Parse Location field (Format 1: "Location: Tokyo, Japan")
+        else if let Some(val) = line.strip_prefix("Location:") {
+            let val = val.trim();
+            if let Some(comma_idx) = val.find(", ") {
+                info.city = Some(val[..comma_idx].trim().to_string());
+                info.country = Some(val[comma_idx + 2..].trim().to_string());
+            } else if !val.is_empty() {
+                // No comma - determine if it's a city or country
+                // Country codes are typically 2-3 characters
+                if val.len() <= 3 && val.chars().all(|c| c.is_ascii_uppercase()) {
+                    info.country = Some(val.to_string());
+                } else {
+                    info.city = Some(val.to_string());
+                }
+            }
+        }
+        // Parse City field (Format 2)
+        else if let Some(val) = line.strip_prefix("City:") {
+            let city = val.trim().to_string();
+            if !city.is_empty() {
+                info.city = Some(city);
+            }
+        }
+        // Parse Country field (Format 2)
+        else if let Some(val) = line.strip_prefix("Country:") {
+            let country = val.trim().to_string();
+            if !country.is_empty() {
+                info.country = Some(country);
+            }
+        }
+        // Parse Protocol field
+        else if let Some(val) = line.strip_prefix("Protocol:") {
+            let protocol = val.trim().to_string();
+            if !protocol.is_empty() {
+                info.protocol = Some(protocol);
+            }
+        }
+        // Parse Uptime/Time field
+        else if let Some(time_str) = line
+            .strip_prefix("Uptime:")
+            .or_else(|| line.strip_prefix("Time:"))
+        {
+            let time_str = time_str.trim();
+            let parts: Vec<&str> = time_str.split(':').collect();
+            if parts.len() == 3 {
+                if let (Ok(hours), Ok(mins), Ok(secs)) = (
+                    parts[0].parse::<i64>(),
+                    parts[1].parse::<i64>(),
+                    parts[2].parse::<i64>(),
+                ) {
+                    let total_seconds = hours * 3600 + mins * 60 + secs;
+                    info.uptime = Some(chrono::Duration::seconds(total_seconds));
+                }
+            }
+        }
+    }
+
+    // Fallback: extract country code from server ID if country is missing
+    if info.country.is_none() {
+        if let Some(ref server) = info.server {
+            info.country = extract_country_code(server);
+        }
+    }
+
+    if has_server {
+        Some(info)
+    } else {
+        None
+    }
+}
+
+/// Extract country code from server ID
+///
+/// Examples:
+/// - "JP#374" → "JP"
+/// - "CH-JP#2" → "CH" (entry country for Secure Core)
+fn extract_country_code(server_id: &str) -> Option<String> {
+    server_id
+        .split(['#', '-'])
+        .next()
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+}
+
 /// Parse uptime from protonvpn status output
 ///
 /// Supports both "Uptime:" and "Time:" field names (varies by CLI version)
@@ -641,5 +758,112 @@ Time: 00:30:00"#;
         assert!(uptime.is_some());
         let uptime = uptime.unwrap();
         assert_eq!(uptime.num_seconds(), 1 * 3600);
+    }
+
+    #[test]
+    fn test_parse_status_output_location_format() {
+        let output = r#"Server: JP#374
+Location: Tokyo, Japan
+Protocol: WireGuard
+Uptime: 00:15:32"#;
+        let info = parse_status_output(output);
+        assert!(info.is_some());
+        let info = info.unwrap();
+        assert_eq!(info.server, Some("JP#374".to_string()));
+        assert_eq!(info.city, Some("Tokyo".to_string()));
+        assert_eq!(info.country, Some("Japan".to_string()));
+        assert_eq!(info.protocol, Some("WireGuard".to_string()));
+        assert_eq!(info.uptime, Some(chrono::Duration::seconds(15 * 60 + 32)));
+    }
+
+    #[test]
+    fn test_parse_status_output_city_country_format() {
+        let output = r#"Status: Connected
+Server: JP#374
+Country: Japan
+City: Tokyo
+IP: 159.26.119.144
+Uptime: 00:15:32"#;
+        let info = parse_status_output(output);
+        assert!(info.is_some());
+        let info = info.unwrap();
+        assert_eq!(info.server, Some("JP#374".to_string()));
+        assert_eq!(info.city, Some("Tokyo".to_string()));
+        assert_eq!(info.country, Some("Japan".to_string()));
+        assert_eq!(info.uptime, Some(chrono::Duration::seconds(15 * 60 + 32)));
+    }
+
+    #[test]
+    fn test_parse_status_output_location_city_only() {
+        let output = r#"Server: JP#374
+Location: Tokyo
+Protocol: WireGuard"#;
+        let info = parse_status_output(output);
+        assert!(info.is_some());
+        let info = info.unwrap();
+        assert_eq!(info.server, Some("JP#374".to_string()));
+        assert_eq!(info.city, Some("Tokyo".to_string()));
+        assert_eq!(info.country, Some("JP".to_string()));
+    }
+
+    #[test]
+    fn test_parse_status_output_fallback_country_from_server_id() {
+        let output = r#"Server: JP#374
+Protocol: WireGuard"#;
+        let info = parse_status_output(output);
+        assert!(info.is_some());
+        let info = info.unwrap();
+        assert_eq!(info.server, Some("JP#374".to_string()));
+        assert_eq!(info.city, None);
+        assert_eq!(info.country, Some("JP".to_string()));
+    }
+
+    #[test]
+    fn test_parse_status_output_secure_core_server_id() {
+        let output = r#"Server: CH-JP#2
+Location: Tokyo
+Protocol: WireGuard"#;
+        let info = parse_status_output(output);
+        assert!(info.is_some());
+        let info = info.unwrap();
+        assert_eq!(info.server, Some("CH-JP#2".to_string()));
+        assert_eq!(info.city, Some("Tokyo".to_string()));
+        assert_eq!(info.country, Some("CH".to_string()));
+    }
+
+    #[test]
+    fn test_parse_status_output_not_connected() {
+        let output = "Status: Disconnected";
+        let info = parse_status_output(output);
+        assert!(info.is_none());
+    }
+
+    #[test]
+    fn test_parse_status_output_empty() {
+        let output = "";
+        let info = parse_status_output(output);
+        assert!(info.is_none());
+    }
+
+    #[test]
+    fn test_extract_country_code_simple() {
+        assert_eq!(extract_country_code("JP#374"), Some("JP".to_string()));
+        assert_eq!(extract_country_code("US#100"), Some("US".to_string()));
+    }
+
+    #[test]
+    fn test_extract_country_code_secure_core() {
+        assert_eq!(extract_country_code("CH-JP#2"), Some("CH".to_string()));
+        assert_eq!(extract_country_code("US-DE#5"), Some("US".to_string()));
+    }
+
+    #[test]
+    fn test_extract_country_code_no_hash() {
+        assert_eq!(extract_country_code("JP"), Some("JP".to_string()));
+    }
+
+    #[test]
+    fn test_extract_country_code_empty() {
+        assert_eq!(extract_country_code(""), None);
     }
 }

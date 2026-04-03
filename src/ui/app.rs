@@ -1,11 +1,11 @@
 use crate::config::UserConfig;
-use crate::state::{AppState, ConnectionState, InputMode};
+use crate::state::{AppState, InputMode};
 use crate::ui::input::{self as input_handler, InputState};
 use crate::ui::render::{Renderable, ServersViewState, View};
 use crate::ui::renderers::{footer, header, input as input_renderer, notification};
 use crossterm::{
     cursor::SetCursorStyle,
-    event::{self, Event, KeyEventKind, KeyModifiers},
+    event::{self, Event, KeyEventKind},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -16,9 +16,25 @@ use ratatui::{
     widgets::Paragraph,
     Frame, Terminal,
 };
-use std::io;
+use std::io::{self, IsTerminal, Write};
+use std::os::fd::AsRawFd;
 use std::panic;
 use std::time::Instant;
+
+fn open_tty() -> Option<std::fs::File> {
+    std::fs::File::open("/dev/tty").ok()
+}
+
+fn write_debug(msg: &str) {
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("/tmp/protonvpn-tui-input.log")
+    {
+        let _ = writeln!(f, "{}", msg);
+        let _ = f.flush();
+    }
+}
 
 /// Main TUI application
 pub struct TuiApp {
@@ -57,49 +73,73 @@ impl TuiApp {
     }
 
     pub fn run(&mut self) -> io::Result<()> {
+        write_debug("run() started");
+
+        if !io::stdin().is_terminal() {
+            write_debug("stdin is not terminal, trying /dev/tty");
+            if let Some(tty) = open_tty() {
+                unsafe {
+                    let tty_fd = tty.as_raw_fd();
+                    if libc::dup2(tty_fd, libc::STDIN_FILENO) < 0 {
+                        write_debug("dup2 failed for stdin, continuing");
+                    } else {
+                        write_debug("dup2 succeeded, stdin redirected to /dev/tty");
+                    }
+                }
+            }
+        } else {
+            write_debug("stdin is already a terminal");
+        }
+
+        if !io::stdout().is_terminal() {
+            write_debug("stdout is not terminal, trying /dev/tty");
+            if let Some(tty) = open_tty() {
+                unsafe {
+                    let tty_fd = tty.as_raw_fd();
+                    if libc::dup2(tty_fd, libc::STDOUT_FILENO) < 0 {
+                        write_debug("dup2 failed for stdout, continuing");
+                    } else {
+                        write_debug("dup2 succeeded, stdout redirected to /dev/tty");
+                    }
+                }
+            }
+        } else {
+            write_debug("stdout is already a terminal");
+        }
+
+        io::stdout().flush()?;
+        write_debug("after stdout flush");
+
         execute!(
             io::stdout(),
             EnterAlternateScreen,
             SetCursorStyle::SteadyBar
         )?;
+        write_debug("after execute!");
+
         enable_raw_mode()?;
+        write_debug("after enable_raw_mode!");
 
         let backend = CrosstermBackend::new(io::stdout());
+        write_debug("after CrosstermBackend::new");
         let mut terminal = Terminal::new(backend)?;
+        write_debug("after Terminal::new");
 
+        terminal.draw(|f| self.render(f))?;
+        write_debug("after initial draw");
+        self.last_render_time = Instant::now();
+        write_debug("about to enter loop");
+        std::io::stdout().flush().ok();
+
+        // Manual render loop without wait_for_async_events
         loop {
-            let async_processed = self
-                .state
-                .wait_for_async_events(std::time::Duration::from_millis(10));
+            // Render every 100ms regardless of state
+            terminal.draw(|f| self.render(f))?;
+            self.last_render_time = Instant::now();
 
-            let notifications_expired = self.state.notification_state.tick();
-            self.state.notification_state.flush_if_dirty();
-
-            // Always redraw on first iteration to show loading screen
-            let is_first_render = self.state.is_initialized;
-            let is_connected = matches!(
-                self.state.connection_manager.connection,
-                ConnectionState::Connected { .. }
-            );
-            let elapsed = self.last_render_time.elapsed();
-            let should_update_session =
-                is_connected && elapsed >= std::time::Duration::from_secs(5);
-
-            if !is_first_render || async_processed || notifications_expired || should_update_session
-            {
-                terminal.draw(|f| self.render(f))?;
-                self.last_render_time = Instant::now();
-            }
-
-            // Check for keyboard input (non-blocking)
-            if event::poll(std::time::Duration::from_millis(0))? {
-                if let Event::Key(key_event) = event::read()? {
-                    // Handle Ctrl+C for graceful shutdown
-                    if key_event.code == crossterm::event::KeyCode::Char('c')
-                        && key_event.modifiers.contains(KeyModifiers::CONTROL)
-                    {
-                        break;
-                    }
+            // Use crossterm's event poll
+            if event::poll(std::time::Duration::from_millis(100))? {
+                if let Ok(Event::Key(key_event)) = event::read() {
                     if key_event.kind == KeyEventKind::Press {
                         let mut input_ctx = InputState::new(
                             &mut self.state,
@@ -126,8 +166,6 @@ impl TuiApp {
                         }
                     }
                 }
-
-                terminal.draw(|f| self.render(f))?;
             }
         }
 

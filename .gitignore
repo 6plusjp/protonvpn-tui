@@ -7,6 +7,7 @@
 *.swo
 *~
 .vscode/
+.opencode/
 
 # OS
 .DS_Store

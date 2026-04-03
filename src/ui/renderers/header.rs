@@ -40,6 +40,7 @@ pub fn render_header(state: &AppState, f: &mut Frame<'_>, area: Rect) {
                 city,
                 country,
                 via,
+                load: _,
             } => {
                 let mut spans = vec![];
 

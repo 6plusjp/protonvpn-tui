@@ -61,6 +61,7 @@ impl TuiApp {
         let ui_config = config.ui.clone();
         let mut state = AppState::from_config(&key_bindings, &ui_config, config);
         state.refresh_servers();
+        state.sync_connection_from_vpn();
 
         Ok(Self {
             state,
@@ -136,6 +137,9 @@ impl TuiApp {
             // Render every 100ms regardless of state
             terminal.draw(|f| self.render(f))?;
             self.last_render_time = Instant::now();
+
+            // Process async events (non-blocking)
+            self.state.process_async_events();
 
             // Use crossterm's event poll
             if event::poll(std::time::Duration::from_millis(100))? {

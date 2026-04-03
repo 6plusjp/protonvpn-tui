@@ -286,6 +286,7 @@ pub struct StatusInfo {
     pub country: Option<String>,
     pub protocol: Option<String>,
     pub uptime: Option<chrono::Duration>,
+    pub load: Option<u8>, // Server load percentage (0-100)
 }
 
 /// Parse `protonvpn status` output for location information
@@ -346,6 +347,16 @@ pub fn parse_status_output(output: &str) -> Option<StatusInfo> {
             let protocol = val.trim().to_string();
             if !protocol.is_empty() {
                 info.protocol = Some(protocol);
+            }
+        }
+        // Parse Load field
+        else if let Some(val) = line.strip_prefix("Load:") {
+            let val = val.trim();
+            if let Some(percent_idx) = val.find('%') {
+                let load_str = &val[..percent_idx];
+                if let Ok(load) = load_str.parse::<u8>() {
+                    info.load = Some(load);
+                }
             }
         }
         // Parse Uptime/Time field
@@ -865,5 +876,41 @@ Protocol: WireGuard"#;
     #[test]
     fn test_extract_country_code_empty() {
         assert_eq!(extract_country_code(""), None);
+    }
+
+    #[test]
+    fn test_parse_status_output_with_load() {
+        let output = r#"Status: Connected
+Server: JP#374 in Tokyo, Japan
+Load: 5%
+Protocol: WireGuard
+Uptime: 00:15:32"#;
+        let info = parse_status_output(output);
+        assert!(info.is_some());
+        let info = info.unwrap();
+        assert_eq!(info.server, Some("JP#374 in Tokyo, Japan".to_string()));
+        assert_eq!(info.load, Some(5));
+    }
+
+    #[test]
+    fn test_parse_status_output_load_100_percent() {
+        let output = r#"Status: Connected
+Server: JP#374
+Load: 100%"#;
+        let info = parse_status_output(output);
+        assert!(info.is_some());
+        let info = info.unwrap();
+        assert_eq!(info.load, Some(100));
+    }
+
+    #[test]
+    fn test_parse_status_output_missing_load() {
+        let output = r#"Status: Connected
+Server: JP#374
+Protocol: WireGuard"#;
+        let info = parse_status_output(output);
+        assert!(info.is_some());
+        let info = info.unwrap();
+        assert_eq!(info.load, None);
     }
 }

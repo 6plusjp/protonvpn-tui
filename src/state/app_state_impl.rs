@@ -207,4 +207,20 @@ impl crate::state::AppState {
             self.connection_manager.async_notifier.clone(),
         );
     }
+
+    pub fn sync_connection_from_vpn(&mut self) {
+        if self.vpn_state.is_connected() {
+            if let Some((server, ip)) = self.vpn_state.get_connected_server_info() {
+                self.connection_manager.connection = ConnectionState::Connected {
+                    server: server.clone(),
+                    ip,
+                    city: None,
+                    country: None,
+                    via: None,
+                    load: None,
+                };
+                tracing::info!("Synced connection from VPN: {}", server);
+            }
+        }
+    }
 }

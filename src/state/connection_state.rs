@@ -14,6 +14,7 @@ pub enum ConnectionState {
         city: Option<String>,
         country: Option<String>,
         via: Option<String>,
+        load: Option<u8>,
     },
     Disconnecting,
     Error(String),

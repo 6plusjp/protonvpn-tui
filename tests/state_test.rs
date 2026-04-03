@@ -331,6 +331,7 @@ mod connection_state {
             city: None,
             country: None,
             via: None,
+            load: None,
         };
         assert!(state.is_connected());
     }
@@ -379,6 +380,7 @@ mod connection_state {
             city: None,
             country: None,
             via: None,
+            load: None,
         };
         assert!(!state.can_connect());
     }
@@ -415,6 +417,7 @@ mod connection_state {
             city: None,
             country: None,
             via: None,
+            load: None,
         };
         assert!(!state.is_disconnected());
     }
@@ -427,6 +430,7 @@ mod connection_state {
             city: None,
             country: None,
             via: None,
+            load: None,
         };
         let state2 = ConnectionState::Connected {
             server: "JP".to_string(),
@@ -434,6 +438,7 @@ mod connection_state {
             city: None,
             country: None,
             via: None,
+            load: None,
         };
         assert_eq!(state1, state2);
     }

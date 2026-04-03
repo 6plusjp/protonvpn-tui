@@ -358,9 +358,20 @@ impl VpnClient {
     /// stale data from before the reboot. This method syncs the cache with the actual
     /// connection info from connection_persistence.json.
     pub fn sync_cache_with_connection(&self, server: &str, ip: &str) {
+        tracing::debug!(
+            "sync_cache_with_connection called: server={}, ip={}",
+            server,
+            ip
+        );
         if let Ok(mut cache) = self.cache.lock() {
             let server_changed = cache.connected_server.as_deref() != Some(server);
             let ip_changed = cache.connected_ip.as_deref() != Some(ip);
+
+            tracing::debug!(
+                "sync_cache_with_connection: server_changed={}, ip_changed={}",
+                server_changed,
+                ip_changed
+            );
 
             if server_changed || ip_changed {
                 tracing::debug!(
@@ -381,9 +392,28 @@ impl VpnClient {
                     }
                 }
 
-                // Persist sync to disk
+                // Skip disk persist during startup to avoid blocking
+                tracing::debug!("sync_cache_with_connection: cache updated (skipping disk save)");
+            } else {
+                tracing::debug!("sync_cache_with_connection: no changes needed");
+            }
+        }
+    }
+    pub fn update_connected_at(&self, server: &str, ip: &str) {
+        tracing::debug!("update_connected_at called: server={}, ip={}", server, ip);
+        if let Ok(mut cache) = self.cache.lock() {
+            let server_changed = cache.connected_server.as_deref() != Some(server);
+            let ip_changed = cache.connected_ip.as_deref() != Some(ip);
+
+            if server_changed || ip_changed {
+                cache.connected_server = Some(server.to_string());
+                cache.connected_ip = Some(ip.to_string());
+                if let Some(boot_time) = super::cache::system_boot_time() {
+                    cache.connected_at = Some(boot_time);
+                    tracing::debug!("update_connected_at: server changed, reset to boot_time");
+                }
                 if let Err(e) = self.save_cache() {
-                    tracing::warn!("Failed to persist cache sync: {}", e);
+                    tracing::warn!("Failed to save cache after server change: {}", e);
                 }
             }
         }
@@ -402,40 +432,17 @@ impl VpnClient {
         }
     }
 
-    /// Adjust connected_at timestamp on startup
-    ///
-    /// If connected_at is persisted from before a reboot, adjust it to the correct value.
-    /// Priority:
-    /// 1. Use protonvpn status uptime (most accurate)
-    /// 2. Fall back to system boot time validation
     fn adjust_connected_at_on_startup(&self) {
         let is_connected = self.with_cache(|c| c.is_connected()).unwrap_or(false);
         if !is_connected {
             return;
         }
 
-        // Try to get uptime from protonvpn status (Note: current CLI versions may not include this field)
-        if let Some(uptime) = self.get_status_uptime() {
-            tracing::info!(
-                "Adjusting connected_at from protonvpn status uptime: {}",
-                uptime
-            );
-            if let Err(e) = self.with_cache(|c| c.adjust_connected_at_from_uptime(uptime)) {
-                tracing::warn!("Failed to adjust connected_at from uptime: {}", e);
-            }
-            if let Err(e) = self.save_cache() {
-                tracing::warn!("Failed to save cache after uptime adjustment: {}", e);
-            }
-            return;
-        }
-
-        // Fallback: validate against boot time (uptime field not available in current CLI)
-        tracing::debug!(
-            "Uptime field not available in protonvpn status, validating against boot time"
-        );
+        tracing::debug!("adjust_connected_at_on_startup: is_connected=true");
         if let Err(e) = self.with_cache(|c| c.validate_after_boot()) {
             tracing::warn!("Failed to validate connected_at after boot: {}", e);
         }
+        // Save after validation
         if let Err(e) = self.save_cache() {
             tracing::warn!("Failed to save cache after boot validation: {}", e);
         }

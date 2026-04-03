@@ -211,6 +211,7 @@ impl crate::state::AppState {
     pub fn sync_connection_from_vpn(&mut self) {
         if self.vpn_state.is_connected() {
             if let Some((server, ip)) = self.vpn_state.get_connected_server_info() {
+                let ip_clone = ip.clone();
                 self.connection_manager.connection = ConnectionState::Connected {
                     server: server.clone(),
                     ip,
@@ -219,6 +220,7 @@ impl crate::state::AppState {
                     via: None,
                     load: None,
                 };
+                self.vpn_state.update_connected_at(&server, &ip_clone);
                 tracing::info!("Synced connection from VPN: {}", server);
             }
         }

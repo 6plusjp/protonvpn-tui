@@ -61,7 +61,6 @@ impl TuiApp {
         let ui_config = config.ui.clone();
         let mut state = AppState::from_config(&key_bindings, &ui_config, config);
         state.refresh_servers();
-        state.sync_connection_from_vpn();
 
         Ok(Self {
             state,
@@ -140,6 +139,11 @@ impl TuiApp {
 
             // Process async events (non-blocking)
             self.state.process_async_events();
+
+            // Lightweight connection sync if not yet synced
+            if !self.state.connection_manager.connection.is_connected() {
+                self.state.sync_connection_from_vpn();
+            }
 
             // Use crossterm's event poll
             if event::poll(std::time::Duration::from_millis(100))? {

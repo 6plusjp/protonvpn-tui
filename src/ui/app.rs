@@ -5,7 +5,7 @@ use crate::ui::render::{Renderable, ServersViewState, View};
 use crate::ui::renderers::{footer, header, input as input_renderer, notification};
 use crossterm::{
     cursor::SetCursorStyle,
-    event::{self, Event, KeyEventKind},
+    event::{self, Event, KeyEventKind, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -147,6 +147,14 @@ impl TuiApp {
             // Use crossterm's event poll
             if event::poll(std::time::Duration::from_millis(100))? {
                 if let Ok(Event::Key(key_event)) = event::read() {
+                    // Handle Ctrl+C for graceful shutdown
+                    if key_event.kind == KeyEventKind::Press
+                        && key_event.code == crossterm::event::KeyCode::Char('c')
+                        && key_event.modifiers.contains(KeyModifiers::CONTROL)
+                    {
+                        break;
+                    }
+
                     if key_event.kind == KeyEventKind::Press {
                         let mut input_ctx = InputState::new(
                             &mut self.state,

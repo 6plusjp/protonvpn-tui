@@ -127,6 +127,7 @@ pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
                 ("Esc".to_string(), "Return to previous view".to_string()),
                 ("/".to_string(), "Open filter".to_string()),
                 ("q".to_string(), "Quit application".to_string()),
+                ("Ctrl+C".to_string(), "Quit application".to_string()),
             ],
         ),
     ];

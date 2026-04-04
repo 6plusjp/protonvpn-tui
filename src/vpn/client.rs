@@ -180,8 +180,22 @@ impl VpnClient {
         } else {
             fallback_name.to_string()
         };
+
+        let needs_time_update = self
+            .with_cache(|c| {
+                c.connected_server.as_deref() != Some(&final_server)
+                    || c.connected_ip.as_deref() != result.ip.as_deref()
+            })
+            .unwrap_or(true);
+
         self.with_cache(|c| {
-            c.set_connected(final_server.clone(), result.ip.clone(), result.via.clone())
+            if needs_time_update {
+                c.set_connected(final_server.clone(), result.ip.clone(), result.via.clone())
+            } else {
+                c.connected_server = Some(final_server.clone());
+                c.connected_ip = result.ip.clone();
+                c.connected_via = result.via.clone();
+            }
         })?;
         self.save_cache()?;
 
@@ -314,6 +328,25 @@ impl VpnClient {
         self.with_cache(|c| c.connected_at).ok().flatten()
     }
 
+    pub fn get_connected_server(&self) -> Option<String> {
+        self.with_cache(|c| c.connected_server.clone())
+            .ok()
+            .flatten()
+    }
+
+    pub fn get_connected_ip(&self) -> Option<String> {
+        self.with_cache(|c| c.connected_ip.clone()).ok().flatten()
+    }
+
+    pub fn clear_connected_at(&self) {
+        if let Ok(mut cache) = self.cache.lock() {
+            cache.connected_at = None;
+            if let Err(e) = self.save_cache() {
+                tracing::warn!("Failed to save cache after clearing connected_at: {}", e);
+            }
+        }
+    }
+
     /// Get connection statistics (bytes_received, bytes_sent) from sysfs
     ///
     /// Returns None if proton0 interface doesn't exist or sysfs is unreadable.
@@ -405,14 +438,27 @@ impl VpnClient {
             let server_changed = cache.connected_server.as_deref() != Some(server);
             let ip_changed = cache.connected_ip.as_deref() != Some(ip);
 
+            tracing::debug!(
+                "update_connected_at: server_changed={}, ip_changed={}, cached_server={:?}, cached_ip={:?}, new_server={}, new_ip={}",
+                server_changed,
+                ip_changed,
+                cache.connected_server,
+                cache.connected_ip,
+                server,
+                ip
+            );
+
             if server_changed || ip_changed {
                 cache.connected_server = Some(server.to_string());
                 cache.connected_ip = Some(ip.to_string());
-                if let Some(boot_time) = super::cache::system_boot_time() {
-                    cache.connected_at = Some(boot_time);
-                    tracing::debug!("update_connected_at: server changed, reset to boot_time");
+                cache.connected_at = Some(chrono::Utc::now());
+                tracing::debug!("update_connected_at: server/ip changed, reset to current time");
+                drop(cache);
+                if let Err(e) = self.save_cache() {
+                    tracing::warn!("Failed to save cache in update_connected_at: {}", e);
                 }
-                tracing::debug!("update_connected_at: skipping cache save to avoid hang");
+            } else {
+                tracing::debug!("update_connected_at: same server/ip, no update needed");
             }
         }
     }

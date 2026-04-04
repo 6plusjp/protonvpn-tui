@@ -209,8 +209,24 @@ impl crate::state::AppState {
     }
 
     pub fn sync_connection_from_vpn(&mut self) {
-        if self.vpn_state.is_connected() {
+        let is_connected = self.vpn_state.is_connected();
+        tracing::debug!("sync_connection_from_vpn: is_connected={}", is_connected);
+
+        if is_connected {
             if let Some((server, ip)) = self.vpn_state.get_connected_server_info() {
+                tracing::debug!("sync_connection_from_vpn: server={}, ip={}", server, ip);
+
+                let current_server = self.vpn_state.get_connected_server();
+                let current_ip = self.vpn_state.get_connected_ip();
+                tracing::debug!(
+                    "sync_connection_from_vpn: current_server={:?}, current_ip={:?}",
+                    current_server,
+                    current_ip
+                );
+
+                let server_changed = current_server.as_deref() != Some(&server);
+                let ip_changed = current_ip.as_deref() != Some(&ip);
+
                 let ip_clone = ip.clone();
                 self.connection_manager.connection = ConnectionState::Connected {
                     server: server.clone(),
@@ -220,9 +236,17 @@ impl crate::state::AppState {
                     via: None,
                     load: None,
                 };
-                self.vpn_state.update_connected_at(&server, &ip_clone);
-                tracing::info!("Synced connection from VPN: {}", server);
+
+                if server_changed || ip_changed {
+                    self.vpn_state.update_connected_at(&server, &ip_clone);
+                    tracing::info!("Synced connection from VPN (server changed): {}", server);
+                } else {
+                    tracing::debug!("sync_connection_from_vpn: same server/ip, preserving session");
+                }
             }
+        } else {
+            self.vpn_state.clear_connected_at();
+            tracing::debug!("sync_connection_from_vpn: not connected, cleared connected_at");
         }
     }
 }

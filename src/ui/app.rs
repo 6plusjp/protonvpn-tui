@@ -140,7 +140,9 @@ impl TuiApp {
             // Process async events (non-blocking)
             self.state.process_async_events();
 
-            // Lightweight connection sync if not yet synced
+            self.state.notification_state.tick();
+            self.state.notification_state.flush_if_dirty();
+
             if !self.state.connection_manager.connection.is_connected() {
                 self.state.sync_connection_from_vpn();
             }

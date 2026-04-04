@@ -412,9 +412,7 @@ impl VpnClient {
                     cache.connected_at = Some(boot_time);
                     tracing::debug!("update_connected_at: server changed, reset to boot_time");
                 }
-                if let Err(e) = self.save_cache() {
-                    tracing::warn!("Failed to save cache after server change: {}", e);
-                }
+                tracing::debug!("update_connected_at: skipping cache save to avoid hang");
             }
         }
     }

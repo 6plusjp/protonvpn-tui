@@ -196,6 +196,32 @@ impl crate::state::AppState {
                     );
                     notification_shown = true;
                 }
+                AsyncEvent::StatusInfoLoaded(status) => {
+                    if let ConnectionState::Connected { .. } = &self.connection_manager.connection {
+                        if let Some(server) = status.server {
+                            let server_ip = self
+                                .vpn_state
+                                .get_connected_server_info()
+                                .map(|(_, ip)| ip)
+                                .unwrap_or_default();
+
+                            self.connection_manager.connection = ConnectionState::Connected {
+                                server: server.clone(),
+                                ip: server_ip,
+                                city: status.city,
+                                country: status.country,
+                                via: None,
+                                load: status.load,
+                            };
+
+                            if let Some(uptime) = status.uptime {
+                                self.vpn_state.adjust_connected_at_from_uptime(uptime);
+                            }
+
+                            tracing::info!("Updated connection state from status info: {}", server);
+                        }
+                    }
+                }
             }
         }
         notification_shown

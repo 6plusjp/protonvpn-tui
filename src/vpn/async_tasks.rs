@@ -76,6 +76,10 @@ enum Job {
         vpn_state: Arc<VpnClient>,
         notifier: Arc<AsyncNotifier>,
     },
+    GetStatusInfo {
+        vpn_state: Arc<VpnClient>,
+        notifier: Arc<AsyncNotifier>,
+    },
 }
 
 /// Custom thread pool for executing VPN operations.
@@ -270,6 +274,15 @@ impl ThreadPool {
                     AsyncEvent::ConnectFailed,
                 );
             }
+            Job::GetStatusInfo {
+                vpn_state,
+                notifier,
+            } => {
+                let result = vpn_state.get_status_info();
+                if let Some(status) = result {
+                    notifier.notify(AsyncEvent::StatusInfoLoaded(status));
+                }
+            }
         }
     }
 
@@ -417,6 +430,13 @@ impl AsyncTaskManager {
         notifier: Arc<AsyncNotifier>,
     ) {
         self.pool.submit(Job::ConnectSecureCore {
+            vpn_state,
+            notifier,
+        });
+    }
+
+    pub fn spawn_status_info(&self, vpn_state: Arc<VpnClient>, notifier: Arc<AsyncNotifier>) {
+        self.pool.submit(Job::GetStatusInfo {
             vpn_state,
             notifier,
         });

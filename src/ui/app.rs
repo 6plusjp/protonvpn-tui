@@ -62,6 +62,10 @@ impl TuiApp {
         let mut state = AppState::from_config(&key_bindings, &ui_config, config);
         state.refresh_servers();
         state.sync_connection_from_vpn();
+        state.connection_manager.async_manager.spawn_status_info(
+            state.vpn_state.clone(),
+            state.connection_manager.async_notifier.clone(),
+        );
 
         Ok(Self {
             state,

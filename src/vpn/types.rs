@@ -308,8 +308,25 @@ pub fn parse_status_output(output: &str) -> Option<StatusInfo> {
         if let Some(val) = line.strip_prefix("Server:") {
             let server = val.trim().to_string();
             if !server.is_empty() {
-                info.server = Some(server);
-                has_server = true;
+                // Check for "JP#250 in Tokyo, Japan" format
+                if let Some(in_idx) = server.find(" in ") {
+                    let server_part = server[..in_idx].trim();
+                    let location_part = server[in_idx + 4..].trim();
+
+                    info.server = Some(server_part.to_string());
+                    has_server = true;
+
+                    // Parse location from "Tokyo, Japan" or "Tokyo"
+                    if let Some(comma_idx) = location_part.find(", ") {
+                        info.city = Some(location_part[..comma_idx].trim().to_string());
+                        info.country = Some(location_part[comma_idx + 2..].trim().to_string());
+                    } else if !location_part.is_empty() {
+                        info.city = Some(location_part.to_string());
+                    }
+                } else {
+                    info.server = Some(server);
+                    has_server = true;
+                }
             }
         }
         // Parse Location field (Format 1: "Location: Tokyo, Japan")
@@ -888,7 +905,9 @@ Uptime: 00:15:32"#;
         let info = parse_status_output(output);
         assert!(info.is_some());
         let info = info.unwrap();
-        assert_eq!(info.server, Some("JP#374 in Tokyo, Japan".to_string()));
+        assert_eq!(info.server, Some("JP#374".to_string()));
+        assert_eq!(info.city, Some("Tokyo".to_string()));
+        assert_eq!(info.country, Some("Japan".to_string()));
         assert_eq!(info.load, Some(5));
     }
 

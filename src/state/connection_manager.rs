@@ -25,6 +25,7 @@ pub enum AsyncEvent {
     ConnectCityFailed(String),
     ConfigSetResult(String),
     ConfigSetFailed(String),
+    StatusInfoLoaded(crate::vpn::StatusInfo),
 }
 
 /// Notifier for async task completion (event-driven wakeup)

@@ -11,6 +11,9 @@ pub fn handle_servers_key(input: &mut InputState, key_event: KeyEvent) -> Option
     let is_refresh = bindings
         .refresh
         .matches(key_event.code, key_event.modifiers);
+    let is_connect = bindings
+        .connect
+        .matches(key_event.code, key_event.modifiers);
     let is_pane_next = bindings
         .pane_next
         .matches(key_event.code, key_event.modifiers);
@@ -25,6 +28,19 @@ pub fn handle_servers_key(input: &mut InputState, key_event: KeyEvent) -> Option
         .matches(key_event.code, key_event.modifiers);
 
     match key_event.code {
+        _ if is_connect => {
+            if input.state.ui_state.pane_focus == Pane::Cities {
+                if let Some(idx) = input.state.ui_state.selected_city {
+                    let city_name = input.state.current_cities.get(idx).map(|c| c.name.clone());
+                    if let Some(name) = city_name {
+                        input.state.connect_city(&name);
+                    }
+                }
+            } else {
+                input.state.connect();
+            }
+            None
+        }
         _ if is_pane_next => {
             input.state.move_to_cities();
             None

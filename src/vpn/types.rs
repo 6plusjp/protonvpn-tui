@@ -425,6 +425,9 @@ fn extract_country_code(server_id: &str) -> Option<String> {
 
 /// Parse uptime from protonvpn status output
 ///
+/// **NOTE**: Current ProtonVPN CLI (v0.1.8+) does NOT include uptime field.
+/// This function exists for future CLI versions that may include it.
+///
 /// Supports both "Uptime:" and "Time:" field names (varies by CLI version)
 /// Expected format: "Uptime: 00:15:32" or "Time: 00:15:32"
 /// Returns None if uptime line is missing or malformed

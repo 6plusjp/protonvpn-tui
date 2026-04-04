@@ -64,7 +64,9 @@ Use `protonvpn status` command to restore location information on startup.
    - Calls `protonvpn status` and parses output
 
 5. **`adjust_connected_at_from_uptime()` method** in `client.rs`:
-   - Adjusts connected_at timestamp based on uptime from status
+   - Exists for future CLI versions that may include uptime
+   - Currently returns `None` since CLI doesn't output uptime
+   - Falls back to boot_time validation for pre-reboot timestamps
 
 6. **`sync_connection_state()` update** in `event_handler.rs`:
    - Gets status info from `protonvpn status`

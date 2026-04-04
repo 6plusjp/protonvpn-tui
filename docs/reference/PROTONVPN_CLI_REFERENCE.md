@@ -159,13 +159,6 @@ Protocol: wireguard
 | `IP` | `159.26.119.144` | IP address | v2 only |
 | `Load` | `15%` | Server load percentage | v1 only |
 | `Protocol` | `wireguard` | VPN protocol (lowercase) | v1 only |
-| `Uptime` | `00:15:32` | Connection time (HH:MM:SS) | v2 only |
-| `Time` | `1:23:45` | Alternative uptime field | v2 variant |
-
-**Note**: 
-- Format varies by CLI version
-- `Uptime`/`Time` fields are NOT present in current CLI versions (v0.1.8+)
-- The TUI parses `Uptime:` and `Time:` fields if present (see `parse_status_uptime()`)
 
 **Behavior**:
 - Shows connection details if connected

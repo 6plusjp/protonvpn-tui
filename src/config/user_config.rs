@@ -3,7 +3,7 @@ use crate::paths;
 use crate::ui::{KeyArrow, KeyMap, KeyMatcher};
 use crossterm::event::KeyModifiers;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 /// UI configuration (theme, footer, favorites)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -681,6 +681,184 @@ fn format_keymatchers(matchers: &[KeyMatcherConfig]) -> String {
         })
         .collect();
     format!("[{}]", items.join(", "))
+}
+
+impl KeyBindingsConfig {
+    /// Validate keybindings for conflicts and reserved keys
+    /// Returns Ok(()) if valid, Err(KeyBindingError) if conflicts found
+    pub fn validate(&self) -> Result<(), KeyBindingError> {
+        let mut used_keys: HashMap<String, String> = HashMap::new();
+
+        // Get all keybindings as action-name -> matchers pairs
+        let all_bindings = self.to_action_bindings();
+
+        // Fixed keys that cannot be customized
+        let fixed_keys = [
+            "j", "k", "g", "G", "h", "l", "q", "?", "/", "\t",   // Tab
+            "\x1b", // Esc
+            "\n",   // Enter
+            "\x7f", // Backspace
+        ];
+        let fixed_mods = ["Control", "Alt", "Shift"];
+
+        for (action_name, matchers) in all_bindings {
+            for matcher in matchers {
+                let key_str = matcher.to_display_string();
+
+                // Check if key is reserved
+                if fixed_keys.iter().any(|k| key_str == *k) {
+                    return Err(KeyBindingError::ReservedKey(
+                        action_name.to_string(),
+                        key_str,
+                    ));
+                }
+
+                // Check modifiers for reserved combinations
+                if let KeyMatcherConfig::CharWithMod { code, modifiers } = &matcher {
+                    if modifiers.iter().any(|m| fixed_mods.contains(&m.as_str()))
+                        && modifiers.contains(&"Control".to_string())
+                        && (*code == 'd' || *code == 'u' || *code == 'c')
+                    {
+                        return Err(KeyBindingError::ReservedKey(
+                            action_name.to_string(),
+                            format!("Ctrl+{}", code),
+                        ));
+                    }
+                }
+
+                // Check for arrow keys
+                if let KeyMatcherConfig::Arrow(dir) = &matcher {
+                    if dir == "Up" || dir == "Down" || dir == "Left" || dir == "Right" {
+                        return Err(KeyBindingError::ReservedKey(
+                            action_name.to_string(),
+                            format!("Arrow{}", dir),
+                        ));
+                    }
+                }
+
+                // Check for duplicate keys
+                if let Some(existing) = used_keys.insert(key_str.clone(), action_name.to_string()) {
+                    return Err(KeyBindingError::DuplicateKey(
+                        action_name.to_string(),
+                        existing,
+                        key_str,
+                    ));
+                }
+
+                // Check modifiers for reserved combinations
+                if let KeyMatcherConfig::CharWithMod { code, modifiers } = &matcher {
+                    if modifiers.iter().any(|m| fixed_mods.contains(&m.as_str()))
+                        && modifiers.contains(&"Control".to_string())
+                        && (*code == 'd' || *code == 'u' || *code == 'c')
+                    {
+                        return Err(KeyBindingError::ReservedKey(
+                            action_name.to_string(),
+                            format!("Ctrl+{}", code),
+                        ));
+                    }
+                }
+
+                // Check for arrow keys
+                if let KeyMatcherConfig::Arrow(dir) = &matcher {
+                    if dir == "Up" || dir == "Down" || dir == "Left" || dir == "Right" {
+                        return Err(KeyBindingError::ReservedKey(
+                            action_name.to_string(),
+                            format!("Arrow{}", dir),
+                        ));
+                    }
+                }
+
+                // Check for duplicate keys
+                if let Some(existing) = used_keys.insert(key_str.clone(), action_name.to_string()) {
+                    return Err(KeyBindingError::DuplicateKey(
+                        action_name.to_string(),
+                        existing,
+                        key_str,
+                    ));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn to_action_bindings(&self) -> Vec<(&str, &[KeyMatcherConfig])> {
+        vec![
+            ("navigation_down", self.navigation_down.as_slice()),
+            ("navigation_up", self.navigation_up.as_slice()),
+            ("page_down", self.page_down.as_slice()),
+            ("page_up", self.page_up.as_slice()),
+            ("go_first", self.go_first.as_slice()),
+            ("go_last", self.go_last.as_slice()),
+            ("connect", self.connect.as_slice()),
+            ("disconnect", self.disconnect.as_slice()),
+            ("refresh", self.refresh.as_slice()),
+            ("random_connect", self.random_connect.as_slice()),
+            ("pane_next", self.pane_next.as_slice()),
+            ("pane_prev", self.pane_prev.as_slice()),
+            ("sort_by_code", self.sort_by_code.as_slice()),
+            ("sort_by_country", self.sort_by_country.as_slice()),
+            ("connect_fastest", self.connect_fastest.as_slice()),
+            ("connect_p2p", self.connect_p2p.as_slice()),
+            ("connect_tor", self.connect_tor.as_slice()),
+            ("securecore", self.securecore.as_slice()),
+            ("search", self.search.as_slice()),
+            ("cancel", self.cancel.as_slice()),
+            ("help", self.help.as_slice()),
+            ("quit", self.quit.as_slice()),
+            ("next_setting", self.next_setting.as_slice()),
+            ("prev_setting", self.prev_setting.as_slice()),
+            ("toggle_setting", self.toggle_setting.as_slice()),
+            ("select_city", self.select_city.as_slice()),
+            ("refresh_cities", self.refresh_cities.as_slice()),
+            ("toggle_favorite", self.toggle_favorite.as_slice()),
+        ]
+    }
+}
+
+impl KeyMatcherConfig {
+    /// Convert to display string for error messages
+    fn to_display_string(&self) -> String {
+        match self {
+            KeyMatcherConfig::Char(c) => c.to_string(),
+            KeyMatcherConfig::CharWithMod { code, modifiers } => {
+                let mod_str = modifiers.join("+");
+                format!("{}+{}", mod_str, code)
+            }
+            KeyMatcherConfig::Arrow(dir) => format!("Arrow{}", dir),
+            KeyMatcherConfig::DoubleChar(c) => format!("{}x2", c),
+        }
+    }
+}
+
+/// Key binding validation errors
+#[derive(Debug, Clone)]
+pub enum KeyBindingError {
+    /// Key is reserved and cannot be customized
+    ReservedKey(String, String), // (action_name, key)
+    /// Same key is assigned to multiple actions
+    DuplicateKey(String, String, String), // (action1, action2, key)
+}
+
+impl std::fmt::Display for KeyBindingError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            KeyBindingError::ReservedKey(action, key) => {
+                write!(
+                    f,
+                    "Key '{}' is reserved and cannot be used for '{}'",
+                    key, action
+                )
+            }
+            KeyBindingError::DuplicateKey(action1, action2, key) => {
+                write!(
+                    f,
+                    "Key '{}' is assigned to both '{}' and '{}'",
+                    key, action1, action2
+                )
+            }
+        }
+    }
 }
 
 #[cfg(test)]

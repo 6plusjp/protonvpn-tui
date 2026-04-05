@@ -142,6 +142,17 @@ Multiple themes available (toggle in Settings view):
 | `?` | Help   |
 | `q` | Quit   |
 
+### Session Time
+
+> **Note**: Session time is not sourced from `protonvpn status` — the CLI does not expose an uptime field in current versions (v0.1.8+).
+
+Instead, session time is tracked internally by the TUI:
+- On successful connection, the app records a timestamp (`connected_at`)
+- Session time = current time - `connected_at`
+- If you reconnect to the **same** server, the session is preserved
+- If you connect to a **different** server, a new session begins
+- Session persists across app restarts (stored in cache)
+
 ## Configuration
 
 Settings are stored in `~/.config/protonvpn-tui/config.toml`.

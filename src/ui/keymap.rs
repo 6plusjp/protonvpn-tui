@@ -147,10 +147,7 @@ impl Default for KeyMap {
             go_first: vec![KeyMatcher::DoubleChar('g')],
             go_last: vec![KeyMatcher::CharWithMod('G', KeyModifiers::SHIFT)],
             // Connection actions
-            connect: vec![
-                KeyMatcher::Char('c'),
-                KeyMatcher::CharWithMod('c', KeyModifiers::CONTROL),
-            ],
+            connect: vec![KeyMatcher::Char('c')],
             disconnect: vec![KeyMatcher::Char('d')],
             refresh: vec![KeyMatcher::Char('r')],
             random_connect: vec![KeyMatcher::Char('x')],

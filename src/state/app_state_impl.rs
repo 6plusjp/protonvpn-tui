@@ -6,7 +6,7 @@ use crate::state::NotificationType;
 impl crate::state::AppState {
     pub fn refresh_servers(&mut self) {
         tracing::info!("Refreshing server list");
-        let cached = self.vpn_state.servers();
+        let cached = self.vpn_state.cached_servers();
         if !cached.is_empty() {
             self.set_servers(cached);
         }

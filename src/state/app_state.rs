@@ -131,7 +131,7 @@ impl AppState {
         user_config: UserConfig,
     ) -> Self {
         let vpn_state = Arc::new(crate::vpn::VpnClient::new());
-        let servers = vpn_state.servers();
+        let servers = vpn_state.cached_servers();
         let ui_state = UiState::from_config(&ui_config.theme, ui_config.footer);
 
         let mut state = Self {

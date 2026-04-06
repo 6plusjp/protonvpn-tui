@@ -38,7 +38,7 @@ fn render_countries_pane(
     let countries_table = CountriesTable::table();
 
     let servers = state.filtered_servers();
-    let all_servers = state.vpn_state.servers();
+    let all_servers = state.vpn_state.cached_servers();
 
     // Extract country code from connected server (e.g., "US#1" -> "US")
     let connected_country_code = match &state.connection_manager.connection {

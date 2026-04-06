@@ -60,7 +60,13 @@ impl TuiApp {
         let key_bindings = config.keybindings.clone().into();
         let ui_config = config.ui.clone();
         let mut state = AppState::from_config(&key_bindings, &ui_config, config);
-        state.refresh_servers();
+
+        // Load from cache, fallback to background refresh if empty
+        match state.vpn_state.servers_from_cache() {
+            Ok(cached) if !cached.is_empty() => state.set_servers(cached),
+            _ => state.refresh_servers(),
+        }
+
         state.sync_connection_from_vpn();
         state.connection_manager.async_manager.spawn_status_info(
             state.vpn_state.clone(),

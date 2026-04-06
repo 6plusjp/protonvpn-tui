@@ -20,7 +20,7 @@ impl crate::state::AppState {
     pub(crate) fn compute_filtered_servers(&self) -> Vec<Server> {
         let query = &self.ui_state.search_query.query_lower;
 
-        let servers = self.vpn_state.servers();
+        let servers = self.vpn_state.cached_servers();
 
         let fuzzy_variants = if query.is_empty() {
             vec![]

@@ -104,7 +104,7 @@ impl VpnClient {
     }
 
     /// Get cached servers (non-refreshing)
-    pub fn servers(&self) -> Vec<Server> {
+    pub fn cached_servers(&self) -> Vec<Server> {
         let countries = match self.with_cache(|c| c.countries.clone()) {
             Ok(c) => c,
             Err(e) => {
@@ -576,17 +576,17 @@ impl VpnClient {
         Ok(())
     }
 
-    /// List all available servers
-    pub fn list_servers(&self) -> AppResult<Vec<Server>> {
-        let is_stale = self.with_cache(|c| c.is_stale())?;
-        let is_empty = self.with_cache(|c| c.countries.is_empty())?;
-        if !is_stale && !is_empty {
-            let countries = self.with_cache(|c| c.countries.clone())?;
-            let cities = self.with_cache(|c| c.cities.clone()).unwrap_or_default();
-            return Ok(countries_to_servers(&countries, &cities));
+    /// Load servers on startup - use cache if available, fallback to CLI if empty
+    pub fn servers_from_cache(&self) -> AppResult<Vec<Server>> {
+        let countries = self.with_cache(|c| c.countries.clone()).unwrap_or_default();
+        let cities = self.with_cache(|c| c.cities.clone()).unwrap_or_default();
+
+        if countries.is_empty() {
+            // Cache is empty - execute CLI to get fresh data
+            return self.refresh_servers();
         }
 
-        self.refresh_servers()
+        Ok(countries_to_servers(&countries, &cities))
     }
 
     pub fn refresh_servers(&self) -> AppResult<Vec<Server>> {
@@ -772,7 +772,7 @@ mod tests {
         let servers = make_test_servers();
         let client = VpnClient::with_test_servers(servers.clone());
 
-        let cached = client.servers();
+        let cached = client.cached_servers();
         assert_eq!(cached.len(), 2);
 
         let jp = cached.iter().find(|s| s.code == "JP").unwrap();
@@ -783,7 +783,7 @@ mod tests {
     #[test]
     fn test_servers_empty_when_no_cache() {
         let client = VpnClient::with_test_servers(vec![]);
-        let servers = client.servers();
+        let servers = client.cached_servers();
         assert!(servers.is_empty());
     }
 

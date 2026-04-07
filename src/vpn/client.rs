@@ -125,32 +125,32 @@ impl VpnClient {
     }
 
     /// Connect to a server by country code
-    pub fn connect_country(&self, target: &str) -> AppResult<ConnectResult> {
+    pub fn connect_country(&self, target: &str) -> AppResult<(ConnectResult, bool)> {
         self.connect_with_args("--country", target, &[target])
     }
 
-    pub fn connect_random(&self) -> AppResult<ConnectResult> {
+    pub fn connect_random(&self) -> AppResult<(ConnectResult, bool)> {
         self.connect_with_args("--random", "Random Server", &[])
     }
 
     /// Connect to a server by city name
-    pub fn connect_city(&self, city_arg: &str) -> AppResult<ConnectResult> {
+    pub fn connect_city(&self, city_arg: &str) -> AppResult<(ConnectResult, bool)> {
         self.connect_with_args("--city", city_arg, &[city_arg])
     }
 
-    pub fn connect_fastest(&self) -> AppResult<ConnectResult> {
+    pub fn connect_fastest(&self) -> AppResult<(ConnectResult, bool)> {
         self.connect_with_args("", "Fastest Server", &[])
     }
 
-    pub fn connect_p2p(&self) -> AppResult<ConnectResult> {
+    pub fn connect_p2p(&self) -> AppResult<(ConnectResult, bool)> {
         self.connect_with_args("--p2p", "P2P Server", &[])
     }
 
-    pub fn connect_tor(&self) -> AppResult<ConnectResult> {
+    pub fn connect_tor(&self) -> AppResult<(ConnectResult, bool)> {
         self.connect_with_args("--tor", "Tor Server", &[])
     }
 
-    pub fn connect_securecore(&self) -> AppResult<ConnectResult> {
+    pub fn connect_securecore(&self) -> AppResult<(ConnectResult, bool)> {
         self.connect_with_args("--securecore", "SecureCore Server", &[])
     }
 
@@ -159,7 +159,7 @@ impl VpnClient {
         flag: &str,
         fallback_name: &str,
         args: &[&str],
-    ) -> AppResult<ConnectResult> {
+    ) -> AppResult<(ConnectResult, bool)> {
         let mut cmd_args = vec!["connect"];
         if !flag.is_empty() {
             cmd_args.push(flag);
@@ -199,13 +199,18 @@ impl VpnClient {
         })?;
         self.save_cache()?;
 
-        Ok(ConnectResult {
-            server_id: final_server,
-            ip: result.ip,
-            city: result.city,
-            country: result.country,
-            via: result.via,
-        })
+        let needs_refresh = self.check_server_list_outdated(&stdout, &stderr);
+
+        Ok((
+            ConnectResult {
+                server_id: final_server,
+                ip: result.ip,
+                city: result.city,
+                country: result.country,
+                via: result.via,
+            },
+            needs_refresh,
+        ))
     }
 
     fn check_cli_error(
@@ -226,6 +231,11 @@ impl VpnClient {
             return Err(AppError::ConnectionFailed(error_msg));
         }
         Ok(())
+    }
+
+    fn check_server_list_outdated(&self, stdout: &str, stderr: &str) -> bool {
+        let combined = format!("{} {}", stdout, stderr).to_lowercase();
+        combined.contains("server list is outdated")
     }
 
     /// Disconnect from VPN
@@ -531,7 +541,7 @@ impl VpnClient {
             .flatten()
     }
 
-    pub fn list_cities_with_features(&self, country_code: &str) -> AppResult<Vec<City>> {
+    pub fn list_cities_with_features(&self, country_code: &str) -> AppResult<(Vec<City>, bool)> {
         let is_stale = self.with_cache(|c| c.is_stale())?;
         let has_cached = self
             .with_cache(|c| c.cities.contains_key(country_code))
@@ -539,7 +549,7 @@ impl VpnClient {
 
         if !is_stale && has_cached {
             if let Ok(Some(cities)) = self.with_cache(|c| c.cities.get(country_code).cloned()) {
-                return Ok(cities);
+                return Ok((cities, false));
             }
         }
 
@@ -565,7 +575,9 @@ impl VpnClient {
         })?;
         self.save_cache()?;
 
-        Ok(cities)
+        let needs_refresh = self.check_server_list_outdated(&stdout, "");
+
+        Ok((cities, needs_refresh))
     }
 
     pub fn clear_cities_cache(&self, country_code: &str) -> AppResult<()> {

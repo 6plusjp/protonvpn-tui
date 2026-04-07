@@ -2,9 +2,9 @@
 
 ## Overview
 
-Analysis of whether multiple `protonvpn` commands can run concurrently.
+Analysis of whether multiple `protonvpn` commands can run concurrently, based on official CLI source code.
 
-**Note**: This is based on code analysis, not official Proton documentation.
+**Verified against**: `proton-vpn-cli` v0.1.x source code (GitHub: ProtonVPN/proton-vpn-cli)
 
 ---
 
@@ -25,6 +25,64 @@ Analysis of whether multiple `protonvpn` commands can run concurrently.
 ---
 
 ## Analysis
+
+### Official CLI Architecture (from source code)
+
+Each `protonvpn` command invocation creates a new `Controller` instance:
+
+```python
+# location_discovery.py:76
+controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
+```
+
+Both `countries list` and `connect` internally call `get_updated_server_list()`:
+
+```python
+# controller.py - get_all_countries() (used by countries list)
+async def get_all_countries(self) -> List[Country]:
+    server_list = await self.get_updated_server_list()
+    return server_list.group_by_country()
+
+# controller.py - find_logical_server() (used by connect)
+async def find_logical_server(...):
+    server_list = await self.get_updated_server_list()
+    # ... find server
+```
+
+This means:
+- Both commands fetch/update server list from Proton API
+- Each CLI invocation is a separate process (no shared state at process level)
+- API requests may be duplicated but don't interfere
+
+### Commands Calling `get_updated_server_list()`
+
+All commands that internally call `get_updated_server_list()`:
+
+| Command | Call Path | Source File |
+|---------|-----------|-------------|
+| `protonvpn countries list` | `get_all_countries()` → `get_updated_server_list()` | `location_discovery.py:83` |
+| `protonvpn cities list <CC>` | `get_all_countries()` → `get_updated_server_list()` | `location_discovery.py:146` |
+| `protonvpn connect` | `find_logical_server()` → `get_updated_server_list()` | `server.py:108` |
+| `protonvpn status` (when connected) | Direct call to `get_updated_server_list()` | `server.py:241` |
+
+**Flow diagram**:
+
+```
+┌─────────────────────┐
+│ countries list      │──→ get_all_countries() ──┐
+└─────────────────────┘                            │
+┌─────────────────────┐                            ├──→ get_updated_server_list()
+│ cities list <CC>   │──→ get_all_countries() ────┤
+└─────────────────────┘                            │
+┌─────────────────────┐                            │
+│ connect             │──→ find_logical_server() ─┤
+└─────────────────────┘                            │
+┌─────────────────────┐                            │
+│ status (connected)  │───────────────────────────┘
+└─────────────────────┘
+```
+
+**Key insight**: Every command that fetches server information calls `get_updated_server_list()`, so running multiple such commands simultaneously will result in duplicate API requests (but no interference since each CLI invocation is a separate process).
 
 ### Read-Only Commands (Can Run in Parallel)
 
@@ -134,8 +192,8 @@ This was replaced with the thread pool approach for better performance and paral
 ## Sources
 
 - `proton-vpn-cli` repository: https://github.com/ProtonVPN/proton-vpn-cli
-- `location_discovery.py` - countries/cities commands
-- `controller.py` - core logic
+- `proton/vpn/cli/commands/location_discovery.py` - countries/cities commands implementation
+- `proton/vpn/cli/core/controller.py` - core logic with `get_updated_server_list()`
 - `src/vpn/async_tasks.rs` - Thread pool implementation
 - `src/vpn/client.rs` - CLI execution layer
 
@@ -143,5 +201,7 @@ This was replaced with the thread pool approach for better performance and paral
 
 ## Revision History
 
+- 2026-04-06: Added full list of commands calling `get_updated_server_list()` - verified all server-fetching commands call this method internally
+- 2026-04-06: Updated with official source code analysis - verified both `countries list` and `connect` call `get_updated_server_list()`, each CLI invocation creates new Controller instance
 - 2026-04-02: Updated command syntax, added thread pool documentation, added config commands
 - 2026-03-07: Initial analysis based on code review

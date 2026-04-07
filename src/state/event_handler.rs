@@ -55,7 +55,7 @@ impl crate::state::AppState {
                     );
                     notification_shown = true;
                 }
-                AsyncEvent::Connected(result) => {
+                AsyncEvent::Connected(result, needs_refresh) => {
                     self.show_notification(
                         format!("Connected to {}", &result.server_id),
                         NotificationType::Success,
@@ -72,6 +72,11 @@ impl crate::state::AppState {
                     };
                     self.connection_manager.previous_connection = None;
                     notification_shown = true;
+
+                    if needs_refresh {
+                        tracing::info!("CLI server list was outdated, triggering refresh");
+                        self.refresh_servers();
+                    }
                 }
                 AsyncEvent::ConnectFailed(e) => {
                     if let Some(prev) = self.connection_manager.previous_connection.take() {
@@ -110,7 +115,7 @@ impl crate::state::AppState {
                     }
                     notification_shown = true;
                 }
-                AsyncEvent::CitiesLoaded(country_code, cities) => {
+                AsyncEvent::CitiesLoaded(country_code, cities, needs_refresh) => {
                     let city_count = cities.len();
 
                     if self.current_country_code.as_deref() == Some(&country_code) {
@@ -133,6 +138,11 @@ impl crate::state::AppState {
                         Some(format!("cities:{}", country_code)),
                     );
                     notification_shown = true;
+
+                    if needs_refresh {
+                        tracing::info!("CLI server list was outdated, triggering refresh");
+                        self.refresh_servers();
+                    }
                 }
                 AsyncEvent::CitiesLoadFailed(country_code, e) => {
                     self.connection_manager.loading_cities.remove(&country_code);
@@ -143,7 +153,7 @@ impl crate::state::AppState {
                     );
                     notification_shown = true;
                 }
-                AsyncEvent::ConnectCityResult(result) => {
+                AsyncEvent::ConnectCityResult(result, needs_refresh) => {
                     self.show_notification(
                         format!("Connected to {}", result.server_id),
                         NotificationType::Success,
@@ -163,6 +173,11 @@ impl crate::state::AppState {
                     };
                     self.connection_manager.previous_connection = None;
                     notification_shown = true;
+
+                    if needs_refresh {
+                        tracing::info!("CLI server list was outdated, triggering refresh");
+                        self.refresh_servers();
+                    }
                 }
                 AsyncEvent::ConnectCityFailed(e) => {
                     if let Some(prev) = self.connection_manager.previous_connection.take() {

@@ -154,13 +154,13 @@ impl ThreadPool {
                 server_id,
                 notifier,
             } => {
-                execute_and_notify(
-                    &vpn_state,
-                    &notifier,
-                    |v| v.connect_country(&server_id),
-                    AsyncEvent::Connected,
-                    AsyncEvent::ConnectFailed,
-                );
+                let result = vpn_state.connect_country(&server_id);
+                match result {
+                    Ok((conn_result, needs_refresh)) => {
+                        notifier.notify(AsyncEvent::Connected(conn_result, needs_refresh))
+                    }
+                    Err(e) => notifier.notify(AsyncEvent::ConnectFailed(e.to_string())),
+                }
             }
             Job::Disconnect {
                 vpn_state,
@@ -178,39 +178,44 @@ impl ThreadPool {
                 vpn_state,
                 notifier,
             } => {
-                execute_and_notify(
-                    &vpn_state,
-                    &notifier,
-                    |v| v.connect_random(),
-                    AsyncEvent::Connected,
-                    AsyncEvent::ConnectFailed,
-                );
+                let result = vpn_state.connect_random();
+                match result {
+                    Ok((conn_result, needs_refresh)) => {
+                        notifier.notify(AsyncEvent::Connected(conn_result, needs_refresh))
+                    }
+                    Err(e) => notifier.notify(AsyncEvent::ConnectFailed(e.to_string())),
+                }
             }
             Job::Cities {
                 vpn_state,
                 country_code,
                 notifier,
             } => {
-                execute_and_notify(
-                    &vpn_state,
-                    &notifier,
-                    |v| v.list_cities_with_features(&country_code),
-                    |cities| AsyncEvent::CitiesLoaded(country_code.clone(), cities),
-                    |e| AsyncEvent::CitiesLoadFailed(country_code.clone(), e),
-                );
+                let result = vpn_state.list_cities_with_features(&country_code);
+                match result {
+                    Ok((cities, needs_refresh)) => notifier.notify(AsyncEvent::CitiesLoaded(
+                        country_code.clone(),
+                        cities,
+                        needs_refresh,
+                    )),
+                    Err(e) => notifier.notify(AsyncEvent::CitiesLoadFailed(
+                        country_code.clone(),
+                        e.to_string(),
+                    )),
+                }
             }
             Job::ConnectCity {
                 vpn_state,
                 city,
                 notifier,
             } => {
-                execute_and_notify(
-                    &vpn_state,
-                    &notifier,
-                    |v| v.connect_city(&city),
-                    AsyncEvent::ConnectCityResult,
-                    AsyncEvent::ConnectCityFailed,
-                );
+                let result = vpn_state.connect_city(&city);
+                match result {
+                    Ok((conn_result, needs_refresh)) => {
+                        notifier.notify(AsyncEvent::ConnectCityResult(conn_result, needs_refresh))
+                    }
+                    Err(e) => notifier.notify(AsyncEvent::ConnectCityFailed(e.to_string())),
+                }
             }
             Job::ConfigSet {
                 vpn_state,
@@ -230,49 +235,49 @@ impl ThreadPool {
                 vpn_state,
                 notifier,
             } => {
-                execute_and_notify(
-                    &vpn_state,
-                    &notifier,
-                    |v| v.connect_fastest(),
-                    AsyncEvent::Connected,
-                    AsyncEvent::ConnectFailed,
-                );
+                let result = vpn_state.connect_fastest();
+                match result {
+                    Ok((conn_result, needs_refresh)) => {
+                        notifier.notify(AsyncEvent::Connected(conn_result, needs_refresh))
+                    }
+                    Err(e) => notifier.notify(AsyncEvent::ConnectFailed(e.to_string())),
+                }
             }
             Job::ConnectP2P {
                 vpn_state,
                 notifier,
             } => {
-                execute_and_notify(
-                    &vpn_state,
-                    &notifier,
-                    |v| v.connect_p2p(),
-                    AsyncEvent::Connected,
-                    AsyncEvent::ConnectFailed,
-                );
+                let result = vpn_state.connect_p2p();
+                match result {
+                    Ok((conn_result, needs_refresh)) => {
+                        notifier.notify(AsyncEvent::Connected(conn_result, needs_refresh))
+                    }
+                    Err(e) => notifier.notify(AsyncEvent::ConnectFailed(e.to_string())),
+                }
             }
             Job::ConnectTor {
                 vpn_state,
                 notifier,
             } => {
-                execute_and_notify(
-                    &vpn_state,
-                    &notifier,
-                    |v| v.connect_tor(),
-                    AsyncEvent::Connected,
-                    AsyncEvent::ConnectFailed,
-                );
+                let result = vpn_state.connect_tor();
+                match result {
+                    Ok((conn_result, needs_refresh)) => {
+                        notifier.notify(AsyncEvent::Connected(conn_result, needs_refresh))
+                    }
+                    Err(e) => notifier.notify(AsyncEvent::ConnectFailed(e.to_string())),
+                }
             }
             Job::ConnectSecureCore {
                 vpn_state,
                 notifier,
             } => {
-                execute_and_notify(
-                    &vpn_state,
-                    &notifier,
-                    |v| v.connect_securecore(),
-                    AsyncEvent::Connected,
-                    AsyncEvent::ConnectFailed,
-                );
+                let result = vpn_state.connect_securecore();
+                match result {
+                    Ok((conn_result, needs_refresh)) => {
+                        notifier.notify(AsyncEvent::Connected(conn_result, needs_refresh))
+                    }
+                    Err(e) => notifier.notify(AsyncEvent::ConnectFailed(e.to_string())),
+                }
             }
             Job::GetStatusInfo {
                 vpn_state,

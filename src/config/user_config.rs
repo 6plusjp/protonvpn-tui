@@ -204,6 +204,7 @@ pub struct KeyBindingsConfig {
     pub pane_prev: Vec<KeyMatcherConfig>,
     pub sort_by_code: Vec<KeyMatcherConfig>,
     pub sort_by_country: Vec<KeyMatcherConfig>,
+    pub sort_direction: Vec<KeyMatcherConfig>,
     pub connect_fastest: Vec<KeyMatcherConfig>,
     pub connect_p2p: Vec<KeyMatcherConfig>,
     pub connect_tor: Vec<KeyMatcherConfig>,
@@ -291,6 +292,11 @@ impl Default for KeyBindingsConfig {
                 .collect(),
             sort_by_country: km
                 .sort_by_country
+                .iter()
+                .map(KeyMatcherConfig::from_keymatcher)
+                .collect(),
+            sort_direction: km
+                .sort_direction
                 .iter()
                 .map(KeyMatcherConfig::from_keymatcher)
                 .collect(),
@@ -400,6 +406,7 @@ impl From<KeyBindingsConfig> for KeyBindings {
             pane_prev: first_to_binding(cfg.pane_prev),
             sort_by_code: first_to_binding(cfg.sort_by_code),
             sort_by_country: first_to_binding(cfg.sort_by_country),
+            sort_direction: first_to_binding(cfg.sort_direction),
             connect_fastest: first_to_binding(cfg.connect_fastest),
             connect_p2p: first_to_binding(cfg.connect_p2p),
             connect_tor: first_to_binding(cfg.connect_tor),
@@ -429,6 +436,7 @@ impl From<KeyBindingsConfig> for KeyMap {
             pane_prev: to_matchers(cfg.pane_prev),
             sort_by_code: to_matchers(cfg.sort_by_code),
             sort_by_country: to_matchers(cfg.sort_by_country),
+            sort_direction: to_matchers(cfg.sort_direction),
             connect_fastest: to_matchers(cfg.connect_fastest),
             connect_p2p: to_matchers(cfg.connect_p2p),
             connect_tor: to_matchers(cfg.connect_tor),

@@ -273,6 +273,7 @@ pub struct KeyBindings {
     // Sorting keys (number keys)
     pub sort_by_code: KeyBinding,
     pub sort_by_country: KeyBinding,
+    pub sort_direction: KeyBinding,
     // Connection type shortcuts
     pub connect_fastest: KeyBinding,
     pub connect_p2p: KeyBinding,

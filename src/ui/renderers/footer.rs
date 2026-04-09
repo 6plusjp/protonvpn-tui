@@ -64,6 +64,7 @@ fn get_footer_action_hints(state: &AppState) -> Vec<Span<'_>> {
             let mut hints = vec![];
             hints.extend(hint(&theme, "j/k", "navigate"));
             hints.extend(hint_with_spacer(&theme, "l", "cities"));
+            hints.extend(hint_with_spacer(&theme, "a", "sort"));
             hints.extend(hint_with_spacer(&theme, "c", "connect"));
             if !is_disconnected {
                 hints.extend(hint_with_spacer(&theme, "d", "disconnect"));
@@ -79,6 +80,7 @@ fn get_footer_action_hints(state: &AppState) -> Vec<Span<'_>> {
             let mut hints = vec![];
             hints.extend(hint(&theme, "j/k", "navigate"));
             hints.extend(hint_with_spacer(&theme, "h", "countries"));
+            hints.extend(hint_with_spacer(&theme, "a", "sort"));
             hints.extend(hint_with_spacer(&theme, "c", "connect"));
             if !is_disconnected {
                 hints.extend(hint_with_spacer(&theme, "d", "disconnect"));

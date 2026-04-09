@@ -130,10 +130,11 @@ Multiple themes available (toggle in Settings view):
 
 ### Sorting
 
-| Key | Action            |
-| --- | ----------------- |
-| `1` | Sort by server ID |
-| `2` | Sort by country   |
+| Key | Action                    |
+| --- | ------------------------- |
+| `1` | Sort by server ID        |
+| `2` | Sort by country          |
+| `a` | Toggle sort direction    |
 
 ### Other
 

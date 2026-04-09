@@ -7,6 +7,7 @@ use crate::state::Pane;
 
 pub fn handle_servers_key(input: &mut InputState, key_event: KeyEvent) -> Option<AppAction> {
     let bindings = &input.state.key_bindings;
+    let keymap = &input.state.keymap;
 
     let is_refresh = bindings
         .refresh
@@ -14,18 +15,18 @@ pub fn handle_servers_key(input: &mut InputState, key_event: KeyEvent) -> Option
     let is_connect = bindings
         .connect
         .matches(key_event.code, key_event.modifiers);
-    let is_pane_next = bindings
-        .pane_next
-        .matches(key_event.code, key_event.modifiers);
-    let is_pane_prev = bindings
-        .pane_prev
-        .matches(key_event.code, key_event.modifiers);
     let is_sort_by_code = bindings
         .sort_by_code
         .matches(key_event.code, key_event.modifiers);
     let is_sort_by_country = bindings
         .sort_by_country
         .matches(key_event.code, key_event.modifiers);
+    let is_sort_direction = bindings
+        .sort_direction
+        .matches(key_event.code, key_event.modifiers);
+
+    let is_pane_next = keymap.matches(crate::ui::keymap::KeyAction::PaneNext, &key_event, None);
+    let is_pane_prev = keymap.matches(crate::ui::keymap::KeyAction::PanePrev, &key_event, None);
 
     match key_event.code {
         _ if is_connect => {
@@ -90,11 +91,7 @@ pub fn handle_servers_key(input: &mut InputState, key_event: KeyEvent) -> Option
             input.state.set_sort_by_country();
             None
         }
-        KeyCode::Left => {
-            input.state.toggle_sort_direction();
-            None
-        }
-        KeyCode::Right => {
+        _ if is_sort_direction => {
             input.state.toggle_sort_direction();
             None
         }

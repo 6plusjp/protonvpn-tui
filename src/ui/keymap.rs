@@ -79,6 +79,7 @@ pub enum KeyAction {
     PanePrev,
     SortByCode,
     SortByCountry,
+    SortDirection,
     ConnectFastest,
     ConnectP2p,
     ConnectTor,
@@ -112,6 +113,7 @@ pub struct KeyMap {
     pub pane_prev: Vec<KeyMatcher>,
     pub sort_by_code: Vec<KeyMatcher>,
     pub sort_by_country: Vec<KeyMatcher>,
+    pub sort_direction: Vec<KeyMatcher>,
     pub connect_fastest: Vec<KeyMatcher>,
     pub connect_p2p: Vec<KeyMatcher>,
     pub connect_tor: Vec<KeyMatcher>,
@@ -169,6 +171,7 @@ impl Default for KeyMap {
             // Sorting
             sort_by_code: vec![KeyMatcher::Char('1')],
             sort_by_country: vec![KeyMatcher::Char('2')],
+            sort_direction: vec![KeyMatcher::Char('a')],
             // UI actions
             search: vec![KeyMatcher::Char('/')],
             cancel: vec![
@@ -214,6 +217,7 @@ impl KeyMap {
             KeyAction::PanePrev => &self.pane_prev,
             KeyAction::SortByCode => &self.sort_by_code,
             KeyAction::SortByCountry => &self.sort_by_country,
+            KeyAction::SortDirection => &self.sort_direction,
             KeyAction::ConnectFastest => &self.connect_fastest,
             KeyAction::ConnectP2p => &self.connect_p2p,
             KeyAction::ConnectTor => &self.connect_tor,
@@ -249,6 +253,7 @@ pub fn default_keybindings() -> KeyBindings {
         pane_prev: KeyBinding::new('h', KeyModifier::None),
         sort_by_code: KeyBinding::new('1', KeyModifier::None),
         sort_by_country: KeyBinding::new('2', KeyModifier::None),
+        sort_direction: KeyBinding::new('a', KeyModifier::None),
         connect_fastest: KeyBinding::new('f', KeyModifier::None),
         connect_p2p: KeyBinding::new('p', KeyModifier::None),
         connect_tor: KeyBinding::new('t', KeyModifier::None),

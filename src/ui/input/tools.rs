@@ -9,13 +9,17 @@ use crate::ui::styles::ThemeMode;
 
 pub fn handle_tools_key(input: &mut InputState, key_event: KeyEvent) -> Option<AppAction> {
     let pane = input.state.ui_state.pane_focus;
+    let keymap = &input.state.keymap;
 
-    match key_event.code {
-        KeyCode::Char('h') => {
+    let is_pane_prev = keymap.matches(crate::ui::keymap::KeyAction::PanePrev, &key_event, None);
+    let is_pane_next = keymap.matches(crate::ui::keymap::KeyAction::PaneNext, &key_event, None);
+
+    match (is_pane_prev, is_pane_next) {
+        (true, false) => {
             input.state.ui_state.pane_focus = Pane::Settings;
             None
         }
-        KeyCode::Char('l') => {
+        (false, true) => {
             input.state.ui_state.pane_focus = Pane::Logs;
             None
         }

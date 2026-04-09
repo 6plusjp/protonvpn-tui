@@ -135,7 +135,7 @@ pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
                     KeyCategory::Customizable,
                 ),
                 (
-                    "arrow_lr",
+                    "sort_direction",
                     "Toggle sort direction".to_string(),
                     KeyCategory::Fixed,
                 ),
@@ -176,8 +176,7 @@ pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
         help_text.push(Line::from(""));
 
         for (action, key_display, category) in keybinds {
-            let is_navigation_pair =
-                matches!(*action, "navigation" | "arrow" | "ctrl_np" | "arrow_lr");
+            let is_navigation_pair = matches!(*action, "navigation" | "arrow" | "ctrl_np");
 
             let key_string = if is_navigation_pair {
                 match *action {
@@ -187,7 +186,6 @@ pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
                     ),
                     "arrow" => "↑ / ↓".to_string(),
                     "ctrl_np" => "Ctrl+n / Ctrl+p".to_string(),
-                    "arrow_lr" => "← / →".to_string(),
                     _ => key_display.to_string(),
                 }
             } else if *action == "go_first" {
@@ -206,6 +204,8 @@ pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
                 format_keybinding(&bindings.sort_by_code)
             } else if *action == "sort_by_country" {
                 format_keybinding(&bindings.sort_by_country)
+            } else if *action == "sort_direction" {
+                format_keybinding(&bindings.sort_direction)
             } else if *action == "connect" {
                 format_keybinding(&bindings.connect)
             } else if *action == "random_connect" {

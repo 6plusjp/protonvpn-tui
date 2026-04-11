@@ -51,6 +51,7 @@ pub fn render_logs_view(
         .unwrap_or(6);
 
     let header_cells = vec![
+        Cell::from("").style(Style::new().bold().fg(theme.primary)),
         Cell::from(format!("{:<width$}", "Type", width = max_type_len))
             .style(Style::new().bold().fg(theme.primary)),
         Cell::from("Message").style(Style::new().bold().fg(theme.primary)),
@@ -60,16 +61,17 @@ pub fn render_logs_view(
     let header_row = Row::new(header_cells).height(1);
 
     let widths = vec![
+        Constraint::Length(1),
         Constraint::Length(max_type_len as u16),
         Constraint::Fill(1),
         Constraint::Length((max_time_len + 1) as u16),
     ];
 
-    let logs_iter = logs.iter().rev();
+    let logs_iter = logs.iter().rev().enumerate();
     let selected_idx = state.ui_state.logs_selected.unwrap_or(0);
 
     let rows: Vec<Row> = logs_iter
-        .map(|n| {
+        .map(|(idx, n)| {
             let (type_str, color) = match n.notification_type {
                 NotificationType::Info => ("[INFO] ", theme.primary),
                 NotificationType::Success => ("[OK]   ", theme.success),
@@ -77,11 +79,13 @@ pub fn render_logs_view(
                 NotificationType::Error => ("[ERR]  ", theme.error),
             };
 
+            let indicator = if idx == selected_idx { ">" } else { " " };
             let type_cell = format!("{:<width$}", type_str, width = max_type_len);
             let time_str = format_relative_time(n.timestamp);
             let time_cell = format!("{:<width$}", time_str, width = max_time_len + 1);
 
             Row::new(vec![
+                Cell::from(indicator).style(Style::default().fg(theme.foreground)),
                 Cell::from(type_cell).style(Style::default().fg(color)),
                 Cell::from(n.message.clone()).style(Style::default().fg(theme.foreground)),
                 Cell::from(time_cell).style(Style::default().fg(theme.dim)),
@@ -102,8 +106,7 @@ pub fn render_logs_view(
                 .add_modifier(Modifier::BOLD)
         } else {
             Style::default()
-        })
-        .highlight_symbol("> ");
+        });
 
     f.render_stateful_widget(table, table_area, table_state);
 

@@ -78,9 +78,9 @@ pub fn render_settings_view(
                 .bg(theme.accent)
                 .add_modifier(Modifier::BOLD)
         } else {
-            Style::default()
+            Style::default().add_modifier(Modifier::BOLD)
         })
-        .highlight_symbol("> ");
+        .highlight_symbol(">  ");
 
     let selected = selected.min(items_len.saturating_sub(1));
     list_state.select(Some(selected));

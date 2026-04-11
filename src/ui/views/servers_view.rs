@@ -289,9 +289,9 @@ fn render_cities_pane(
                 .bg(theme.accent)
                 .add_modifier(Modifier::BOLD)
         } else {
-            Style::default()
+            Style::default().add_modifier(Modifier::BOLD)
         })
-        .highlight_symbol("> ");
+        .highlight_symbol(">  ");
 
     f.render_stateful_widget(table, area, table_state);
 }

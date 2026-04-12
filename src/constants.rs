@@ -33,6 +33,13 @@ pub mod state {
     pub const MAX_NOTIFICATION_LOG: usize = 100;
 }
 
+pub mod settings {
+    /// VPN feature enabled value (used in protonvpn CLI)
+    pub const FEATURE_ON: &str = "on";
+    /// VPN feature disabled value (used in protonvpn CLI)
+    pub const FEATURE_OFF: &str = "off";
+}
+
 pub mod vpn {
     use std::time::Duration;
 

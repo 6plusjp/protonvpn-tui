@@ -4,6 +4,7 @@ use super::app_action::AppAction;
 use super::common::handle_common_navigation;
 use super::InputState;
 use crate::config::SettingKey;
+use crate::constants::settings::{FEATURE_OFF, FEATURE_ON};
 use crate::state::{InputMode, Pane};
 use crate::ui::styles::ThemeMode;
 
@@ -169,7 +170,11 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
                     let option_idx = input.state.ui_state.settings_option_selected;
                     let new_show_footer = option_idx == 0;
                     input.state.save_footer(new_show_footer);
-                    let status = if new_show_footer { "on" } else { "off" };
+                    let status = if new_show_footer {
+                        FEATURE_ON
+                    } else {
+                        FEATURE_OFF
+                    };
                     input.state.show_notification(
                         format!("Footer set to {}", status),
                         crate::state::NotificationType::Info,

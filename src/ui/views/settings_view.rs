@@ -1,4 +1,5 @@
 use crate::config::SettingKey;
+use crate::constants::settings::{FEATURE_OFF, FEATURE_ON};
 use crate::ui::styles::ThemeMode;
 use ratatui::{
     layout::Rect,
@@ -108,9 +109,9 @@ fn get_setting_value(
 
     if matches!(key, SettingKey::Footer) {
         return if show_footer {
-            "on".to_string()
+            FEATURE_ON.to_string()
         } else {
-            "off".to_string()
+            FEATURE_OFF.to_string()
         };
     }
 
@@ -121,15 +122,15 @@ fn get_setting_value(
 
     match key {
         SettingKey::Killswitch => match ps.killswitch {
-            Some(0) => "off".to_string(),
+            Some(0) => FEATURE_OFF.to_string(),
             Some(1) => "standard".to_string(),
             _ => "unknown".to_string(),
         },
         SettingKey::Ipv6 => {
             if ps.ipv6 == Some(true) {
-                "on".to_string()
+                FEATURE_ON.to_string()
             } else if ps.ipv6 == Some(false) {
-                "off".to_string()
+                FEATURE_OFF.to_string()
             } else {
                 "unknown".to_string()
             }
@@ -151,7 +152,7 @@ fn get_setting_value(
             }
         }
         SettingKey::NetShield => match ps.features.as_ref().and_then(|f| f.netshield) {
-            Some(0) => "off".to_string(),
+            Some(0) => FEATURE_OFF.to_string(),
             Some(1) => "malware-only".to_string(),
             Some(2) => "malware-ads-trackers".to_string(),
             _ => "unknown".to_string(),
@@ -162,9 +163,9 @@ fn get_setting_value(
             .and_then(|f| f.moderate_nat)
             .map(|v| {
                 if v {
-                    "on".to_string()
+                    FEATURE_ON.to_string()
                 } else {
-                    "off".to_string()
+                    FEATURE_OFF.to_string()
                 }
             })
             .unwrap_or_else(|| "unknown".to_string()),
@@ -174,9 +175,9 @@ fn get_setting_value(
             .and_then(|f| f.vpn_accelerator)
             .map(|v| {
                 if v {
-                    "on".to_string()
+                    FEATURE_ON.to_string()
                 } else {
-                    "off".to_string()
+                    FEATURE_OFF.to_string()
                 }
             })
             .unwrap_or_else(|| "unknown".to_string()),
@@ -186,9 +187,9 @@ fn get_setting_value(
             .and_then(|f| f.port_forwarding)
             .map(|v| {
                 if v {
-                    "on".to_string()
+                    FEATURE_ON.to_string()
                 } else {
-                    "off".to_string()
+                    FEATURE_OFF.to_string()
                 }
             })
             .unwrap_or_else(|| "unknown".to_string()),
@@ -196,9 +197,9 @@ fn get_setting_value(
             .and_then(|p| p.anonymous_crash_reports)
             .map(|v| {
                 if v {
-                    "on".to_string()
+                    FEATURE_ON.to_string()
                 } else {
-                    "off".to_string()
+                    FEATURE_OFF.to_string()
                 }
             })
             .unwrap_or_else(|| "unknown".to_string()),

@@ -1,5 +1,6 @@
 //! Proton VPN settings
 
+use crate::constants::settings::{FEATURE_OFF, FEATURE_ON};
 use crate::paths;
 use crossterm::event::{KeyCode, KeyModifiers};
 use serde::{Deserialize, Serialize};
@@ -97,14 +98,14 @@ impl SettingKey {
 
     pub fn selectable_options(&self) -> Vec<&'static str> {
         match self {
-            SettingKey::Killswitch => vec!["off", "standard"],
-            SettingKey::Ipv6 => vec!["off", "on"],
-            SettingKey::Dns => vec!["off", "on"],
-            SettingKey::NetShield => vec!["off", "malware-only", "malware-ads-trackers"],
-            SettingKey::ModerateNat => vec!["off", "on"],
-            SettingKey::VpnAccelerator => vec!["off", "on"],
-            SettingKey::PortForwarding => vec!["off", "on"],
-            SettingKey::AnonymousCrashReports => vec!["off", "on"],
+            SettingKey::Killswitch => vec![FEATURE_OFF, "standard"],
+            SettingKey::Ipv6 => vec![FEATURE_OFF, FEATURE_ON],
+            SettingKey::Dns => vec![FEATURE_OFF, FEATURE_ON],
+            SettingKey::NetShield => vec![FEATURE_OFF, "malware-only", "malware-ads-trackers"],
+            SettingKey::ModerateNat => vec![FEATURE_OFF, FEATURE_ON],
+            SettingKey::VpnAccelerator => vec![FEATURE_OFF, FEATURE_ON],
+            SettingKey::PortForwarding => vec![FEATURE_OFF, FEATURE_ON],
+            SettingKey::AnonymousCrashReports => vec![FEATURE_OFF, FEATURE_ON],
             SettingKey::Theme => vec![
                 "System",
                 "Catppuccin Mocha",
@@ -114,7 +115,7 @@ impl SettingKey {
                 "Gruvbox",
                 "Tokyo Night",
             ],
-            SettingKey::Footer => vec!["on", "off"],
+            SettingKey::Footer => vec![FEATURE_ON, FEATURE_OFF],
         }
     }
 

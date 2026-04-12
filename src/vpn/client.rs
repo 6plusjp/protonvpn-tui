@@ -24,6 +24,7 @@ use super::cache::{countries_to_servers, ServerCache};
 use super::types::{
     parse_cities_with_features, parse_connect_output, parse_countries, City, ConnectResult, Server,
 };
+use crate::constants::settings::{FEATURE_OFF, FEATURE_ON};
 
 use crate::constants::vpn::*;
 use crate::error::{categorize_error, AppError, AppResult};
@@ -623,7 +624,11 @@ impl VpnClient {
 
     /// Toggle a boolean setting (off <-> on)
     fn toggle_bool_setting(&self, setting: &str, current: Option<bool>) -> AppResult<String> {
-        let new_value = if current == Some(true) { "off" } else { "on" };
+        let new_value = if current == Some(true) {
+            FEATURE_OFF
+        } else {
+            FEATURE_ON
+        };
         self.set_config(setting, new_value)
     }
 
@@ -639,7 +644,7 @@ impl VpnClient {
     /// Toggle kill switch (off <-> standard)
     pub fn toggle_killswitch(&self, current: Option<i32>) -> AppResult<String> {
         let new_value = if current == Some(1) {
-            "off"
+            FEATURE_OFF
         } else {
             "standard"
         };
@@ -651,7 +656,7 @@ impl VpnClient {
         let new_value = match current.unwrap_or(0) {
             0 => "malware-only",
             1 => "malware-ads-trackers",
-            _ => "off",
+            _ => FEATURE_OFF,
         };
         self.set_config("netshield", new_value)
     }
@@ -660,7 +665,7 @@ impl VpnClient {
     pub fn set_custom_dns(&self, dns_list: &str) -> AppResult<String> {
         let output = self
             .run_command_with_timeout(
-                &["config", "set", "custom-dns", "on", "--dns", dns_list],
+                &["config", "set", "custom-dns", FEATURE_ON, "--dns", dns_list],
                 CONFIG_SET_TIMEOUT,
             )
             .map_err(|e| AppError::CommandFailed(categorize_error(&e).to_string()))?;
@@ -676,7 +681,10 @@ impl VpnClient {
     /// Disable custom DNS
     pub fn disable_custom_dns(&self) -> AppResult<String> {
         let output = self
-            .run_command_with_timeout(&["config", "set", "custom-dns", "off"], CONFIG_SET_TIMEOUT)
+            .run_command_with_timeout(
+                &["config", "set", "custom-dns", FEATURE_OFF],
+                CONFIG_SET_TIMEOUT,
+            )
             .map_err(|e| AppError::CommandFailed(categorize_error(&e).to_string()))?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);

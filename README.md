@@ -145,7 +145,7 @@ Multiple themes available (toggle in Settings view):
 
 ### Session Time
 
-> **Note**: Session time is not sourced from `protonvpn status` — the CLI does not expose an uptime field in current versions (v0.1.8+).
+> **Note**: Session time is not sourced from `protonvpn status` — the CLI does not expose an uptime field in current versions (v0.1.8+). The example in PROTONVPN_CLI_REFERENCE.md (which shows Load and Protocol fields) appears to be from a future CLI version.
 
 Instead, session time is tracked internally by the TUI:
 - On successful connection, the app records a timestamp (`connected_at`)
@@ -210,8 +210,8 @@ This TUI wraps the following `protonvpn` commands:
 
 | Command                                  | Purpose                       |
 | ---------------------------------------- | ----------------------------- |
-| `protonvpn countries`                    | List available countries      |
-| `protonvpn cities --country <CC>`        | List cities for a country     |
+| `protonvpn countries list`               | List available countries     |
+| `protonvpn cities list <CC>`            | List cities for a country    |
 | `protonvpn connect`                      | Connect to fastest server     |
 | `protonvpn connect --country <CC>`       | Connect to a country          |
 | `protonvpn connect --city <city>`        | Connect to a city             |

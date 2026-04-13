@@ -1,16 +1,18 @@
 //! VPN client - wraps protonvpn CLI
 //!
-//! Uses the new `protonvpn` CLI commands:
+//! Uses the `protonvpn` CLI commands (per PROTONVPN_CLI_REFERENCE.md v1.0.0):
 //! - `protonvpn countries list` → list countries
 //! - `protonvpn cities list <CC>` → list cities for a country (CC = country code)
 //! - `protonvpn connect` → connect to fastest server
 //! - `protonvpn connect --country <CC>` → connect to a country
 //! - `protonvpn connect --city <city>` → connect to a city
-//! - `protonvpn connect --fastest` → connect to fastest server
+//! - `protonvpn connect --random` → connect to random server
 //! - `protonvpn connect --p2p` → connect to fastest P2P server
 //! - `protonvpn connect --tor` → connect to fastest Tor server
 //! - `protonvpn connect --securecore` → connect to fastest Secure Core server
 //! - `protonvpn disconnect` → disconnect
+//! - `protonvpn status` → display connection status
+//! - `protonvpn config set <setting> <value>` → change settings
 
 use std::collections::HashMap;
 use std::path::PathBuf;

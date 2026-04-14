@@ -1,9 +1,10 @@
 use crate::config::SettingKey;
 use crate::constants::settings::{FEATURE_OFF, FEATURE_ON};
+use crate::ui::components::highlight_style;
 use crate::ui::styles::ThemeMode;
 use ratatui::{
     layout::Rect,
-    style::{Modifier, Style},
+    style::Style,
     text::{Line, Span},
     widgets::{List, ListItem, ListState},
     Frame,
@@ -73,14 +74,7 @@ pub fn render_settings_view(
 
     let list = List::new(all_items)
         .style(Style::default().fg(theme.foreground))
-        .highlight_style(if is_focused {
-            Style::default()
-                .fg(theme.background)
-                .bg(theme.accent)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().add_modifier(Modifier::BOLD)
-        })
+        .highlight_style(highlight_style(&theme, is_focused))
         .highlight_symbol(">  ");
 
     let selected = selected.min(items_len.saturating_sub(1));

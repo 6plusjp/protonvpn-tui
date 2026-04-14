@@ -1,5 +1,5 @@
 use crate::state::{ConnectionState, Pane};
-use crate::ui::components::{block, CitiesTable, CountriesTable};
+use crate::ui::components::{block, highlight_style, CitiesTable, CountriesTable};
 use crate::ui::styles::Theme;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -117,10 +117,7 @@ fn render_countries_pane(
 
             let (row_style, status_style, code_style, country_style, cities_style) =
                 if is_selected && is_focused {
-                    let s = Style::default()
-                        .fg(theme.background)
-                        .bg(theme.accent)
-                        .add_modifier(Modifier::BOLD);
+                    let s = highlight_style(theme, true);
                     (s, s, s, s, s)
                 } else if is_selected && is_connected {
                     let s = Style::default()
@@ -157,14 +154,7 @@ fn render_countries_pane(
         .header(header_row)
         .block(block)
         .column_spacing(2)
-        .row_highlight_style(if is_focused {
-            Style::default()
-                .fg(theme.background)
-                .bg(theme.accent)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default()
-        });
+        .row_highlight_style(highlight_style(theme, is_focused));
 
     table_state.select(state.ui_state.selected_server);
     f.render_stateful_widget(table, area, table_state);
@@ -255,10 +245,7 @@ fn render_cities_pane(
             let is_selected = state.ui_state.selected_city == Some(idx);
 
             let (row_style, name_style, features_style) = if is_selected && is_focused {
-                let s = Style::default()
-                    .fg(theme.background)
-                    .bg(theme.accent)
-                    .add_modifier(Modifier::BOLD);
+                let s = highlight_style(theme, true);
                 (s, s, s)
             } else {
                 let s = Style::default().fg(theme.foreground);
@@ -283,14 +270,7 @@ fn render_cities_pane(
         .header(header_row)
         .block(block)
         .column_spacing(2)
-        .row_highlight_style(if is_focused {
-            Style::default()
-                .fg(theme.background)
-                .bg(theme.accent)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().add_modifier(Modifier::BOLD)
-        })
+        .row_highlight_style(highlight_style(theme, is_focused))
         .highlight_symbol(">  ");
 
     f.render_stateful_widget(table, area, table_state);

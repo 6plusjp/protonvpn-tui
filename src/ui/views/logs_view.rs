@@ -1,10 +1,11 @@
 use crate::state::format_relative_time;
 use crate::state::{AppState, NotificationType};
+use crate::ui::components::highlight_style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Wrap};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Modifier, Style},
+    style::Style,
     widgets::{Cell, Paragraph, Row, Table, TableState},
     Frame,
 };
@@ -99,14 +100,7 @@ pub fn render_logs_view(
     let table = Table::new(rows, widths)
         .header(header_row)
         .column_spacing(2)
-        .row_highlight_style(if is_focused {
-            Style::default()
-                .fg(theme.background)
-                .bg(theme.accent)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default()
-        });
+        .row_highlight_style(highlight_style(&theme, is_focused));
 
     f.render_stateful_widget(table, table_area, table_state);
 

@@ -1,4 +1,4 @@
-# issue106: Refactor - Highlight Style Helper Extraction
+# Resolved 106: Refactor - Highlight Style Helper Extraction
 
 ## Summary
 

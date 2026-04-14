@@ -1,4 +1,4 @@
-# issue030: Refactor - UI Block Consolidation
+# Resolved 105: Refactor - UI Block Consolidation
 
 ## Summary
 

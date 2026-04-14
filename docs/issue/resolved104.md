@@ -1,4 +1,4 @@
-# issue029: Refactor - Row Styling Helper Extraction
+# Resolved 104: Refactor - Row Styling Helper Extraction
 
 ## Summary
 
@@ -59,7 +59,7 @@ fn compute_highlight_style(
 
 ### Acceptance Criteria
 
-- [ ] Duplicated code eliminated (~25 lines reduced)
-- [ ] Function logic preserved
-- [ ] `cargo test` passes
-- [ ] Clear, documented helpers for future modification
+- [x] Duplicated code eliminated (~25 lines reduced)
+- [x] Function logic preserved
+- [x] `cargo test` passes
+- [x] Clear, documented helpers for future modification

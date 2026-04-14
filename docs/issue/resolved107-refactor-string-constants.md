@@ -1,4 +1,4 @@
-# issue107: Refactor - Extract String Constants
+# Resolved 107: Refactor - Extract String Constants
 
 ## Summary
 

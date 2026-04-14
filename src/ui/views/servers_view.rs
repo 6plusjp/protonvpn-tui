@@ -10,6 +10,34 @@ use ratatui::{
 
 use crate::AppState;
 
+fn compute_row_styles(
+    is_selected: bool,
+    is_focused: bool,
+    is_connected: bool,
+    theme: &Theme,
+) -> (Style, Style, Style, Style, Style) {
+    if is_selected && is_focused {
+        let s = highlight_style(theme, true);
+        (s, s, s, s, s)
+    } else if is_selected && is_connected {
+        let s = Style::default()
+            .fg(theme.success)
+            .add_modifier(Modifier::BOLD);
+        (s, s, s, s, s)
+    } else if is_selected {
+        let s = Style::default().fg(theme.foreground);
+        (s, s, s, s, s)
+    } else if is_connected {
+        let s = Style::default()
+            .fg(theme.success)
+            .add_modifier(Modifier::BOLD);
+        (s, s, s, s, s)
+    } else {
+        let n = Style::default().fg(theme.foreground);
+        (n, n, n, n, n)
+    }
+}
+
 pub fn render_servers_view(
     state: &mut AppState,
     countries_list_state: &mut TableState,
@@ -116,26 +144,7 @@ fn render_countries_pane(
             };
 
             let (row_style, status_style, code_style, country_style, cities_style) =
-                if is_selected && is_focused {
-                    let s = highlight_style(theme, true);
-                    (s, s, s, s, s)
-                } else if is_selected && is_connected {
-                    let s = Style::default()
-                        .fg(theme.success)
-                        .add_modifier(Modifier::BOLD);
-                    (s, s, s, s, s)
-                } else if is_selected {
-                    let s = Style::default().fg(theme.foreground);
-                    (s, s, s, s, s)
-                } else if is_connected {
-                    let s = Style::default()
-                        .fg(theme.success)
-                        .add_modifier(Modifier::BOLD);
-                    (s, s, s, s, s)
-                } else {
-                    let n = Style::default().fg(theme.foreground);
-                    (n, n, n, n, n)
-                };
+                compute_row_styles(is_selected, is_focused, is_connected, theme);
 
             Row::new(vec![
                 Cell::from(indicator.to_string()).style(status_style),
@@ -244,12 +253,9 @@ fn render_cities_pane(
         .map(|(idx, (city_name, features))| {
             let is_selected = state.ui_state.selected_city == Some(idx);
 
-            let (row_style, name_style, features_style) = if is_selected && is_focused {
-                let s = highlight_style(theme, true);
-                (s, s, s)
-            } else {
-                let s = Style::default().fg(theme.foreground);
-                (s, s, s)
+            let (row_style, name_style, features_style) = {
+                let (r, n, f, _, _) = compute_row_styles(is_selected, is_focused, false, theme);
+                (r, n, f)
             };
 
             if features.is_empty() {

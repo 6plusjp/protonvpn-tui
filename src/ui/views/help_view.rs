@@ -1,5 +1,5 @@
 use crate::config::{KeyBinding, KeyModifier, UserConfig};
-use crate::ui::components::centered_block;
+use crate::ui::components::block;
 use ratatui::{
     layout::Rect,
     style::Style,
@@ -33,7 +33,7 @@ fn format_keybinding(key: &KeyBinding) -> String {
 
 pub fn render_help_view(state: &AppState, f: &mut Frame<'_>, area: Rect) {
     let theme = state.theme();
-    let block = centered_block("Help", &theme, true);
+    let block = block("Help", &theme, true, true);
     let bindings = &state.key_bindings;
 
     #[allow(clippy::type_complexity)]

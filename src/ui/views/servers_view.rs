@@ -1,5 +1,5 @@
 use crate::state::{ConnectionState, Pane};
-use crate::ui::components::{centered_block, CitiesTable, CountriesTable};
+use crate::ui::components::{block, CitiesTable, CountriesTable};
 use crate::ui::styles::Theme;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -151,7 +151,7 @@ fn render_countries_pane(
         .collect();
 
     let title = countries_table.title_with_indicator(is_focused);
-    let block = centered_block(&title, theme, is_focused);
+    let block = block(&title, theme, is_focused, true);
 
     let table = Table::new(rows, widths)
         .header(header_row)
@@ -237,7 +237,7 @@ fn render_cities_pane(
         .collect();
 
     if cities.is_empty() && !is_loading {
-        let block = centered_block(&title, theme, is_focused);
+        let block = block(&title, theme, is_focused, true);
         let paragraph = ratatui::widgets::Paragraph::new("No cities available")
             .block(block)
             .style(Style::default().fg(theme.warning));
@@ -277,7 +277,7 @@ fn render_cities_pane(
         })
         .collect();
 
-    let block = centered_block(&title, theme, is_focused);
+    let block = block(&title, theme, is_focused, true);
 
     let table = Table::new(rows, widths)
         .header(header_row)

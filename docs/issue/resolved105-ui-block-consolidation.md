@@ -66,7 +66,7 @@ pub type centered_block = block;
 
 ### Acceptance Criteria
 
-- [ ] Both functions work as before
-- [ ] Single implementation
-- [ ] `cargo test` passes
-- [ ] Estimated ~10 lines reduced
+- [x] Both functions work as before
+- [x] Single implementation
+- [x] `cargo test` passes (230 tests)
+- [x] Reduced ~10 lines

@@ -1,5 +1,5 @@
 use crate::state::{AppState, Pane};
-use crate::ui::components::block_with_title;
+use crate::ui::components::block;
 use crate::ui::views::{logs_view, settings_view};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -37,8 +37,13 @@ pub fn render_tools_view(
         "   Logs "
     };
 
-    let settings_block = block_with_title(settings_title.to_string(), &theme, is_settings_focused);
-    let logs_block = block_with_title(logs_title.to_string(), &theme, is_logs_focused);
+    let settings_block = block(
+        settings_title.to_string(),
+        &theme,
+        is_settings_focused,
+        false,
+    );
+    let logs_block = block(logs_title.to_string(), &theme, is_logs_focused, false);
 
     let settings_inner = settings_block.inner(settings_area);
     let logs_inner = logs_block.inner(logs_area);

@@ -145,18 +145,16 @@ fn get_setting_value(
                 "default".to_string()
             }
         }
-        SettingKey::NetShield => match ps.features.as_ref().and_then(|f| f.netshield) {
+        SettingKey::NetShield => match ps.get_feature_as_i32(SettingKey::NetShield) {
             Some(0) => FEATURE_OFF.to_string(),
             Some(1) => "malware-only".to_string(),
             Some(2) => "malware-ads-trackers".to_string(),
             _ => "unknown".to_string(),
         },
         SettingKey::ModerateNat => ps
-            .features
-            .as_ref()
-            .and_then(|f| f.moderate_nat)
+            .get_feature_as_i32(SettingKey::ModerateNat)
             .map(|v| {
-                if v {
+                if v == 1 {
                     FEATURE_ON.to_string()
                 } else {
                     FEATURE_OFF.to_string()
@@ -164,11 +162,9 @@ fn get_setting_value(
             })
             .unwrap_or_else(|| "unknown".to_string()),
         SettingKey::VpnAccelerator => ps
-            .features
-            .as_ref()
-            .and_then(|f| f.vpn_accelerator)
+            .get_feature_as_i32(SettingKey::VpnAccelerator)
             .map(|v| {
-                if v {
+                if v == 1 {
                     FEATURE_ON.to_string()
                 } else {
                     FEATURE_OFF.to_string()
@@ -176,11 +172,9 @@ fn get_setting_value(
             })
             .unwrap_or_else(|| "unknown".to_string()),
         SettingKey::PortForwarding => ps
-            .features
-            .as_ref()
-            .and_then(|f| f.port_forwarding)
+            .get_feature_as_i32(SettingKey::PortForwarding)
             .map(|v| {
-                if v {
+                if v == 1 {
                     FEATURE_ON.to_string()
                 } else {
                     FEATURE_OFF.to_string()

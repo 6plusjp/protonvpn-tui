@@ -63,28 +63,23 @@ impl crate::state::AppState {
             }
             SettingKey::Dns => unreachable!(),
             SettingKey::NetShield => {
-                let current = ps
-                    .and_then(|p| p.features.as_ref())
-                    .and_then(|f| f.netshield);
+                let current = ps.and_then(|p| p.get_feature_as_i32(SettingKey::NetShield));
                 let next = 0;
                 self.vpn_state.set_netshield(current, next)
             }
             SettingKey::ModerateNat => {
-                let current = ps
-                    .and_then(|p| p.features.as_ref())
-                    .and_then(|f| f.moderate_nat);
+                let current =
+                    ps.and_then(|p| p.get_feature(SettingKey::ModerateNat, |f| f.moderate_nat));
                 self.vpn_state.toggle_setting(key, current)
             }
             SettingKey::VpnAccelerator => {
                 let current = ps
-                    .and_then(|p| p.features.as_ref())
-                    .and_then(|f| f.vpn_accelerator);
+                    .and_then(|p| p.get_feature(SettingKey::VpnAccelerator, |f| f.vpn_accelerator));
                 self.vpn_state.toggle_setting(key, current)
             }
             SettingKey::PortForwarding => {
                 let current = ps
-                    .and_then(|p| p.features.as_ref())
-                    .and_then(|f| f.port_forwarding);
+                    .and_then(|p| p.get_feature(SettingKey::PortForwarding, |f| f.port_forwarding));
                 self.vpn_state.toggle_setting(key, current)
             }
             SettingKey::AnonymousCrashReports => {

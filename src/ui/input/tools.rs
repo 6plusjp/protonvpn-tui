@@ -299,30 +299,21 @@ fn get_setting_index(
                 0
             }
         }
-        SettingKey::NetShield => match ps.features.as_ref().and_then(|f| f.netshield) {
+        SettingKey::NetShield => match ps.get_feature_as_i32(SettingKey::NetShield) {
             Some(0) => 0,
             Some(1) => 1,
             Some(2) => 2,
             _ => 0,
         },
-        SettingKey::ModerateNat => ps
-            .features
-            .as_ref()
-            .and_then(|f| f.moderate_nat)
-            .map(|v| if v { 1 } else { 0 })
-            .unwrap_or(0),
+        SettingKey::ModerateNat => {
+            ps.get_feature_as_i32(SettingKey::ModerateNat).unwrap_or(0) as usize
+        }
         SettingKey::VpnAccelerator => ps
-            .features
-            .as_ref()
-            .and_then(|f| f.vpn_accelerator)
-            .map(|v| if v { 1 } else { 0 })
-            .unwrap_or(0),
+            .get_feature_as_i32(SettingKey::VpnAccelerator)
+            .unwrap_or(0) as usize,
         SettingKey::PortForwarding => ps
-            .features
-            .as_ref()
-            .and_then(|f| f.port_forwarding)
-            .map(|v| if v { 1 } else { 0 })
-            .unwrap_or(0),
+            .get_feature_as_i32(SettingKey::PortForwarding)
+            .unwrap_or(0) as usize,
         SettingKey::AnonymousCrashReports => ps
             .anonymous_crash_reports
             .map(|v| if v { 1 } else { 0 })

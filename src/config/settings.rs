@@ -211,6 +211,46 @@ impl ProtonSettings {
         Some(settings)
     }
 
+    pub fn get_feature<T, F>(&self, _key: SettingKey, f: F) -> Option<T>
+    where
+        F: FnOnce(&ProtonFeatures) -> Option<T>,
+    {
+        self.features.as_ref().and_then(f)
+    }
+
+    pub fn get_feature_as_i32(&self, key: SettingKey) -> Option<i32> {
+        match key {
+            SettingKey::NetShield => self.features.as_ref().and_then(|f| f.netshield),
+            SettingKey::ModerateNat => self
+                .features
+                .as_ref()
+                .and_then(|f| f.moderate_nat)
+                .map(|v| if v { 1 } else { 0 }),
+            SettingKey::VpnAccelerator => self
+                .features
+                .as_ref()
+                .and_then(|f| f.vpn_accelerator)
+                .map(|v| if v { 1 } else { 0 }),
+            SettingKey::PortForwarding => self
+                .features
+                .as_ref()
+                .and_then(|f| f.port_forwarding)
+                .map(|v| if v { 1 } else { 0 }),
+            _ => None,
+        }
+    }
+
+    pub fn has_any_feature(&self) -> bool {
+        let f = match &self.features {
+            Some(f) => f,
+            None => return false,
+        };
+        f.netshield.is_some()
+            || f.moderate_nat.is_some()
+            || f.vpn_accelerator.is_some()
+            || f.port_forwarding.is_some()
+    }
+
     pub fn settings_count(&self) -> usize {
         let mut c = 0;
         if self.killswitch.is_some() {
@@ -222,29 +262,26 @@ impl ProtonSettings {
         if self.custom_dns.enabled {
             c += 1;
         }
-        if self.features.as_ref().and_then(|f| f.netshield).is_some() {
-            c += 1;
-        }
         if self
-            .features
-            .as_ref()
-            .and_then(|f| f.moderate_nat)
+            .get_feature(SettingKey::NetShield, |f| f.netshield)
             .is_some()
         {
             c += 1;
         }
         if self
-            .features
-            .as_ref()
-            .and_then(|f| f.vpn_accelerator)
+            .get_feature(SettingKey::ModerateNat, |f| f.moderate_nat)
             .is_some()
         {
             c += 1;
         }
         if self
-            .features
-            .as_ref()
-            .and_then(|f| f.port_forwarding)
+            .get_feature(SettingKey::VpnAccelerator, |f| f.vpn_accelerator)
+            .is_some()
+        {
+            c += 1;
+        }
+        if self
+            .get_feature(SettingKey::PortForwarding, |f| f.port_forwarding)
             .is_some()
         {
             c += 1;

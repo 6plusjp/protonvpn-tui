@@ -37,5 +37,6 @@ pub use server_cache::*;
 mod app_state_impl;
 mod event_handler;
 mod navigation;
+pub use navigation::SelectionTarget;
 mod server_ops;
 mod settings_ops;

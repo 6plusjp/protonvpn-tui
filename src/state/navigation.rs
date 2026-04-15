@@ -4,6 +4,14 @@ use crate::config::SettingKey;
 use crate::state::app_state::Navigatable;
 use crate::state::{AppView, Pane};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SelectionTarget {
+    Server,
+    City,
+    Settings,
+    Logs,
+}
+
 #[derive(Clone, Copy)]
 enum NavAction {
     Next,
@@ -34,54 +42,57 @@ impl crate::state::AppState {
         old_idx != *selection
     }
 
-    pub fn select_next(&mut self) {
-        let bounds = self.selection_bounds();
-        if Self::navigate_inner(&mut self.ui_state.selected_server, bounds, NavAction::Next) {
-            self.switch_cities_to_selected();
+    fn navigate_to(&mut self, target: SelectionTarget, action: NavAction) -> bool {
+        match target {
+            SelectionTarget::Server => {
+                let bounds = self.selection_bounds();
+                if Self::navigate_inner(&mut self.ui_state.selected_server, bounds, action) {
+                    self.switch_cities_to_selected();
+                    return true;
+                }
+            }
+            SelectionTarget::City => {
+                let bounds = self.current_cities.len();
+                return Self::navigate_inner(&mut self.ui_state.selected_city, bounds, action);
+            }
+            SelectionTarget::Settings => {
+                let count = SettingKey::ALL.len();
+                if Self::navigate_inner(&mut self.ui_state.settings_selected, count, action) {
+                    self.ui_state.preview_theme_mode = None;
+                    return true;
+                }
+            }
+            SelectionTarget::Logs => {
+                let bounds = self.notification_state.notification_log.len();
+                return Self::navigate_inner(&mut self.ui_state.logs_selected, bounds, action);
+            }
         }
+        false
     }
 
-    pub fn select_prev(&mut self) {
-        let bounds = self.selection_bounds();
-        if Self::navigate_inner(&mut self.ui_state.selected_server, bounds, NavAction::Prev) {
-            self.switch_cities_to_selected();
-        }
+    // Generic navigation methods with target parameter
+    pub fn navigate_next(&mut self, target: SelectionTarget) {
+        self.navigate_to(target, NavAction::Next);
     }
 
-    pub fn select_first(&mut self) {
-        let bounds = self.selection_bounds();
-        if Self::navigate_inner(&mut self.ui_state.selected_server, bounds, NavAction::First) {
-            self.switch_cities_to_selected();
-        }
+    pub fn navigate_prev(&mut self, target: SelectionTarget) {
+        self.navigate_to(target, NavAction::Prev);
     }
 
-    pub fn select_last(&mut self) {
-        let bounds = self.selection_bounds();
-        if Self::navigate_inner(&mut self.ui_state.selected_server, bounds, NavAction::Last) {
-            self.switch_cities_to_selected();
-        }
+    pub fn navigate_first(&mut self, target: SelectionTarget) {
+        self.navigate_to(target, NavAction::First);
     }
 
-    pub fn select_page_down(&mut self) {
-        let bounds = self.selection_bounds();
-        if Self::navigate_inner(
-            &mut self.ui_state.selected_server,
-            bounds,
-            NavAction::PageDown,
-        ) {
-            self.switch_cities_to_selected();
-        }
+    pub fn navigate_last(&mut self, target: SelectionTarget) {
+        self.navigate_to(target, NavAction::Last);
     }
 
-    pub fn select_page_up(&mut self) {
-        let bounds = self.selection_bounds();
-        if Self::navigate_inner(
-            &mut self.ui_state.selected_server,
-            bounds,
-            NavAction::PageUp,
-        ) {
-            self.switch_cities_to_selected();
-        }
+    pub fn navigate_page_down(&mut self, target: SelectionTarget) {
+        self.navigate_to(target, NavAction::PageDown);
+    }
+
+    pub fn navigate_page_up(&mut self, target: SelectionTarget) {
+        self.navigate_to(target, NavAction::PageUp);
     }
 
     pub(crate) fn switch_cities_to_selected(&mut self) {
@@ -96,128 +107,6 @@ impl crate::state::AppState {
                 }
             }
         }
-    }
-
-    pub fn city_select_next(&mut self) {
-        let bounds = self.current_cities.len();
-        Self::navigate_inner(&mut self.ui_state.selected_city, bounds, NavAction::Next);
-    }
-
-    pub fn city_select_prev(&mut self) {
-        let bounds = self.current_cities.len();
-        Self::navigate_inner(&mut self.ui_state.selected_city, bounds, NavAction::Prev);
-    }
-
-    pub fn city_select_first(&mut self) {
-        let bounds = self.current_cities.len();
-        Self::navigate_inner(&mut self.ui_state.selected_city, bounds, NavAction::First);
-    }
-
-    pub fn city_select_last(&mut self) {
-        let bounds = self.current_cities.len();
-        Self::navigate_inner(&mut self.ui_state.selected_city, bounds, NavAction::Last);
-    }
-
-    pub fn city_select_page_down(&mut self) {
-        let bounds = self.current_cities.len();
-        Self::navigate_inner(
-            &mut self.ui_state.selected_city,
-            bounds,
-            NavAction::PageDown,
-        );
-    }
-
-    pub fn city_select_page_up(&mut self) {
-        let bounds = self.current_cities.len();
-        Self::navigate_inner(&mut self.ui_state.selected_city, bounds, NavAction::PageUp);
-    }
-
-    pub fn settings_select_next(&mut self) {
-        let count = SettingKey::ALL.len();
-        if Self::navigate_inner(&mut self.ui_state.settings_selected, count, NavAction::Next) {
-            self.ui_state.preview_theme_mode = None;
-        }
-    }
-
-    pub fn settings_select_prev(&mut self) {
-        let count = SettingKey::ALL.len();
-        if Self::navigate_inner(&mut self.ui_state.settings_selected, count, NavAction::Prev) {
-            self.ui_state.preview_theme_mode = None;
-        }
-    }
-
-    pub fn settings_select_first(&mut self) {
-        let count = SettingKey::ALL.len();
-        if Self::navigate_inner(
-            &mut self.ui_state.settings_selected,
-            count,
-            NavAction::First,
-        ) {
-            self.ui_state.preview_theme_mode = None;
-        }
-    }
-
-    pub fn settings_select_last(&mut self) {
-        let count = SettingKey::ALL.len();
-        if Self::navigate_inner(&mut self.ui_state.settings_selected, count, NavAction::Last) {
-            self.ui_state.preview_theme_mode = None;
-        }
-    }
-
-    pub fn settings_select_page_down(&mut self) {
-        let count = SettingKey::ALL.len();
-        if Self::navigate_inner(
-            &mut self.ui_state.settings_selected,
-            count,
-            NavAction::PageDown,
-        ) {
-            self.ui_state.preview_theme_mode = None;
-        }
-    }
-
-    pub fn settings_select_page_up(&mut self) {
-        let count = SettingKey::ALL.len();
-        if Self::navigate_inner(
-            &mut self.ui_state.settings_selected,
-            count,
-            NavAction::PageUp,
-        ) {
-            self.ui_state.preview_theme_mode = None;
-        }
-    }
-
-    pub fn logs_select_next(&mut self) {
-        let bounds = self.notification_state.notification_log.len();
-        Self::navigate_inner(&mut self.ui_state.logs_selected, bounds, NavAction::Next);
-    }
-
-    pub fn logs_select_prev(&mut self) {
-        let bounds = self.notification_state.notification_log.len();
-        Self::navigate_inner(&mut self.ui_state.logs_selected, bounds, NavAction::Prev);
-    }
-
-    pub fn logs_select_first(&mut self) {
-        let bounds = self.notification_state.notification_log.len();
-        Self::navigate_inner(&mut self.ui_state.logs_selected, bounds, NavAction::First);
-    }
-
-    pub fn logs_select_last(&mut self) {
-        let bounds = self.notification_state.notification_log.len();
-        Self::navigate_inner(&mut self.ui_state.logs_selected, bounds, NavAction::Last);
-    }
-
-    pub fn logs_select_page_down(&mut self) {
-        let bounds = self.notification_state.notification_log.len();
-        Self::navigate_inner(
-            &mut self.ui_state.logs_selected,
-            bounds,
-            NavAction::PageDown,
-        );
-    }
-
-    pub fn logs_select_page_up(&mut self) {
-        let bounds = self.notification_state.notification_log.len();
-        Self::navigate_inner(&mut self.ui_state.logs_selected, bounds, NavAction::PageUp);
     }
 
     pub fn move_to_cities(&mut self) {
@@ -262,7 +151,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
         state.ui_state.selected_server = Some(4);
-        state.select_next();
+        state.navigate_next(SelectionTarget::Server);
         assert_eq!(state.ui_state.selected_server, Some(4));
     }
 
@@ -272,7 +161,7 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
         state.ui_state.selected_server = Some(0);
-        state.select_prev();
+        state.navigate_prev(SelectionTarget::Server);
         assert_eq!(state.ui_state.selected_server, Some(0));
     }
 
@@ -282,9 +171,9 @@ mod tests {
         let mut state = AppState::new();
         state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
         state.ui_state.selected_server = Some(2);
-        state.select_first();
+        state.navigate_first(SelectionTarget::Server);
         assert_eq!(state.ui_state.selected_server, Some(0));
-        state.select_last();
+        state.navigate_last(SelectionTarget::Server);
         assert_eq!(state.ui_state.selected_server, Some(4));
     }
 
@@ -295,12 +184,12 @@ mod tests {
         state.vpn_state = std::sync::Arc::new(VpnClient::with_test_servers(make_servers()));
         state.current_cities.clear();
         state.ui_state.selected_city = None;
-        state.city_select_next();
-        state.city_select_prev();
-        state.city_select_first();
-        state.city_select_last();
-        state.city_select_page_down();
-        state.city_select_page_up();
+        state.navigate_next(SelectionTarget::City);
+        state.navigate_prev(SelectionTarget::City);
+        state.navigate_first(SelectionTarget::City);
+        state.navigate_last(SelectionTarget::City);
+        state.navigate_page_down(SelectionTarget::City);
+        state.navigate_page_up(SelectionTarget::City);
         assert_eq!(state.ui_state.selected_city, None);
     }
 
@@ -314,15 +203,15 @@ mod tests {
             City::new("Osaka".to_string()),
         ];
         state.ui_state.selected_city = Some(0);
-        state.city_select_next();
+        state.navigate_next(SelectionTarget::City);
         assert_eq!(state.ui_state.selected_city, Some(1));
-        state.city_select_next();
+        state.navigate_next(SelectionTarget::City);
         assert_eq!(state.ui_state.selected_city, Some(1));
-        state.city_select_prev();
+        state.navigate_prev(SelectionTarget::City);
         assert_eq!(state.ui_state.selected_city, Some(0));
-        state.city_select_first();
+        state.navigate_first(SelectionTarget::City);
         assert_eq!(state.ui_state.selected_city, Some(0));
-        state.city_select_last();
+        state.navigate_last(SelectionTarget::City);
         assert_eq!(state.ui_state.selected_city, Some(1));
     }
 
@@ -332,13 +221,13 @@ mod tests {
         let mut state = AppState::new();
         let count = SettingKey::ALL.len();
         state.ui_state.settings_selected = Some(0);
-        state.settings_select_next();
+        state.navigate_next(SelectionTarget::Settings);
         assert_eq!(state.ui_state.settings_selected, Some(1));
-        state.settings_select_prev();
+        state.navigate_prev(SelectionTarget::Settings);
         assert_eq!(state.ui_state.settings_selected, Some(0));
-        state.settings_select_first();
+        state.navigate_first(SelectionTarget::Settings);
         assert_eq!(state.ui_state.settings_selected, Some(0));
-        state.settings_select_last();
+        state.navigate_last(SelectionTarget::Settings);
         assert_eq!(state.ui_state.settings_selected, Some(count - 1));
     }
 

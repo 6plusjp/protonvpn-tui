@@ -221,83 +221,75 @@ pub fn handle_common_navigation(input: &mut InputState, key_event: KeyEvent) -> 
 }
 
 fn handle_navigation_down(input: &mut InputState) {
-    match (
+    let target = get_selection_target(
         input.state.ui_state.current_view,
         input.state.ui_state.pane_focus,
-    ) {
-        (AppView::Servers, Pane::Cities) => input.state.city_select_next(),
-        (AppView::Servers, Pane::Countries) => input.state.select_next(),
-        (AppView::Tools, Pane::Settings) => input.state.settings_select_next(),
-        (AppView::Tools, Pane::Logs) => input.state.logs_select_next(),
-        _ => {}
+    );
+    if let Some(t) = target {
+        input.state.navigate_next(t);
     }
 }
 
 fn handle_navigation_up(input: &mut InputState) {
     *input.pending_g = false;
-    match (
+    let target = get_selection_target(
         input.state.ui_state.current_view,
         input.state.ui_state.pane_focus,
-    ) {
-        (AppView::Servers, Pane::Cities) => input.state.city_select_prev(),
-        (AppView::Servers, Pane::Countries) => input.state.select_prev(),
-        (AppView::Tools, Pane::Settings) => input.state.settings_select_prev(),
-        (AppView::Tools, Pane::Logs) => input.state.logs_select_prev(),
-        _ => {}
+    );
+    if let Some(t) = target {
+        input.state.navigate_prev(t);
     }
 }
 
 fn handle_page_down(input: &mut InputState) {
     *input.pending_g = false;
-    match (
+    let target = get_selection_target(
         input.state.ui_state.current_view,
         input.state.ui_state.pane_focus,
-    ) {
-        (AppView::Servers, Pane::Cities) => input.state.city_select_page_down(),
-        (AppView::Servers, Pane::Countries) => input.state.select_page_down(),
-        (AppView::Tools, Pane::Settings) => input.state.settings_select_page_down(),
-        (AppView::Tools, Pane::Logs) => input.state.logs_select_page_down(),
-        _ => {}
+    );
+    if let Some(t) = target {
+        input.state.navigate_page_down(t);
     }
 }
 
 fn handle_page_up(input: &mut InputState) {
     *input.pending_g = false;
-    match (
+    let target = get_selection_target(
         input.state.ui_state.current_view,
         input.state.ui_state.pane_focus,
-    ) {
-        (AppView::Servers, Pane::Cities) => input.state.city_select_page_up(),
-        (AppView::Servers, Pane::Countries) => input.state.select_page_up(),
-        (AppView::Tools, Pane::Settings) => input.state.settings_select_page_up(),
-        (AppView::Tools, Pane::Logs) => input.state.logs_select_page_up(),
-        _ => {}
+    );
+    if let Some(t) = target {
+        input.state.navigate_page_up(t);
     }
 }
 
 fn handle_go_to_first(input: &mut InputState) {
-    match (
+    let target = get_selection_target(
         input.state.ui_state.current_view,
         input.state.ui_state.pane_focus,
-    ) {
-        (AppView::Servers, Pane::Cities) => input.state.city_select_first(),
-        (AppView::Servers, Pane::Countries) => input.state.select_first(),
-        (AppView::Tools, Pane::Settings) => input.state.settings_select_first(),
-        (AppView::Tools, Pane::Logs) => input.state.logs_select_first(),
-        _ => {}
+    );
+    if let Some(t) = target {
+        input.state.navigate_first(t);
     }
 }
 
 fn handle_go_to_last(input: &mut InputState) {
     *input.pending_g = false;
-    match (
+    let target = get_selection_target(
         input.state.ui_state.current_view,
         input.state.ui_state.pane_focus,
-    ) {
-        (AppView::Servers, Pane::Cities) => input.state.city_select_last(),
-        (AppView::Servers, Pane::Countries) => input.state.select_last(),
-        (AppView::Tools, Pane::Settings) => input.state.settings_select_last(),
-        (AppView::Tools, Pane::Logs) => input.state.logs_select_last(),
-        _ => {}
+    );
+    if let Some(t) = target {
+        input.state.navigate_last(t);
+    }
+}
+
+fn get_selection_target(view: AppView, pane: Pane) -> Option<crate::state::SelectionTarget> {
+    match (view, pane) {
+        (AppView::Servers, Pane::Cities) => Some(crate::state::SelectionTarget::City),
+        (AppView::Servers, Pane::Countries) => Some(crate::state::SelectionTarget::Server),
+        (AppView::Tools, Pane::Settings) => Some(crate::state::SelectionTarget::Settings),
+        (AppView::Tools, Pane::Logs) => Some(crate::state::SelectionTarget::Logs),
+        _ => None,
     }
 }

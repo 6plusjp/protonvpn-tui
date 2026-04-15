@@ -82,20 +82,26 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
             if !key_event.modifiers.contains(KeyModifiers::CONTROL) =>
         {
             input.state.ui_state.settings_last_key_g = false;
-            input.state.settings_select_next();
+            input
+                .state
+                .navigate_next(crate::state::SelectionTarget::Settings);
             None
         }
         (false, KeyCode::Char('k') | KeyCode::Up | KeyCode::Char('p'))
             if !key_event.modifiers.contains(KeyModifiers::CONTROL) =>
         {
             input.state.ui_state.settings_last_key_g = false;
-            input.state.settings_select_prev();
+            input
+                .state
+                .navigate_prev(crate::state::SelectionTarget::Settings);
             None
         }
         (false, KeyCode::Char('g')) => {
             if input.state.ui_state.settings_last_key_g {
                 input.state.ui_state.settings_last_key_g = false;
-                input.state.settings_select_first();
+                input
+                    .state
+                    .navigate_first(crate::state::SelectionTarget::Settings);
             } else {
                 input.state.ui_state.settings_last_key_g = true;
             }
@@ -103,7 +109,9 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
         }
         (false, KeyCode::Char('G')) => {
             input.state.ui_state.settings_last_key_g = false;
-            input.state.settings_select_last();
+            input
+                .state
+                .navigate_last(crate::state::SelectionTarget::Settings);
             None
         }
         (false, _) => {

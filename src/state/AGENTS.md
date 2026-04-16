@@ -4,6 +4,14 @@
 
 The `state/` module manages all application state including UI state, VPN connection state, notifications, server data, and user preferences.
 
+## Required Context
+
+Load these policy documents before working on this module:
+
+- [@docs/policy/policy.md](docs/policy/policy.md) — Project policy overview
+- [@docs/policy/coding-standards.md](docs/policy/coding-standards.md) — Rust coding standards
+- [@docs/policy/reference-convention.md](docs/policy/reference-convention.md) — Document reference syntax
+
 ## Module Structure
 
 ```

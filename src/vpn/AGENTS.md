@@ -4,6 +4,14 @@
 
 The `vpn/` module provides a Rust wrapper around the ProtonVPN CLI. It is designed with clear separation of concerns.
 
+## Required Context
+
+Load these policy documents before working on this module:
+
+- [@docs/policy/policy.md](docs/policy/policy.md) — Project policy overview
+- [@docs/policy/coding-standards.md](docs/policy/coding-standards.md) — Rust coding standards
+- [@docs/policy/reference-convention.md](docs/policy/reference-convention.md) — Document reference syntax
+
 ## Module Structure
 
 ```

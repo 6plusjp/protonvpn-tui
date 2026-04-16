@@ -5,6 +5,8 @@
 - All filenames: lowercase, hyphen-separated (kebab-case)
 - Issue documents: `issue001.md`, `issue002.md` (zero-padded to 3 digits)
 - Resolved issues: `resolved001.md`, `resolved002.md` (same zero-padding)
+  - Optional description allowed: `resolved001.md` → `resolved001-<description>.md`
+  - Examples: `resolved094-cache-fix.md`, `resolved108-refactor-unwrap.md`
 - No spaces in file or directory names
 
 ## Code (language-agnostic defaults)

@@ -87,14 +87,7 @@ protonvpn-tui/
 ├── docs/                 # Documentation (source of truth)
 │   ├── issue/            # Issue tracking (issue001.md, issue002.md, ...)
 │   ├── reference/        # Reference docs (user-managed)
-│   ├── policy/           # Project policies
-│   │   ├── policy.md
-│   │   ├── commit-message-rule.md
-│   │   ├── naming-conventions.md
-│   │   ├── reference-convention.md
-│   │   ├── coding-standards.md
-│   │   └── rust-maintainability.md
-│   └── ja/               # Japanese translations
+│   └── policy/           # Project policies
 ├── tests/                # Integration tests
 ├── AGENTS.md             # AI agent context
 └── Cargo.toml
@@ -111,6 +104,7 @@ Load these policy documents before working on this project:
 - [@docs/policy/naming-conventions.md](docs/policy/naming-conventions.md) — Naming conventions
 - [@docs/policy/reference-convention.md](docs/policy/reference-convention.md) — Document reference syntax
 - [@docs/policy/coding-standards.md](docs/policy/coding-standards.md) — Rust coding standards
+- [@docs/policy/rust-maintainability.md](docs/policy/rust-maintainability.md) — Rust maintainability guidelines
 
 ---
 

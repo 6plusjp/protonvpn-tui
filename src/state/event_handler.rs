@@ -3,6 +3,7 @@
 use crate::state::AsyncEvent;
 use crate::state::ConnectionState;
 use crate::state::NotificationType;
+use crate::ui::{notify_connect_failed, notify_connected, notify_disconnected};
 
 impl crate::state::AppState {
     pub fn wait_for_async_events(&mut self, timeout: std::time::Duration) -> bool {
@@ -61,6 +62,13 @@ impl crate::state::AppState {
                         NotificationType::Success,
                         Some("connect".to_string()),
                     );
+                    if self.user_config.ui.system_notifications {
+                        notify_connected(
+                            &result.server_id,
+                            result.city.as_deref(),
+                            result.via.as_deref(),
+                        );
+                    }
                     tracing::info!("Successfully connected to server: {}", result.server_id);
                     self.connection_manager.connection = ConnectionState::Connected {
                         server: result.server_id,
@@ -90,6 +98,9 @@ impl crate::state::AppState {
                         NotificationType::Error,
                         Some("connect".to_string()),
                     );
+                    if self.user_config.ui.system_notifications {
+                        notify_connect_failed(&e);
+                    }
                     notification_shown = true;
                 }
                 AsyncEvent::Disconnected => {
@@ -98,6 +109,9 @@ impl crate::state::AppState {
                         NotificationType::Info,
                         Some("disconnect".to_string()),
                     );
+                    if self.user_config.ui.system_notifications {
+                        notify_disconnected();
+                    }
                     tracing::info!("Disconnected from VPN");
                     self.connection_manager.connection = ConnectionState::Disconnected;
                     self.connection_manager.previous_connection = None;
@@ -159,6 +173,13 @@ impl crate::state::AppState {
                         NotificationType::Success,
                         Some("connect:city".to_string()),
                     );
+                    if self.user_config.ui.system_notifications {
+                        notify_connected(
+                            &result.server_id,
+                            result.city.as_deref(),
+                            result.via.as_deref(),
+                        );
+                    }
                     tracing::info!(
                         "Successfully connected to server (connect_city): {}",
                         result.server_id
@@ -191,6 +212,9 @@ impl crate::state::AppState {
                         NotificationType::Error,
                         Some("connect:city".to_string()),
                     );
+                    if self.user_config.ui.system_notifications {
+                        notify_connect_failed(&e);
+                    }
                     notification_shown = true;
                 }
                 AsyncEvent::ConfigSetResult(msg) => {

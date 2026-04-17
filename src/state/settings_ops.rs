@@ -92,6 +92,7 @@ impl crate::state::AppState {
             }
             SettingKey::Theme => unreachable!(),
             SettingKey::Footer => unreachable!(),
+            SettingKey::SystemNotifications => unreachable!(),
         };
 
         match result {

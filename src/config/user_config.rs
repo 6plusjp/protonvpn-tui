@@ -13,6 +13,8 @@ pub struct UiConfig {
     pub theme: String,
     #[serde(default = "default_true")]
     pub footer: bool,
+    #[serde(default = "default_true")]
+    pub system_notifications: bool,
     #[serde(default)]
     pub favorites: Vec<String>,
     #[serde(skip)]
@@ -24,6 +26,7 @@ impl Default for UiConfig {
         Self {
             theme: String::new(),
             footer: true,
+            system_notifications: true,
             favorites: Vec::new(),
             modified_fields: HashSet::new(),
         }
@@ -555,6 +558,8 @@ impl UserConfig {
         let save_theme = self.ui.modified_fields.contains("theme") || !self.ui.theme.is_empty();
         let save_footer =
             self.ui.modified_fields.contains("footer") || self.ui.footer != defaults.ui.footer;
+        let save_system_notifications = self.ui.modified_fields.contains("system_notifications")
+            || self.ui.system_notifications != defaults.ui.system_notifications;
         let save_favorites =
             self.ui.modified_fields.contains("favorites") || !self.ui.favorites.is_empty();
 
@@ -563,6 +568,9 @@ impl UserConfig {
         }
         if save_footer {
             existing_config.ui.footer = self.ui.footer;
+        }
+        if save_system_notifications {
+            existing_config.ui.system_notifications = self.ui.system_notifications;
         }
         if save_favorites {
             existing_config.ui.favorites.clone_from(&self.ui.favorites);
@@ -585,9 +593,11 @@ impl UserConfig {
 
         let has_ui_settings = save_theme
             || save_footer
+            || save_system_notifications
             || save_favorites
             || !existing_config.ui.theme.is_empty()
             || existing_config.ui.footer != defaults.ui.footer
+            || existing_config.ui.system_notifications != defaults.ui.system_notifications
             || !existing_config.ui.favorites.is_empty();
 
         if has_ui_settings {
@@ -597,6 +607,14 @@ impl UserConfig {
             }
             if save_footer || existing_config.ui.footer != defaults.ui.footer {
                 toml_string.push_str(&format!("footer = {}\n", existing_config.ui.footer));
+            }
+            if save_system_notifications
+                || existing_config.ui.system_notifications != defaults.ui.system_notifications
+            {
+                toml_string.push_str(&format!(
+                    "system_notifications = {}\n",
+                    existing_config.ui.system_notifications
+                ));
             }
             if save_favorites || !existing_config.ui.favorites.is_empty() {
                 let favs: Vec<String> = existing_config

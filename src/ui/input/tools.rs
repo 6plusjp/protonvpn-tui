@@ -56,6 +56,13 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
                             1
                         }
                     }
+                    SettingKey::SystemNotifications => {
+                        if input.state.user_config.ui.system_notifications {
+                            0
+                        } else {
+                            1
+                        }
+                    }
                     _ => {
                         let ps = input.state.config_state.proton_settings_cache.as_ref();
                         get_setting_index(key, ps)
@@ -185,6 +192,20 @@ fn handle_settings_pane_key(input: &mut InputState, key_event: KeyEvent) -> Opti
                     };
                     input.state.show_notification(
                         format!("Footer set to {}", status),
+                        crate::state::NotificationType::Info,
+                        None,
+                    );
+                    return None;
+                }
+
+                if key == SettingKey::SystemNotifications {
+                    input.state.ui_state.settings_expanded = false;
+                    let option_idx = input.state.ui_state.settings_option_selected;
+                    let new_enabled = option_idx == 0;
+                    input.state.save_system_notifications(new_enabled);
+                    let status = if new_enabled { FEATURE_ON } else { FEATURE_OFF };
+                    input.state.show_notification(
+                        format!("System notifications set to {}", status),
                         crate::state::NotificationType::Info,
                         None,
                     );
@@ -328,5 +349,6 @@ fn get_setting_index(
             .unwrap_or(0),
         SettingKey::Theme => 0,
         SettingKey::Footer => 0,
+        SettingKey::SystemNotifications => 0,
     }
 }

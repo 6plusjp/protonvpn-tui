@@ -54,11 +54,12 @@ pub enum SettingKey {
     AnonymousCrashReports,
     Theme,
     Footer,
+    SystemNotifications,
 }
 
 impl SettingKey {
     /// All settings in display order (indices match UI)
-    pub const ALL: [SettingKey; 10] = [
+    pub const ALL: [SettingKey; 11] = [
         SettingKey::Killswitch,
         SettingKey::Ipv6,
         SettingKey::Dns,
@@ -69,6 +70,7 @@ impl SettingKey {
         SettingKey::AnonymousCrashReports,
         SettingKey::Theme,
         SettingKey::Footer,
+        SettingKey::SystemNotifications,
     ];
 
     pub fn from_index(index: usize) -> Option<SettingKey> {
@@ -93,6 +95,7 @@ impl SettingKey {
             SettingKey::AnonymousCrashReports => "Crash Reports:        ",
             SettingKey::Theme => "Theme:                ",
             SettingKey::Footer => "Footer:               ",
+            SettingKey::SystemNotifications => "System Notifications: ",
         }
     }
 
@@ -116,6 +119,7 @@ impl SettingKey {
                 "Tokyo Night",
             ],
             SettingKey::Footer => vec![FEATURE_ON, FEATURE_OFF],
+            SettingKey::SystemNotifications => vec![FEATURE_ON, FEATURE_OFF],
         }
     }
 
@@ -147,6 +151,7 @@ impl SettingKey {
             SettingKey::AnonymousCrashReports => "anonymous-crash-reports",
             SettingKey::Theme => "theme",
             SettingKey::Footer => "footer",
+            SettingKey::SystemNotifications => "system-notifications",
         }
     }
 }

@@ -187,6 +187,13 @@ impl AppState {
         self.user_config.save();
     }
 
+    pub fn save_system_notifications(&mut self, enabled: bool) {
+        self.user_config.ui.system_notifications = enabled;
+        self.user_config
+            .mark_ui_field_modified("system_notifications");
+        self.user_config.save();
+    }
+
     pub fn save_favorites(&mut self) {
         self.user_config.ui.favorites = self.ui_state.favorite_countries.iter().cloned().collect();
         self.user_config.mark_ui_field_modified("favorites");

@@ -26,11 +26,18 @@ pub fn render_settings_view(
     let expanded = state.ui_state.settings_expanded;
     let option_selected = state.ui_state.settings_option_selected;
     let show_footer = state.ui_state.show_footer;
+    let system_notifications = state.user_config.ui.system_notifications;
 
     let mut all_items: Vec<ListItem> = Vec::new();
 
     for (idx, key) in SettingKey::ALL.iter().enumerate() {
-        let value = get_setting_value(key, proton_settings, state.ui_state.theme_mode, show_footer);
+        let value = get_setting_value(
+            key,
+            proton_settings,
+            state.ui_state.theme_mode,
+            show_footer,
+            system_notifications,
+        );
         let label = key.label();
 
         let is_selected = selected == idx;
@@ -88,6 +95,7 @@ fn get_setting_value(
     proton_settings: Option<&crate::config::ProtonSettings>,
     theme_mode: ThemeMode,
     show_footer: bool,
+    system_notifications: bool,
 ) -> String {
     if matches!(key, SettingKey::Theme) {
         return match theme_mode {
@@ -103,6 +111,14 @@ fn get_setting_value(
 
     if matches!(key, SettingKey::Footer) {
         return if show_footer {
+            FEATURE_ON.to_string()
+        } else {
+            FEATURE_OFF.to_string()
+        };
+    }
+
+    if matches!(key, SettingKey::SystemNotifications) {
+        return if system_notifications {
             FEATURE_ON.to_string()
         } else {
             FEATURE_OFF.to_string()
@@ -193,5 +209,6 @@ fn get_setting_value(
             .unwrap_or_else(|| "unknown".to_string()),
         SettingKey::Theme => unreachable!(),
         SettingKey::Footer => unreachable!(),
+        SettingKey::SystemNotifications => unreachable!(),
     }
 }

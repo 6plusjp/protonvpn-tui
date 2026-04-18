@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 /// VPN connection result
 #[derive(Debug, Clone)]
 pub struct ConnectResult {
-    pub server_id: String,
+    pub server: String,
+    pub server_id: Option<String>,
     pub ip: Option<String>,
     pub country: Option<String>,
     pub city: Option<String>,
@@ -270,7 +271,8 @@ pub fn parse_connect_output(output: &str) -> ConnectResult {
     }
 
     ConnectResult {
-        server_id,
+        server: server_id,
+        server_id: None,
         ip,
         city,
         country,
@@ -602,7 +604,7 @@ Japan               JP"#;
 No IP address found."#;
         let result = parse_connect_output(output);
 
-        assert_eq!(result.server_id, "DE#200");
+        assert_eq!(result.server, "DE#200");
         assert_eq!(result.ip, None);
         assert_eq!(result.city, Some("Berlin".to_string()));
         assert_eq!(result.country, Some("Germany".to_string()));
@@ -614,7 +616,7 @@ No IP address found."#;
 IP address: 10.0.0.1"#;
         let result = parse_connect_output(output);
 
-        assert_eq!(result.server_id, "JP#379");
+        assert_eq!(result.server, "JP#379");
         assert_eq!(result.ip, None);
         assert_eq!(result.city, Some("Tokyo".to_string()));
         assert_eq!(result.country, Some("Japan".to_string()));
@@ -625,7 +627,7 @@ IP address: 10.0.0.1"#;
         let output = "Connection failed. Please try again.";
         let result = parse_connect_output(output);
 
-        assert!(result.server_id.is_empty());
+        assert!(result.server.is_empty());
         assert_eq!(result.ip, None);
         assert_eq!(result.city, None);
         assert_eq!(result.country, None);
@@ -637,7 +639,7 @@ IP address: 10.0.0.1"#;
             r#"Connected to JP#374 in Tokyo, Japan. Your new IP address is 159.26.119.144."#;
         let result = parse_connect_output(output);
 
-        assert_eq!(result.server_id, "JP#374");
+        assert_eq!(result.server, "JP#374");
         assert_eq!(result.ip, Some("159.26.119.144".to_string()));
         assert_eq!(result.city, Some("Tokyo".to_string()));
         assert_eq!(result.country, Some("Japan".to_string()));
@@ -655,7 +657,7 @@ local_agent.LocalAgentError: Tokio(Custom { kind: InvalidData, error: InvalidCer
 Connected to JP#374 in Tokyo, Japan. Your new IP address is 159.26.119.144."#;
         let result = parse_connect_output(output);
 
-        assert_eq!(result.server_id, "JP#374");
+        assert_eq!(result.server, "JP#374");
         assert_eq!(result.ip, Some("159.26.119.144".to_string()));
         assert_eq!(result.city, Some("Tokyo".to_string()));
         assert_eq!(result.country, Some("Japan".to_string()));
@@ -667,7 +669,7 @@ Connected to JP#374 in Tokyo, Japan. Your new IP address is 159.26.119.144."#;
             "Connected to CH-JP#2 in Tokyo, via Switzerland. Your new IP address is 37.19.205.233.";
         let result = parse_connect_output(output);
 
-        assert_eq!(result.server_id, "CH-JP#2");
+        assert_eq!(result.server, "CH-JP#2");
         assert_eq!(result.ip, Some("37.19.205.233".to_string()));
         assert_eq!(result.city, Some("Tokyo".to_string()));
         assert_eq!(result.country, None);
@@ -679,7 +681,7 @@ Connected to JP#374 in Tokyo, Japan. Your new IP address is 159.26.119.144."#;
         let output = "Connected to CH-JP#2 in Tokyo, via Switzerland.";
         let result = parse_connect_output(output);
 
-        assert_eq!(result.server_id, "CH-JP#2");
+        assert_eq!(result.server, "CH-JP#2");
         assert_eq!(result.ip, None);
         assert_eq!(result.city, Some("Tokyo".to_string()));
         assert_eq!(result.country, None);
@@ -691,7 +693,7 @@ Connected to JP#374 in Tokyo, Japan. Your new IP address is 159.26.119.144."#;
         let output = "Connected to JP#374 in Japan. Your new IP address is 159.26.119.144.";
         let result = parse_connect_output(output);
 
-        assert_eq!(result.server_id, "JP#374");
+        assert_eq!(result.server, "JP#374");
         assert_eq!(result.ip, Some("159.26.119.144".to_string()));
         assert_eq!(result.city, None);
         assert_eq!(result.country, Some("Japan".to_string()));
@@ -703,7 +705,7 @@ Connected to JP#374 in Tokyo, Japan. Your new IP address is 159.26.119.144."#;
         let output = "Connected to JP#423 in Tokyo, Japan.\nYour new IP address is 159.26.119.172.";
         let result = parse_connect_output(output);
 
-        assert_eq!(result.server_id, "JP#423");
+        assert_eq!(result.server, "JP#423");
         assert_eq!(result.ip, Some("159.26.119.172".to_string()));
         assert_eq!(result.city, Some("Tokyo".to_string()));
         assert_eq!(result.country, Some("Japan".to_string()));
@@ -714,7 +716,7 @@ Connected to JP#374 in Tokyo, Japan. Your new IP address is 159.26.119.144."#;
         let output = "Connected to CH-JP#2 in Tokyo, via Switzerland.\nYour new IP address is 103.155.232.232.";
         let result = parse_connect_output(output);
 
-        assert_eq!(result.server_id, "CH-JP#2");
+        assert_eq!(result.server, "CH-JP#2");
         assert_eq!(result.ip, Some("103.155.232.232".to_string()));
         assert_eq!(result.city, Some("Tokyo".to_string()));
         assert_eq!(result.country, None);

@@ -58,20 +58,20 @@ impl crate::state::AppState {
                 }
                 AsyncEvent::Connected(result, needs_refresh) => {
                     self.show_notification(
-                        format!("Connected to {}", &result.server_id),
+                        format!("Connected to {}", &result.server),
                         NotificationType::Success,
                         Some("connect".to_string()),
                     );
                     if self.user_config.ui.system_notifications {
                         notify_connected(
-                            &result.server_id,
+                            &result.server,
                             result.city.as_deref(),
                             result.via.as_deref(),
                         );
                     }
-                    tracing::info!("Successfully connected to server: {}", result.server_id);
+                    tracing::info!("Successfully connected to server: {}", result.server);
                     self.connection_manager.connection = ConnectionState::Connected {
-                        server: result.server_id,
+                        server: result.server,
                         ip: result.ip.unwrap_or_default(),
                         city: result.city,
                         country: result.country,
@@ -169,23 +169,23 @@ impl crate::state::AppState {
                 }
                 AsyncEvent::ConnectCityResult(result, needs_refresh) => {
                     self.show_notification(
-                        format!("Connected to {}", result.server_id),
+                        format!("Connected to {}", result.server),
                         NotificationType::Success,
                         Some("connect:city".to_string()),
                     );
                     if self.user_config.ui.system_notifications {
                         notify_connected(
-                            &result.server_id,
+                            &result.server,
                             result.city.as_deref(),
                             result.via.as_deref(),
                         );
                     }
                     tracing::info!(
                         "Successfully connected to server (connect_city): {}",
-                        result.server_id
+                        result.server
                     );
                     self.connection_manager.connection = ConnectionState::Connected {
-                        server: result.server_id,
+                        server: result.server,
                         ip: result.ip.unwrap_or_default(),
                         city: result.city,
                         country: result.country,
@@ -241,7 +241,7 @@ impl crate::state::AppState {
                             let server_ip = self
                                 .vpn_state
                                 .get_connected_server_info()
-                                .map(|(_, ip)| ip)
+                                .map(|(_, _, ip)| ip)
                                 .unwrap_or_default();
 
                             self.connection_manager.connection = ConnectionState::Connected {
@@ -273,34 +273,44 @@ impl crate::state::AppState {
         if self.connection_manager.connection == ConnectionState::Disconnected
             && self.vpn_state.is_connected()
         {
-            let (server, ip, city, country, load) = match self.vpn_state.get_status_info() {
-                Some(status) => {
-                    let server = status.server.unwrap_or_else(|| "Unknown".to_string());
-                    // Get IP from persistence file (status doesn't include IP in all versions)
-                    let ip = self
-                        .vpn_state
-                        .get_connected_server_info()
-                        .map(|(_, ip)| ip)
-                        .unwrap_or_default();
+            let (server, server_id, ip, city, country, load) =
+                match self.vpn_state.get_status_info() {
+                    Some(status) => {
+                        let server = status.server.unwrap_or_else(|| "Unknown".to_string());
+                        let server_id = self
+                            .vpn_state
+                            .get_connected_server_info()
+                            .map(|(sid, _, _)| sid)
+                            .unwrap_or_default();
+                        let ip = self
+                            .vpn_state
+                            .get_connected_server_info()
+                            .map(|(_, _, ip)| ip)
+                            .unwrap_or_default();
 
-                    // Adjust connected_at from uptime if available
-                    if let Some(uptime) = status.uptime {
-                        self.vpn_state.adjust_connected_at_from_uptime(uptime);
+                        if let Some(uptime) = status.uptime {
+                            self.vpn_state.adjust_connected_at_from_uptime(uptime);
+                        }
+
+                        (
+                            server,
+                            server_id,
+                            ip,
+                            status.city,
+                            status.country,
+                            status.load,
+                        )
                     }
+                    None => {
+                        let server = String::new();
+                        let server_id = String::new();
+                        let ip = String::new();
+                        (server, server_id, ip, None, None, None)
+                    }
+                };
 
-                    (server, ip, status.city, status.country, status.load)
-                }
-                None => {
-                    let (server, ip) = self
-                        .vpn_state
-                        .get_connected_server_info()
-                        .unwrap_or_else(|| ("Unknown".to_string(), String::new()));
-                    (server, ip, None, None, None)
-                }
-            };
-
-            // Sync cache with actual connection info (e.g., after reboot with auto-connect)
-            self.vpn_state.sync_cache_with_connection(&server, &ip);
+            self.vpn_state
+                .sync_cache_with_connection(&server, &server_id, &ip);
 
             self.connection_manager.connection = ConnectionState::Connected {
                 server,

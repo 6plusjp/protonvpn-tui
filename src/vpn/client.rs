@@ -178,8 +178,10 @@ impl VpnClient {
 
         let result = parse_connect_output(&stdout);
 
-        let final_server = if !result.server_id.is_empty() {
-            result.server_id.clone()
+        let server_id = self.get_connected_server_info().map(|(sid, _, _)| sid);
+
+        let final_server = if !result.server.is_empty() {
+            result.server.clone()
         } else {
             fallback_name.to_string()
         };
@@ -187,15 +189,21 @@ impl VpnClient {
         let needs_time_update = self
             .with_cache(|c| {
                 c.connected_server.as_deref() != Some(&final_server)
-                    || c.connected_ip.as_deref() != result.ip.as_deref()
+                    || c.connected_server_id.as_deref() != server_id.as_deref()
             })
             .unwrap_or(true);
 
         self.with_cache(|c| {
             if needs_time_update {
-                c.set_connected(final_server.clone(), result.ip.clone(), result.via.clone())
+                c.set_connected(
+                    final_server.clone(),
+                    server_id.clone(),
+                    result.ip.clone(),
+                    result.via.clone(),
+                )
             } else {
                 c.connected_server = Some(final_server.clone());
+                c.connected_server_id = server_id.clone();
                 c.connected_ip = result.ip.clone();
                 c.connected_via = result.via.clone();
             }
@@ -206,7 +214,8 @@ impl VpnClient {
 
         Ok((
             ConnectResult {
-                server_id: final_server,
+                server: final_server,
+                server_id: None,
                 ip: result.ip,
                 city: result.city,
                 country: result.country,
@@ -303,8 +312,7 @@ impl VpnClient {
         persistence_exists
     }
 
-    /// Get connected server name and IP from connection_persistence.json
-    pub fn get_connected_server_info(&self) -> Option<(String, String)> {
+    pub fn get_connected_server_info(&self) -> Option<(String, String, String)> {
         let persistence_path = self.persistence_file_path();
         let content = std::fs::read_to_string(persistence_path).ok()?;
 
@@ -315,13 +323,20 @@ impl VpnClient {
 
         #[derive(serde::Deserialize)]
         struct ServerInfo {
+            #[serde(rename = "server_id")]
+            server_id: String,
+            #[serde(rename = "server_name")]
             server_name: String,
             #[serde(rename = "server_ip")]
             server_ip: String,
         }
 
         let persistence: Persistence = serde_json::from_str(&content).ok()?;
-        Some((persistence.server.server_name, persistence.server.server_ip))
+        Some((
+            persistence.server.server_id,
+            persistence.server.server_name,
+            persistence.server.server_ip,
+        ))
     }
 
     pub fn get_connection_protocol(&self) -> Option<String> {
@@ -343,6 +358,12 @@ impl VpnClient {
 
     pub fn get_connected_server(&self) -> Option<String> {
         self.with_cache(|c| c.connected_server.clone())
+            .ok()
+            .flatten()
+    }
+
+    pub fn get_connected_server_id(&self) -> Option<String> {
+        self.with_cache(|c| c.connected_server_id.clone())
             .ok()
             .flatten()
     }
@@ -398,47 +419,46 @@ impl VpnClient {
         super::types::parse_status_output(&stdout)
     }
 
-    /// Sync cache with actual connection info (e.g., after reboot with auto-connect)
-    ///
-    /// When the app detects an existing VPN connection on startup, the cache may contain
-    /// stale data from before the reboot. This method syncs the cache with the actual
-    /// connection info from connection_persistence.json.
-    pub fn sync_cache_with_connection(&self, server: &str, ip: &str) {
+    pub fn sync_cache_with_connection(&self, server: &str, server_id: &str, ip: &str) {
         tracing::debug!(
-            "sync_cache_with_connection called: server={}, ip={}",
+            "sync_cache_with_connection called: server={}, server_id={}, ip={}",
             server,
+            server_id,
             ip
         );
         if let Ok(mut cache) = self.cache.lock() {
             let server_changed = cache.connected_server.as_deref() != Some(server);
+            let server_id_changed = cache.connected_server_id.as_deref() != Some(server_id);
             let ip_changed = cache.connected_ip.as_deref() != Some(ip);
 
             tracing::debug!(
-                "sync_cache_with_connection: server_changed={}, ip_changed={}",
+                "sync_cache_with_connection: server_changed={}, server_id_changed={}, ip_changed={}",
                 server_changed,
+                server_id_changed,
                 ip_changed
             );
 
-            if server_changed || ip_changed {
+            if server_changed || server_id_changed || ip_changed {
                 tracing::debug!(
-                    "Syncing cache: old={:?}/{:?}, new={:?}/{:?}",
+                    "Syncing cache: old={:?}/{:?}/{:?}, new={}/{:?}/{:?}",
                     cache.connected_server,
+                    cache.connected_server_id,
                     cache.connected_ip,
                     server,
+                    server_id,
                     ip
                 );
                 cache.connected_server = Some(server.to_string());
+                cache.connected_server_id = Some(server_id.to_string());
                 cache.connected_ip = Some(ip.to_string());
                 cache.connected_via = None;
 
-                // Update connected_at to boot time if it's before boot
                 if let Some(boot_time) = super::cache::system_boot_time() {
                     if cache.connected_at.map_or(true, |t| t < boot_time) {
                         cache.connected_at = Some(boot_time);
                     }
                 }
 
-                // Skip disk persist during startup to avoid blocking
                 tracing::debug!("sync_cache_with_connection: cache updated (skipping disk save)");
             } else {
                 tracing::debug!("sync_cache_with_connection: no changes needed");

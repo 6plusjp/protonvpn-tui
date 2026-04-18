@@ -35,6 +35,8 @@ pub struct ServerCache {
     pub cities: HashMap<String, Vec<City>>,
     /// Connection status (tracked locally since no `protonvpn status` exists)
     pub connected_server: Option<String>,
+    #[serde(rename = "server_id")]
+    pub connected_server_id: Option<String>,
     pub connected_ip: Option<String>,
     pub connected_via: Option<String>,
     pub connected_at: Option<DateTime<Utc>>,
@@ -82,17 +84,23 @@ impl ServerCache {
         }
     }
 
-    /// Mark as connected
-    pub fn set_connected(&mut self, server: String, ip: Option<String>, via: Option<String>) {
+    pub fn set_connected(
+        &mut self,
+        server: String,
+        server_id: Option<String>,
+        ip: Option<String>,
+        via: Option<String>,
+    ) {
         self.connected_server = Some(server);
+        self.connected_server_id = server_id;
         self.connected_ip = ip;
         self.connected_via = via;
         self.connected_at = Some(Utc::now());
     }
 
-    /// Mark as disconnected
     pub fn set_disconnected(&mut self) {
         self.connected_server = None;
+        self.connected_server_id = None;
         self.connected_ip = None;
         self.connected_via = None;
         self.connected_at = None;

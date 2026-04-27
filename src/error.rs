@@ -25,6 +25,9 @@ pub enum AppError {
     #[error("Config error: {0}")]
     ConfigError(String),
 
+    #[error("Config not found: {0}")]
+    ConfigNotFound(String),
+
     #[error("Operation timed out: {0}")]
     Timeout(String),
 }
@@ -44,6 +47,12 @@ impl From<toml::ser::Error> for AppError {
 impl From<std::io::Error> for AppError {
     fn from(e: std::io::Error) -> Self {
         AppError::ConfigError(e.to_string())
+    }
+}
+
+impl From<serde_json::Error> for AppError {
+    fn from(e: serde_json::Error) -> Self {
+        AppError::ParseError(e.to_string())
     }
 }
 
@@ -107,5 +116,6 @@ pub fn categorize_error(e: &AppError) -> &'static str {
         AppError::AuthFailed(_) => "AuthFailed",
         AppError::ParseError(_) => "ParseError",
         AppError::ConfigError(_) => "ConfigError",
+        AppError::ConfigNotFound(_) => "ConfigNotFound",
     }
 }

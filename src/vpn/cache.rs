@@ -40,6 +40,8 @@ pub struct ServerCache {
     pub connected_ip: Option<String>,
     pub connected_via: Option<String>,
     pub connected_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub forwarded_port: Option<u16>,
     /// Flag indicating if CLI was unavailable during last refresh
     #[serde(default)]
     pub cli_unavailable: bool,
@@ -98,12 +100,17 @@ impl ServerCache {
         self.connected_at = Some(Utc::now());
     }
 
+    pub fn set_forwarded_port(&mut self, port: Option<u16>) {
+        self.forwarded_port = port;
+    }
+
     pub fn set_disconnected(&mut self) {
         self.connected_server = None;
         self.connected_server_id = None;
         self.connected_ip = None;
         self.connected_via = None;
         self.connected_at = None;
+        self.forwarded_port = None;
     }
 
     /// Check if IP matches cached connection

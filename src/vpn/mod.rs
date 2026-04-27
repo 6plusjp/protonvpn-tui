@@ -12,3 +12,6 @@ pub use cache::{countries_to_servers, ServerCache};
 
 pub mod async_tasks;
 pub use async_tasks::*;
+
+pub mod torrent_sync;
+pub use torrent_sync::*;

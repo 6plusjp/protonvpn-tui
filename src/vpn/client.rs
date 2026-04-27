@@ -396,6 +396,25 @@ impl VpnClient {
         Some((bytes_received, bytes_sent))
     }
 
+    pub fn get_forwarded_port(&self) -> Option<u16> {
+        let port_path = paths::proton_forwarded_port_path()?;
+        if !port_path.exists() {
+            return None;
+        }
+        let content = std::fs::read_to_string(port_path).ok()?;
+        content.trim().parse().ok()
+    }
+
+    pub fn set_forwarded_port(&self, port: Option<u16>) {
+        if let Ok(mut cache) = self.cache.lock() {
+            cache.forwarded_port = port;
+        }
+    }
+
+    pub fn get_cached_forwarded_port(&self) -> Option<u16> {
+        self.with_cache(|c| c.forwarded_port).ok().flatten()
+    }
+
     /// Get uptime from protonvpn status command
     ///
     /// Returns None if status command fails or uptime is not available

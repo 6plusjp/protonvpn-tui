@@ -3,7 +3,9 @@
 use crate::state::AsyncEvent;
 use crate::state::ConnectionState;
 use crate::state::NotificationType;
+use crate::paths;
 use crate::ui::{notify_connect_failed, notify_connected, notify_disconnected};
+use crate::vpn::torrent_sync;
 
 impl crate::state::AppState {
     pub fn wait_for_async_events(&mut self, timeout: std::time::Duration) -> bool {
@@ -81,6 +83,19 @@ impl crate::state::AppState {
                     self.connection_manager.previous_connection = None;
                     notification_shown = true;
 
+                    std::thread::spawn({
+                        let vpn_state = self.vpn_state.clone();
+                        move || {
+                            let port = paths::proton_forwarded_port_path()
+                                .and_then(|p| std::fs::read_to_string(p).ok())
+                                .and_then(|c| c.trim().parse().ok());
+                            if let Some(p) = port {
+                                torrent_sync::sync_forwarded_port(p);
+                                vpn_state.set_forwarded_port(Some(p));
+                            }
+                        }
+                    });
+
                     if needs_refresh {
                         tracing::info!("CLI server list was outdated, triggering refresh");
                         self.refresh_servers();
@@ -115,6 +130,7 @@ impl crate::state::AppState {
                     tracing::info!("Disconnected from VPN");
                     self.connection_manager.connection = ConnectionState::Disconnected;
                     self.connection_manager.previous_connection = None;
+                    self.vpn_state.set_forwarded_port(None);
                     notification_shown = true;
                 }
                 AsyncEvent::DisconnectFailed(e) => {
@@ -320,6 +336,22 @@ impl crate::state::AppState {
                 via: None,
                 load,
             };
+
+            // Restore cached forwarded_port only if server_id matches
+            let cached_server_id = self.vpn_state.get_connected_server_id();
+            if cached_server_id.as_ref() == Some(&server_id) {
+                if let Some(port) = self.vpn_state.get_cached_forwarded_port() {
+                    tracing::debug!(
+                        "Restored forwarded port {} for reconnected server {}",
+                        port,
+                        server_id
+                    );
+                }
+            } else {
+                // Server changed, clear cached port
+                self.vpn_state.set_forwarded_port(None);
+            }
+
             return true;
         }
         false

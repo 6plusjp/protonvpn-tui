@@ -1,4 +1,5 @@
 use crate::state::{AppState, ConnectionState};
+
 use chrono::Utc;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -76,6 +77,16 @@ pub fn render_header(state: &AppState, f: &mut Frame<'_>, area: Rect) {
                     spans.push(Span::styled(loc, Style::default().fg(theme.secondary)));
                 }
 
+                let forwarded_port = state.vpn_state.get_cached_forwarded_port();
+                if let Some(port) = forwarded_port {
+                    spans.push(Span::styled("  ", Style::default().fg(theme.dim)));
+                    spans.push(Span::styled("port:", Style::default().fg(theme.dim)));
+                    spans.push(Span::styled(
+                        port.to_string(),
+                        Style::default().fg(theme.secondary),
+                    ));
+                }
+
                 (theme.success, spans)
             }
             ConnectionState::Disconnecting => {
@@ -91,24 +102,15 @@ pub fn render_header(state: &AppState, f: &mut Frame<'_>, area: Rect) {
             }
         };
 
-    let protocol = match state.connection_manager.connection {
-        ConnectionState::Connected { .. } | ConnectionState::Disconnected => {
-            state.vpn_state.get_connection_protocol()
-        }
-        ConnectionState::Connecting
-        | ConnectionState::Disconnecting
-        | ConnectionState::Error(_) => None,
-    };
-
     let title = " ProtonVPN TUI ";
 
-    if let Some(ref proto) = protocol {
-        status_spans.push(Span::styled("  ", Style::default().fg(theme.dim)));
-        status_spans.push(Span::styled("protocol:", Style::default().fg(theme.dim)));
-        status_spans.push(Span::styled(proto, Style::default().fg(theme.secondary)));
-    }
-
     if let ConnectionState::Connected { .. } = state.connection_manager.connection {
+        if let Some(protocol) = state.vpn_state.get_connection_protocol() {
+            status_spans.push(Span::styled("  ", Style::default().fg(theme.dim)));
+            status_spans.push(Span::styled("protocol:", Style::default().fg(theme.dim)));
+            status_spans.push(Span::styled(protocol, Style::default().fg(theme.secondary)));
+        }
+
         if let Some(connected_at) = state.vpn_state.get_connected_at() {
             let elapsed = Utc::now().signed_duration_since(connected_at);
             let mins = elapsed.num_minutes();

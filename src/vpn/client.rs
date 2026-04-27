@@ -408,6 +408,10 @@ impl VpnClient {
     pub fn set_forwarded_port(&self, port: Option<u16>) {
         if let Ok(mut cache) = self.cache.lock() {
             cache.forwarded_port = port;
+            drop(cache);
+            if let Err(e) = self.save_cache() {
+                tracing::warn!("Failed to save cache after setting forwarded_port: {}", e);
+            }
         }
     }
 

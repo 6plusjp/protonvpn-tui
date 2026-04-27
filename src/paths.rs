@@ -90,3 +90,14 @@ pub fn proton_connection_persistence_fallback() -> PathBuf {
         .join("connection")
         .join(PROTON_CONNECTION_PERSISTENCE_FILE)
 }
+
+/// Get ProtonVPN runtime directory (XDG_RUNTIME_DIR/Proton/VPN)
+pub fn proton_runtime_dir() -> Option<PathBuf> {
+    std::env::var("XDG_RUNTIME_DIR")
+        .ok()
+        .map(|p| PathBuf::from(p).join(PROTON_DIR).join("VPN"))
+}
+
+pub fn proton_forwarded_port_path() -> Option<PathBuf> {
+    proton_runtime_dir().map(|p| p.join("forwarded_port"))
+}

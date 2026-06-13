@@ -1,6 +1,6 @@
 # ProtonVPN CLI Reference
 
-**Current Version**: 1.0.0 (Stable) / **Release Date**: March 23, 2026
+**Current Version**: 1.0.1 (Stable) / **Release Date**: June 13, 2026
 
 ## Overview
 
@@ -51,7 +51,7 @@ This document provides a comprehensive reference for the official ProtonVPN CLI 
 | `protonvpn countries list`        | Discover available countries                          |
 | `protonvpn cities list <COUNTRY>` | Discover available cities for a country               |
 | `protonvpn config`                | Configure VPN settings                                |
-| `protonvpn config list`           | List all configured settings                          |     |
+| `protonvpn config list`           | List all configured settings          |
 
 ---
 
@@ -686,6 +686,7 @@ The CLI supports connecting to servers with specific features:
 
 | Version   | Date              | Notable Changes                                                                                                 |
 | --------- | ----------------- | --------------------------------------------------------------------------------------------------------------- |
+| **1.0.1** | June 13, 2026     | Minor help text improvements, no command structure changes                                                      |
 | **1.0.0** | March 23, 2026    | First stable release                                                                                            |
 | **0.1.8** | March 23, 2026    | Added `protonvpn status` command; improved help/error messages                                                  |
 | **0.1.7** | March 2, 2026     | Added `protonvpn config list`; settings changes don't require reconnect                                         |

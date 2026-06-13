@@ -1,6 +1,6 @@
 //! VPN client - wraps protonvpn CLI
 //!
-//! Uses the `protonvpn` CLI commands (per PROTONVPN_CLI_REFERENCE.md v1.0.0):
+//! Uses the `protonvpn` CLI commands (per PROTONVPN_CLI_REFERENCE.md v1.0.1):
 //! - `protonvpn countries list` → list countries
 //! - `protonvpn cities list <CC>` → list cities for a country (CC = country code)
 //! - `protonvpn connect` → connect to fastest server

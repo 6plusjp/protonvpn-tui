@@ -9,7 +9,6 @@ license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/6plusjp/protonvpn-tui"
 repository = "https://github.com/6plusjp/protonvpn-tui"
-documentation = "https://docs.rs/protonvpn-tui"
 keywords = ["vpn", "tui", "cli", "protonvpn", "terminal"]
 categories = ["command-line-utilities", "network-programming"]
 
